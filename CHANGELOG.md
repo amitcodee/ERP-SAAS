@@ -109,3 +109,25 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
 - **Tests:** new `test:orgs` (17 checks) and `test:platform` (24 checks); `test:all` green (1075 checks); e2e 59/59
   on a production build, with the console and a support session in the browser.
 
+## Phase 1: multi-tenancy, part 5: the boundary, tested (2026-10-20)
+
+- **`pnpm test:tenancy`** (26 checks), in three parts:
+  - **The catalogue:** every table is tenant or platform; each tenant table has `org_id` NOT NULL DEFAULT
+    `app_org()`, RLS on and forced, the restrictive org guard and the read-only guards. Every foreign key between
+    tenant tables has its org companion. Unique keys lead with `org_id` or a row id, or are listed as global on
+    purpose. No business sequence is shared. Every SECURITY DEFINER function filters by org or is listed with its
+    reason, and every view runs as its caller. Each check was shown to fail on a deliberate breakage.
+  - **The data:** a second institute, made the real way. Neither side sees the other's rows in any table or
+    view. Updates and deletes across the line change nothing. A row stamped with, pointing at or moved to another
+    institute is refused. A read-only institute cannot write but keeps its audit trail.
+  - **The code:** every route and server action signs the caller in or is a listed public one. Raw database
+    handles and the platform context appear only in audited files.
+- **`test:security`** adds: hosts cannot be spoofed by look-alike names; a session never fits another institute's
+  host or the console; sealed settings secrets and Aadhaar numbers do not open for another institute or purpose; an
+  unverified custom domain resolves to nobody. The proxy's rule is now `sessionFitsHost()` in `lib/tenant/host.ts`.
+- **`test:orgs`** adds: the database's permission check reads the institute's own role definition, even for a role
+  key another institute has given more rights.
+- **e2e** adds: the sample institute's session, receipt and certificate links do nothing on another institute's
+  address (the session goes to the sign-in page, the certificate is not found).
+- **Tests:** `test:all` green (1110 checks); e2e 60/60 on a production build.
+

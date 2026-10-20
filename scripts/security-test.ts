@@ -19,6 +19,8 @@ import { serverSecret } from '../lib/auth/secret'
 import { loadUserStateIn } from '../modules/auth/account'
 import { aadhaarColumns, openAadhaar } from '../modules/people/aadhaar-store'
 import { SAMPLE_ORG_ID as ORG } from '../lib/db/schema/tenancy'
+import { PLATFORM_SCOPE, seal, unseal } from '../lib/secret-box'
+import { classifyHost, sessionFitsHost } from '../lib/tenant/host'
 
 class Rollback extends Error {}
 let failed = 0
@@ -189,6 +191,29 @@ async function main() {
       const aad = aadhaarColumns(ORG, '2345 6789 0124')
       check('an Aadhaar number is stored sealed, with the last 4 apart', !!aad.aadhaarNo && !aad.aadhaarNo.includes('234567890124') && aad.aadhaarLast4 === '0124' && openAadhaar(ORG, aad.aadhaarNo) === '234567890124')
 
+      // ---- across institutes ---------------------------------------------------------------------------------------
+      const OTHER = '00000000-0000-4000-8000-0000000000ff'
+      check('an Aadhaar number sealed for one institute does not open as another’s', openAadhaar(OTHER, aad.aadhaarNo!) === null)
+      const box = seal({ password: 'mailbox-secret' }, 'settings-secrets', ORG)
+      check('a settings secret opens only for its own institute and purpose', unseal<{ password: string }>(box, 'settings-secrets', ORG)?.password === 'mailbox-secret'
+        && unseal(box, 'settings-secrets', OTHER) === null && unseal(box, 'personal-ids', ORG) === null && unseal(box, 'settings-secrets', PLATFORM_SCOPE) === null)
+      // which institute a host is: no spoofing by look-alike names
+      // '' = no default org (undefined would take DEFAULT_ORG_SLUG from the environment)
+      const kinds = (root: string | undefined, ...hosts: string[]) => hosts.map((h) => { const k = classifyHost(h, root, ''); return k.kind === 'org' ? `org:${k.slug}` : k.kind })
+      check('hosts: a subdomain of the root is that institute; the console and the apex are not institutes',
+        kinds('example.com', 'acme.example.com', 'ACME.Example.com.', 'admin.example.com', 'www.example.com', 'example.com', 'api.example.com').join() === 'org:acme,org:acme,platform,apex,apex,apex')
+      check('hosts: look-alikes are only someone’s possible custom domain, never an institute by slug',
+        kinds('example.com', 'acme.example.com.evil.net', 'a.b.example.com', 'acmeexample.com', 'acme.localhost.evil.net').every((k) => k === 'custom'))
+      check('a session never fits another institute’s host, nor the console',
+        sessionFitsHost(classifyHost('acme.example.com', 'example.com'), 'acme') && !sessionFitsHost(classifyHost('other.example.com', 'example.com'), 'acme')
+          && !sessionFitsHost(classifyHost('admin.example.com', 'example.com'), 'acme') && !sessionFitsHost(classifyHost('ACME2.localhost:3000'), 'acme'))
+      // a custom domain counts only once verified
+      await tx.execute(sql`reset role`)
+      await tx.execute(sql`insert into org_domains (org_id, host, token) values (${ORG}, 'learn.sample-test.invalid', 'tok')`)
+      const viaDomain = async () => (await tx.execute<{ id: string }>(sql`select id from org_for_host(null, 'learn.sample-test.invalid')`)).rows[0]?.id ?? null
+      check('an unverified custom domain resolves to no institute', (await viaDomain()) === null)
+      await tx.execute(sql`update org_domains set verified_at = now() where host = 'learn.sample-test.invalid'`)
+      check('... and to its own once verified', (await viaDomain()) === ORG)
       throw new Rollback()
     })
   } catch (e) {

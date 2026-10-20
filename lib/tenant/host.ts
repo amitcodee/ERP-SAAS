@@ -45,3 +45,14 @@ export function slugProblem(slug: string): string | null {
   if (RESERVED_SLUGS.has(slug)) return 'That address is reserved: pick another'
   return null
 }
+
+/**
+ * Whether a session cookie of the org `orgSlug` may be used on this host (the proxy's first check; getActor checks
+ * again against the database, which also covers custom domains). Never on another org's subdomain, nor on the
+ * platform console's host.
+ */
+export function sessionFitsHost(host: HostKind, orgSlug: string | undefined): boolean {
+  if (host.kind === 'platform') return false
+  return host.kind !== 'org' || host.slug === orgSlug
+}
+

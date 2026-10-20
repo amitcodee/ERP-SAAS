@@ -7,6 +7,8 @@ import { hash } from '@node-rs/argon2'
 import pg from 'pg'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
 import { isValidAadhaar } from '../modules/people/aadhaar'
+import { provisionOrg } from '../modules/orgs/provision'
+import { pool } from '../lib/db/client'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3300'
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL!
@@ -117,6 +119,17 @@ async function resetDevAdmin() {
   const c = new pg.Client({ connectionString: url }); await c.connect()
   await c.query('update users set password_hash = $1, must_change_password = true, password_changed_at = now() where email = $2', [await hash(ADMIN_PASSWORD), ADMIN_EMAIL.toLowerCase()])
   await c.end()
+}
+
+/** Another institute for the cross-address checks (made once, kept: CI starts from a fresh database). */
+async function ensureOrg(slug: string, name: string): Promise<string> {
+  const url = process.env.DATABASE_URL ?? ''
+  if (!/127.0.0.1|localhost/.test(url)) throw new Error('refusing to make an institute on a non-local database')
+  const c = new pg.Client({ connectionString: url }); await c.connect()
+  const found = (await c.query('select 1 from organisations where slug = $1', [slug])).rowCount
+  await c.end()
+  if (!found) await provisionOrg({ name, slug, ownerName: 'E2E Owner', ownerEmail: `owner@${slug}.e2e.test`, status: 'active' })
+  return slug
 }
 
 /** Local only: a platform admin for the console steps. */
@@ -788,6 +801,26 @@ async function main() {
       await expectText(sp, 'We then e-mail you a code to confirm the change.')
     }, sp)
 
+    // ============ ANOTHER INSTITUTE'S ADDRESS: nothing of this one works there ============
+    await ok('a session, receipt and certificate of one institute do nothing on another institute’s address', async () => {
+      const other = await ensureOrg('e2e-other', 'E2E Other Institute')
+      const OBASE = BASE.replace('//localhost', `//${other}.localhost`)
+      const session = (await sp.context().cookies(BASE)).find((c) => c.name === 'tc_session')?.value
+      if (!session) throw new Error('no session cookie to replay')
+      // Node cannot resolve *.localhost (Chrome can): send the other institute's Host to this server instead
+      const otherHost = new URL(OBASE).host
+      const replay = (path: string) => sp.request.get(`${BASE}${path}`, { headers: { host: otherHost, cookie: `tc_session=${session}` }, maxRedirects: 0 })
+      for (const path of ['/dashboard', receiptHref, `${receiptHref}/pdf`]) {
+        const r = await replay(path)
+        if (r.status() < 300 || r.status() >= 400 || !/\/login/.test(r.headers()['location'] ?? '')) throw new Error(`${path} on the other institute: ${r.status()} ${r.headers()['location'] ?? ''}`)
+      }
+      const pdf = await sp.request.get(`${BASE}/verify/${certHash}/certificate/pdf`, { headers: { host: otherHost } })
+      if (pdf.status() !== 404) throw new Error(`certificate PDF on the other institute: ${pdf.status()}`)
+      const vctx = await browser.newContext(); const v = await vctx.newPage()
+      await v.goto(`${OBASE}/verify/${certHash}`); await expectText(v, 'Not found')
+      await vctx.close()
+    }, sp)
+
     // ============ PLATFORM CONSOLE (admin.<host>) and a support session ============
     {
       const PBASE = BASE.replace('//localhost', '//admin.localhost')
@@ -833,6 +866,7 @@ async function main() {
   } finally {
     await browser.close()
     await resetDevAdmin().catch(() => {}) // leave the seed password, which the other suites sign in with
+    await pool.end().catch(() => {}) // the app's pool (ensureOrg provisions through it)
     console.log(process.exitCode ? `\nE2E FAILED at: ${step}  (${passed} steps passed; screenshot in ${OUT}/)` : `\nE2E PASSED: all ${passed} steps`)
   }
 }

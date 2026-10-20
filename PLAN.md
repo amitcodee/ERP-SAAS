@@ -172,7 +172,7 @@ that org only. Certificate hashes include `org_id`.
     - an organisations list (search, status, sizes only) with suspend, read-only and reactivate;
     - support sessions with an audit trail, and a banner in the org's panel while one is open.
     (The rest of the console is in Phase 2.)
-13. [ ] **1.13 `pnpm test:tenancy`**:
+13. [x] **1.13 `pnpm test:tenancy`**:
     - **Catalogue checks**: every table is either tenant or on the platform allow-list; a tenant table has `org_id`
       NOT NULL with the default, RLS enabled and forced, the restrictive `org_guard` and the write guards; every
       foreign key into a tenant table has its org companion; unique indexes lead with `org_id` unless on the global
@@ -184,7 +184,7 @@ that org only. Certificate hashes include `org_id`.
       resolver. A static scan finds no raw `db` or `pool` and no `withPlatform` that touches tenant tables.
     - **HTTP checks** (in e2e): a session from org A on org B's host is refused, and B's receipt, document,
       certificate, event and API URLs answer 404 to A.
-14. [ ] **1.14** Extend `db:test` (RLS), `test:rbac` (roles per org, no grant across orgs) and `test:security`
+14. [x] **1.14** Extend `db:test` (RLS), `test:rbac` (roles per org, no grant across orgs) and `test:security`
     (host spoofing, session replay across orgs, secret-box across orgs). Update the e2e for subdomain hosts.
 
 ### Risks
@@ -394,4 +394,15 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
   request; read-only is enforced by the database; audit rows carry `impersonator_id` and `support_session_id`.
   The org's head office sees a banner and can end it.
 
-**Next:** 1.13 `pnpm test:tenancy`.
+**Done in the fifth tenancy commit (1.13, 1.14): Phase 1 is complete.**
+- `pnpm test:tenancy`: the catalogue (tenant/platform classification, `org_id`, RLS forced, the org guard and
+  read-only guards, the org companion of every foreign key, unique keys, sequences, SECURITY DEFINER functions,
+  views), the data (another institute seen from each side in every table and view; cross-org writes refused), and
+  the code (every route and server action signs the caller in or is a named public one; raw DB handles and
+  `withPlatform` only in audited files). Each catalogue check was shown to fail on a deliberate breakage.
+- `test:security`: host spoofing, a session never fits another institute's host or the console, sealed secrets and
+  Aadhaar across institutes, unverified custom domains.
+- `test:orgs`: the database's permission check reads the institute's own role definition.
+- e2e: a session, receipt and certificate of one institute do nothing on another's address.
+
+**Next:** Phase 2 (sign-up, onboarding, plans and billing), once the owner has looked at the decisions below.

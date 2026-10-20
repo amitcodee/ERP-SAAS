@@ -76,6 +76,17 @@ async function main() {
       await throws(tx, 'a person cannot be given another org’s role', () => tx.execute(sql`insert into user_roles (user_id, role) values (${sampleUser.id}, ${custom})`), /foreign key|violates/)
       await tx.execute(sql`reset role`); await applyOrgSystem(tx, made.orgId)
       await throws(tx, 'nor can a role point at a person of another org', () => tx.execute(sql`insert into user_roles (user_id, role) values (${sampleUser.id}, 'trainer')`), /foreign key|violates/)
+      // the database's permission check reads the org's own role definition, even for a key both orgs have
+      await tx.execute(sql`reset role`); await applyTenant(tx, head)
+      await saveRole(tx, head, { key: 'trainer', name: 'Trainer', permissions: ['certificate:approve', 'fee:clear'] })
+      const perm = async (orgId: string, branchId: string, p: string) => {
+        await tx.execute(sql`reset role`); await applyTenant(tx, { userId: made.ownerUserId, orgId, role: 'trainer', branchId })
+        return (await tx.execute<{ ok: boolean }>(sql`select app_has_perm(${p}) as ok`)).rows[0].ok
+      }
+      await tx.execute(sql`reset role`) // the database owner: sees past RLS, to pick a branch of the Sample Institute
+      const [sampleBranch] = (await tx.execute<{ id: string }>(sql`select id from branches where org_id = ${ORG} limit 1`)).rows
+      check('a trainer in the org that granted more has it', (await perm(made.orgId, made.branchId, 'certificate:approve')) && (await perm(made.orgId, made.branchId, 'fee:clear')))
+      check('... a trainer in another org does not (its own trainer role decides)', !(await perm(ORG, sampleBranch.id, 'certificate:approve')) && !(await perm(ORG, sampleBranch.id, 'fee:clear')))
       throw new Rollback()
     })
   } catch (e) {

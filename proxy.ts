@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { PLATFORM_COOKIE, readPlatformSession, readSession, SESSION_COOKIE } from '@/lib/auth/session'
-import { classifyHost } from '@/lib/tenant/host'
+import { classifyHost, sessionFitsHost } from '@/lib/tenant/host'
 
 // Content Security Policy, fresh for every page: only scripts carrying this request's nonce run (Next.js puts it on its
 // own scripts), so a script slipped into a page by an attacker would not. Inline style attributes stay allowed (the UI
@@ -56,7 +56,7 @@ export async function proxy(req: NextRequest) {
   // a session belongs to one organisation: on another org's address it counts as none (getActor checks it again
   // against the database, which also covers custom domains)
   const cookie = await readSession(req.cookies.get(SESSION_COOKIE)?.value)
-  const session = cookie && (host.kind !== 'org' || host.slug === cookie.orgSlug) ? cookie : null
+  const session = cookie && sessionFitsHost(host, cookie.orgSlug) ? cookie : null
   if (pathname === '/login') return session ? NextResponse.redirect(new URL('/', req.url)) : withCsp(req)
   if (pathname.startsWith('/login/') || pathname === '/support') return withCsp(req)
   // Visitors who are not signed in get the public landing page at the home address.
