@@ -11,6 +11,8 @@ import { todaysBirthdays } from '@/modules/notifications/birthday'
 import { BirthdayToast } from '@/components/birthday-toast'
 import { SupportBanner } from '@/components/support-banner'
 import { openSupport } from '@/modules/platform/service'
+import { onboardingState } from '@/modules/onboarding/service'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +22,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (b.mustChange) return <ForcedChangeScreen name={b.session.name} />
   if (b.session.role === 'student') redirect('/') // students have their own portal
   const a = b.actor, today = todayIST()
-  const [askEmail, birthdays, support] = await Promise.all([
+  const [askEmail, birthdays, support, setup] = await Promise.all([
     // a branch with no mail server of its own works only once it is set up: its staff are told on every page
     needsBranchEmail(a),
     // students whose birthday it is today, shown bottom-right to the staff who look after them (who sees whom depends
@@ -30,10 +32,18 @@ export default async function PanelLayout({ children }: { children: React.ReactN
       : [],
     // a platform support session open in this institute: head office sees who is in and why
     b.isSuper ? openSupport(a.orgId).catch(() => null) : null,
+    // a new institute's setup steps, until each is settled or head office puts the list away
+    b.isSuper && b.modules.includes('Set Up') ? cached(a.orgId, 'onboarding', () => withTenant(a, onboardingState)).catch(() => null) : null,
   ])
   return (
     <PanelShell user={b.user} modules={b.modules} branches={b.switchBranches} isSuper={b.isSuper} actingBranchId={b.actor.branchId}>
       {support && <SupportBanner s={support} isSupport={!!a.impersonatorId} />}
+      {setup && !setup.complete && !setup.dismissed && (
+        <div role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '0 28px 12px', padding: '10px 16px', borderRadius: 12, background: '#eef0ff', border: '1px solid #c9ccf5', fontSize: 13 }}>
+          <span><strong>Finish setting up your institute</strong>: {setup.settled} of {setup.steps.length} steps done.</span>
+          <Link href="/setup" className="filter-button">Continue</Link>
+        </div>
+      )}
       {children}
       {birthdays.length > 0 && <BirthdayToast people={birthdays} today={today} showBranch={b.isSuper && !b.actor.branchId} />}
       {askEmail && <BranchEmailPrompt branchName={b.user.branchName} canSetUp={canManageBranchEmail(b.actor)} />}

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Activity, BookOpen, Building2, Check, ChevronDown, ClipboardList, FileText, GraduationCap, LayoutDashboard,
-  Globe, Inbox, Palette, Mic, DatabaseZap, LogOut, Menu, Phone, ScrollText, Settings, ShieldCheck, Tags, Target, Users, WalletCards, X, Trash2, ChartColumn, ChartLine, Trophy, ArrowRightLeft, Share2, AlarmClock, MessageSquareText, Ticket, CalendarRange, FileCheck2, FileBadge, BriefcaseBusiness, Medal, FilePenLine, Layers, LifeBuoy, Megaphone, Presentation, HandHelping, ShieldAlert, Send } from 'lucide-react'
+  Globe, Inbox, Palette, Mic, DatabaseZap, LogOut, Menu, Phone, ScrollText, Settings, ShieldCheck, Tags, Target, Users, WalletCards, X, Trash2, ChartColumn, ChartLine, Trophy, ArrowRightLeft, Share2, AlarmClock, MessageSquareText, Ticket, CalendarRange, FileCheck2, FileBadge, BriefcaseBusiness, Medal, FilePenLine, Layers, LifeBuoy, Megaphone, Presentation, HandHelping, ShieldAlert, Send, Rocket } from 'lucide-react'
 import { setActingBranchAction } from '@/app/actions'
 import { logoutAction } from '@/app/login/actions'
 import { TooltipLayer } from '@/components/tooltip-layer'
@@ -19,7 +19,7 @@ const ICON: Record<ModuleKey, typeof Phone> = {
   Dashboard: LayoutDashboard, 'My Classes': Presentation, 'Project Help': HandHelping, 'Random Call': Phone, Leads: Inbox, 'Web Leads': Globe, 'Lead Categories': Tags, 'My Leads': Phone, 'Lead Distribution': Users, Enquiry: ClipboardList,
   Registration: FileText, 'Enquiry Update': Activity, Fees: WalletCards, Collection: ChartColumn,
   Students: GraduationCap, Courses: BookOpen, Reports: Target, Graphs: ChartLine, Leaderboards: Trophy, Transfers: ArrowRightLeft, 'Shared Students': Share2, Overdues: AlarmClock, Calendar: CalendarRange, 'Certificate Requests': FileCheck2, 'Issue Certificate': FileBadge, 'Internship Requests': BriefcaseBusiness, 'Internship Complete': Medal, 'Letter Templates': FilePenLine, 'Course Categories': Layers, 'Help Desk': LifeBuoy, 'My Tickets': Ticket, Announcements: Megaphone, 'Message Templates': MessageSquareText, 'Bulk WhatsApp': Send, 'Seminars & Workshops': Mic, 'Certificate Designs': Palette,
-  'Users & Staff': Users, 'Roles & Permissions': ShieldCheck, Branches: Building2, Logs: ScrollText, 'Sign-in Security': ShieldAlert, 'Recycle Bin': Trash2, 'Old System Import': DatabaseZap, Settings,
+  'Users & Staff': Users, 'Roles & Permissions': ShieldCheck, Branches: Building2, Logs: ScrollText, 'Sign-in Security': ShieldAlert, 'Recycle Bin': Trash2, 'Old System Import': DatabaseZap, Settings, 'Set Up': Rocket,
 }
 const GROUPS = ['Overview', 'Admissions', 'Documents', 'Events', 'Reports', 'Management', 'Administration']
 

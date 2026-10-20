@@ -4,7 +4,7 @@ import type { Action, Resource } from '@/lib/auth/permissions'
 type Ok = (a: Action, r: Resource) => boolean
 export type ModuleKey =
   | 'Dashboard' | 'Overdues' | 'My Tickets' | 'My Classes' | 'Project Help' | 'Random Call' | 'Leads' | 'Web Leads' | 'Lead Categories' | 'Enquiry' | 'Registration' | 'Enquiry Update' | 'My Leads' | 'Lead Distribution' | 'Transfers' | 'Shared Students'
-  | 'Fees' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings'
+  | 'Fees' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
 
 export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (ok: Ok) => boolean }[] = [
   { key: 'Dashboard', path: '/dashboard', group: 'Overview', allowed: () => true },
@@ -65,6 +65,8 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   // head office: a branch's students and payments from the old techcadd system (phpMyAdmin CSV), re-runnable to sync
   { key: 'Old System Import', path: '/import-old', group: 'Administration', allowed: (ok) => ok('create', 'branch') },
   { key: 'Settings', path: '/settings', group: 'Administration', allowed: () => true },
+  // head office: the first steps of a new institute (modules/onboarding)
+  { key: 'Set Up', path: '/setup', group: 'Administration', allowed: (ok) => ok('update', 'setting') && ok('create', 'branch') },
 ]
 /** What the menu and the breadcrumb show, where it differs from the key. */
 export const LABEL: Partial<Record<ModuleKey, string>> = { Enquiry: 'Visited Enquiry', Collection: 'Collections' }
@@ -72,6 +74,7 @@ export const labelOf = (k: ModuleKey) => LABEL[k] ?? k
 /** What each page is for, shown as a tooltip on the menu. */
 export const ABOUT: Record<ModuleKey, string> = {
   Dashboard: 'Your day at a glance: today’s numbers, tasks and alerts.',
+  'Set Up': 'The first steps of a new institute: branding, branch, courses, fees, staff, e-mail and your existing students.',
   Overdues: 'Leads past their follow-up date and fees past their installment date.',
   'Help Desk': 'Students’ questions from the portal: answer, assign and close tickets.',
   'My Tickets': 'Tickets you raised to your branch manager or head office, and tickets given to you.',

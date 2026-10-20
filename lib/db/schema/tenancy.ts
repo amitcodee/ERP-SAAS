@@ -46,6 +46,7 @@ export const organisations = pgTable(
     trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
     branding: jsonb('branding').$type<Record<string, unknown>>().notNull().default({}),
     numbering: jsonb('numbering').$type<Record<string, string>>().notNull().default({}),
+    onboarding: jsonb('onboarding').$type<{ done?: string[]; skipped?: string[]; dismissed?: boolean }>().notNull().default({}), // Set Up steps (modules/onboarding)
     locale: text('locale').notNull().default('en-IN'),
     timezone: text('timezone').notNull().default('Asia/Kolkata'),
     currency: text('currency').notNull().default('INR'),

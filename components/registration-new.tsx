@@ -99,12 +99,13 @@ const STEPS = [
   { title: 'Check & register', hint: 'Confirm everything' },
 ] as const
 
-export function RegistrationNew({ catalogs, enquiry, regNo, branchName, templates }: { catalogs: Catalogs; enquiry: EnquiryForRegistration | null; regNo: string | null; branchName: string | null; templates: TemplateRef[] }) {
+export function RegistrationNew({ catalogs, enquiry, regNo, branchName, templates, defaultGst = 0 }: { catalogs: Catalogs; enquiry: EnquiryForRegistration | null; regNo: string | null; branchName: string | null; templates: TemplateRef[]; defaultGst?: number }) {
   const router = useRouter()
   const [done, setDone] = useState<{ id: string; regNo: string; name: string; note: string } | null>(null)
   const [plan, setPlan] = useState<PlanState>(() => newPlanState(today())) // how the fee is paid
   const [enq, setEnq] = useState<EnquiryForRegistration | null>(enquiry)
-  const blank = (): F => ({ ...EMPTY, enrollmentDate: today(), joiningDate: today() })
+  // the institute's usual GST (Set Up → Fees), when it is one of the rates offered
+  const blank = (): F => ({ ...EMPTY, enrollmentDate: today(), joiningDate: today(), gstPct: GST_RATES.includes(String(defaultGst)) ? String(defaultGst) : '0' })
   const [f, setF] = useState<F>(() => (enquiry ? fromEnquiry(enquiry, blank()) : blank()))
   const [kind, setKind] = useState<'new' | 'upgrade'>('new')
   const [filter, setFilter] = useState<SourceFilter>('all')

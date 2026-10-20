@@ -211,7 +211,7 @@ that org only. Certificate hashes include `org_id`.
    - the org is provisioned (roles, settings defaults, sample lookups) on a 14-day trial;
    - the owner lands on `<slug>.<root>`.
    - Abuse controls: rate limits, a disposable-mail block-list, a slug block-list.
-3. [ ] Onboarding wizard with resumable steps stored on the org:
+3. [x] Onboarding wizard with resumable steps stored on the org:
    1. branding;
    2. first branch and its number formats;
    3. departments and courses from template catalogues (`lib/catalogues/*.ts`: computer, CAD, digital marketing,

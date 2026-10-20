@@ -12,6 +12,7 @@ import { audit } from '@/lib/audit'
 import { webLeadsSecretFor } from '@/lib/tenant/web-leads-secret'
 import { setNumbering } from '@/modules/settings/numbering'
 import { endSupportByOrg } from '@/modules/platform/service'
+import { applyCatalogue, brandingInput, feesInput, markStep, saveBranding, saveFees, type StepKey } from '@/modules/onboarding/service'
 import { deleteBatch, deleteCourse, deleteRegistration, deleteUser, deleteWebLeadSoft, purgeItem, restoreItem, type Kind as RecycleKind } from '@/modules/ops/recycle'
 import { z } from 'zod'
 import { isDialCode } from '@/lib/countries'
@@ -1437,6 +1438,19 @@ export async function testWebhookAction(id: string) {
 }
 export async function webhookSecretAction(id: string) {
   return run(async () => { const a = await headOffice(); return withTenant(a, (tx) => webhookSecret(tx, id)) })
+}
+/** Set Up (modules/onboarding): head office only (each service checks it too). */
+export async function setupStepAction(step: StepKey | 'dismiss', how: 'done' | 'skip' | 'undo') {
+  return run(async () => { const a = await headOffice(); await withTenant(a, (tx) => markStep(tx, a, step, how)); revalidatePath('/', 'layout') })
+}
+export async function setupBrandingAction(v: z.input<typeof brandingInput>) {
+  return run(async () => { const a = await headOffice(); await withTenant(a, (tx) => saveBranding(tx, a, v)); revalidatePath('/', 'layout') })
+}
+export async function setupCatalogueAction(key: string) {
+  return run(async () => { const a = await headOffice(); const r = await withTenant(a, (tx) => applyCatalogue(tx, a, key)); revalidatePath('/', 'layout'); return r })
+}
+export async function setupFeesAction(v: z.input<typeof feesInput>) {
+  return run(async () => { const a = await headOffice(); await withTenant(a, (tx) => saveFees(tx, a, v)); revalidatePath('/', 'layout') })
 }
 /** Head office ends the platform support session open in the institute (the banner's "End now"). */
 export async function endSupportSessionAction(sessionId: string) {

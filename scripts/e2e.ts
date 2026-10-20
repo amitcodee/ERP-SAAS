@@ -836,7 +836,12 @@ async function main() {
         await setSignupCode(email, '424242')
         await w.getByLabel('Code').fill('424242'); await w.getByRole('button', { name: 'Confirm' }).click()
         await w.waitForURL((u) => u.hostname === `${slug}.localhost`, { timeout: 30000 })
-        await expectText(w, /Good (morning|afternoon|evening)|Set up your institute/)
+        await expectText(w, 'Set up your institute'); await expectText(w, '0 of 7 done')
+      }, w)
+      await ok('set up: a ready-made course list in one click ticks the step', async () => {
+        await w.getByRole('button', { name: /3\. Courses/ }).click()
+        await w.getByRole('button', { name: 'Add these' }).first().click()
+        await expectText(w, 'Added 3 departments and 8 courses'); await expectText(w, '1 of 7 done')
       }, w)
       await ctx.close()
     }

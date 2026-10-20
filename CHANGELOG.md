@@ -162,3 +162,27 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
   (`lib/http.ts`).
 - **Tests:** new `test:signup` (26 checks); e2e adds the public site and a full sign-up in the browser.
 
+## Phase 2: Set Up, the onboarding of a new institute (2026-10-20)
+
+- **Set Up** (Administration → Set Up, head office) has seven steps:
+  - your institute (name as printed, tagline, colour, logo);
+  - first branch;
+  - courses;
+  - fees;
+  - staff;
+  - e-mail;
+  - existing students.
+- A step is ticked when the institute has really done it, read from its data, so work done on another screen
+  counts. Head office can also mark a step done or skip it. The state lives in `organisations.onboarding`
+  (migration 0103); institutes from before sign-up are marked set up.
+- **Filled in on the page:**
+  - branding goes in `organisations.branding` and `legal_name`;
+  - ready-made course lists (`lib/catalogues.ts`: computer centre, CAD, digital marketing, spoken English,
+    IELTS/PTE, school tuition), added in one click and never twice;
+  - the institute's usual GST, which the registration form now starts with, and extra ways to pay.
+- **On their own screens:** the branch, staff, e-mail and import steps open the screen that does them.
+- New owners land on Set Up after signing up. Head office sees a reminder on every page until each step is settled
+  or the list is hidden.
+- **Tests:** new `test:onboarding` (18 checks); e2e adds landing on Set Up and adding a course list; `test:all`
+  green (1154 checks); e2e 63/63.
+

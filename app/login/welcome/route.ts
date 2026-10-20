@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     return { userId: u.id, org: org.id, orgSlug: org.slug, name: u.name, email: u.email, roles, role: primaryRole(roles), branchId: u.branchId, branchName: null, pwv: u.passwordChangedAt.getTime() }
   })
   if (!session) return redirectHere('/login')
-  const res = redirectHere('/')
+  const res = redirectHere('/setup') // a new institute starts with its setup steps
   res.cookies.set(SESSION_COOKIE, await signSession(session), { ...cookieOptions, secure: await httpsRequest() })
   return res
 }
