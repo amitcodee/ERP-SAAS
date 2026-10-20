@@ -80,5 +80,5 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
 - The certificate search on `/verify` finds event certificates whatever their format.
 - The reconciliation's receipt check reads the financial year from anywhere in the number.
 - The e2e run now leaves the dev admin on the seed password, so `test:auth` passes after it.
-- **Tests:** new `test:numbering` (28 checks); `test:all` green (1033 checks).
+- **Tests:** new `test:numbering` (29 checks); `test:all` green (1034 checks); e2e 56/56 on a production build.
 

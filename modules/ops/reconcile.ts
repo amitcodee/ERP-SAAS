@@ -6,6 +6,9 @@ import type { Tx } from '@/lib/db/withTenant'
 export type Problem = { branch: string; check: string; detail: string }
 export type ReconcileResult = { branches: number; payments: number; problems: Problem[] }
 
+/** The financial year inside a receipt number (2026-27): on its own, so digits in a branch code (K41307-…) never count. */
+export const RECEIPT_FY = '(?:^|\\D)(\\d{4}-\\d{2})(?:\\D|$)'
+
 export async function reconcile(tx: Tx): Promise<ReconcileResult> {
   const rows = async <T>(q: ReturnType<typeof sql>) => (await tx.execute<T & Record<string, unknown>>(q)).rows
   const problems: Problem[] = []
@@ -44,7 +47,7 @@ export async function reconcile(tx: Tx): Promise<ReconcileResult> {
   for (const r of await rows<{ code: string; period: string; n: number; top: number; seq: number | null }>(sql`
     select b.code, x.period, x.n, x.top, s.last_value as seq
     from (
-      select branch_id, substring(receipt_no from '(\\d{4}-\\d{2})') as period, count(*)::int as n,
+      select branch_id, substring(receipt_no from ${RECEIPT_FY}) as period, count(*)::int as n,
              max(substring(receipt_no from '(\\d+)$')::int) as top
       from receipts group by 1, 2
     ) x

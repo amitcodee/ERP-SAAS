@@ -8,6 +8,7 @@ import { SAMPLE_ORG_ID as ORG } from '../lib/db/schema/tenancy'
 import { applyOrgSystem, applyTenant, type Actor, type Tx } from '../lib/db/withTenant'
 import { financialYear, formatProblem, nextEnquiryNo, nextOrgNo, nextReceiptNo, nextRegNo, numberOf, periodOf, renderNumber } from '../lib/numbering'
 import { yearIST } from '../lib/ist'
+import { RECEIPT_FY } from '../modules/ops/reconcile'
 import { listNumbering, setNumbering } from '../modules/settings/numbering'
 
 class Rollback extends Error {}
@@ -53,6 +54,10 @@ async function main() {
       const [other] = (await tx.execute<{ id: string }>(sql`insert into organisations (name, slug, status, plan_key)
         select 'Numbering Two', 'numbering-two-test', 'active', plan_key from organisations where id = ${ORG} returning id`)).rows
       const as = async (a: Actor) => { await tx.execute(sql`reset role`); await applyTenant(tx, a) }
+
+      const fyOf = async (no: string) => (await tx.execute<{ p: string | null }>(sql`select substring(${no}::text from ${RECEIPT_FY}) as p`)).rows[0].p
+      check('reconciliation finds the financial year in any receipt format, not in the branch code',
+        (await fyOf('RCP-K41307-2026-27-00001')) === '2026-27' && (await fyOf('R/2026-27/K4130/12')) === '2026-27' && (await fyOf('2026-27-MOH-1')) === '2026-27')
 
       // ---- the org's formats -----------------------------------------------------------------------------------
       await as(head)
