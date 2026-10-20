@@ -8,6 +8,7 @@ import pg from 'pg'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
 import { isValidAadhaar } from '../modules/people/aadhaar'
 import { provisionOrg } from '../modules/orgs/provision'
+import { signupCodeHash } from '../modules/signup/service'
 import { pool } from '../lib/db/client'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3300'
@@ -130,6 +131,17 @@ async function ensureOrg(slug: string, name: string): Promise<string> {
   await c.end()
   if (!found) await provisionOrg({ name, slug, ownerName: 'E2E Owner', ownerEmail: `owner@${slug}.e2e.test`, status: 'active' })
   return slug
+}
+
+/** Local only: the code a sign-up waits for (e-mail is off in test runs), set to a known one. */
+async function setSignupCode(email: string, code: string) {
+  const url = process.env.DATABASE_URL ?? ''
+  if (!/127.0.0.1|localhost/.test(url)) throw new Error('refusing to touch sign-ups on a non-local database')
+  const c = new pg.Client({ connectionString: url }); await c.connect()
+  const r = await c.query('select id from signups where email = $1 and completed_at is null order by created_at desc limit 1', [email])
+  if (!r.rows[0]) { await c.end(); throw new Error(`no sign-up for ${email}`) }
+  await c.query('update signups set code_hash = $1 where id = $2', [signupCodeHash(r.rows[0].id, code), r.rows[0].id])
+  await c.end()
 }
 
 /** Local only: a platform admin for the console steps. */
@@ -800,6 +812,34 @@ async function main() {
       await sp.getByLabel('Current password').first().waitFor()
       await expectText(sp, 'We then e-mail you a code to confirm the change.')
     }, sp)
+
+    // ============ THE PUBLIC SITE (www.<host>) and self sign-up ============
+    {
+      const WBASE = BASE.replace('//localhost', '//www.localhost')
+      const ctx = await browser.newContext(); const w = await ctx.newPage(); w.setDefaultTimeout(20000)
+      const slug = `e2e-${RUN}`, email = `owner.${RUN}@e2e-signup.dev`, pw = `Signup-${RUN}-pass`
+      await ok('the public site: home and pricing from the plans; it does not exist on an institute’s address', async () => {
+        await w.goto(`${WBASE}/`); await expectText(w, 'Start free trial')
+        await w.goto(`${WBASE}/pricing`); await expectText(w, 'Growth'); await expectText(w, '₹2,499')
+        const r = await w.request.get(`${BASE}/site/pricing`)
+        if (r.status() !== 404) throw new Error(`the site on an institute host: ${r.status()}`)
+      }, w)
+      await ok('sign up: the form, the e-mailed code, then signed in on the new institute’s own address', async () => {
+        await w.goto(`${WBASE}/signup?plan=growth`)
+        await w.getByLabel('Institute name').fill(`E2E Academy ${RUN}`)
+        await w.getByLabel('Web address').fill(slug); await expectText(w, 'Available')
+        await w.getByLabel('Your name').fill('E2E Owner'); await w.getByLabel('E-mail').fill(email)
+        await w.getByLabel('Mobile').fill('9876543210'); await w.getByLabel('Password').fill(pw)
+        await w.getByRole('checkbox').check()
+        await w.getByRole('button', { name: 'Create my institute' }).click()
+        await expectText(w, 'Check your e-mail')
+        await setSignupCode(email, '424242')
+        await w.getByLabel('Code').fill('424242'); await w.getByRole('button', { name: 'Confirm' }).click()
+        await w.waitForURL((u) => u.hostname === `${slug}.localhost`, { timeout: 30000 })
+        await expectText(w, /Good (morning|afternoon|evening)|Set up your institute/)
+      }, w)
+      await ctx.close()
+    }
 
     // ============ ANOTHER INSTITUTE'S ADDRESS: nothing of this one works there ============
     await ok('a session, receipt and certificate of one institute do nothing on another institute’s address', async () => {

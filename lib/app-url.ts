@@ -26,8 +26,8 @@ export const forgetOrgAddresses = () => known.clear()
  * Public origin of an organisation's workspace, for links in e-mails, receipts and QR codes: its verified custom
  * domain, else https://<slug>.<ROOT_DOMAIN>. Never the request's host in production: the caller controls that, and a
  * live server building a password-reset link from it would mail a link to whatever site the attacker named.
- * Without ROOT_DOMAIN (one-host installs, development) the default org is at APP_URL; outside production the others
- * are at <slug>.localhost, and the default org falls back to the request's host.
+ * Without ROOT_DOMAIN (one-host installs, development) the default org is at APP_URL; outside production (or when
+ * APP_URL is this machine) the others are at <slug>.localhost, and the default org falls back to the request's host.
  */
 export async function appOrigin(orgId: string): Promise<string> {
   const org = await orgAddress(orgId)
@@ -37,7 +37,9 @@ export async function appOrigin(orgId: string): Promise<string> {
   const prod = process.env.NODE_ENV === 'production'
   const app = process.env.APP_URL?.replace(/\/$/, '')
   if (org.slug === process.env.DEFAULT_ORG_SLUG && app) return app
-  if (prod) throw new Error('ROOT_DOMAIN is not set: add the domain institutes work under (e.g. example.com) to the server settings')
+  // a production build on this machine (the end-to-end run) may use <slug>.localhost; a real server needs ROOT_DOMAIN
+  const onThisMachine = !!app && /^(localhost|127\.0\.0\.1)$/.test(new URL(app).hostname)
+  if (prod && !onThisMachine) throw new Error('ROOT_DOMAIN is not set: add the domain institutes work under (e.g. example.com) to the server settings')
   const local = app ? new URL(app) : await requestBase()
   const port = local.port ? `:${local.port}` : ''
   if (org.slug !== process.env.DEFAULT_ORG_SLUG) return `${local.protocol}//${org.slug}.localhost${port}`

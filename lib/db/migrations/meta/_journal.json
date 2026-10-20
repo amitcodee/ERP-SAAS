@@ -708,6 +708,20 @@
       "when": 1792822400000,
       "tag": "0100_org_owner_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1792908800000,
+      "tag": "0101_signups",
+      "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1792995200000,
+      "tag": "0102_find_institute",
+      "breakpoints": true
     }
   ]
 }

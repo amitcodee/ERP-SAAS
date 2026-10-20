@@ -92,3 +92,18 @@ export async function readSupportLink(token: string | undefined): Promise<{ sup:
     return null
   }
 }
+
+/** After self sign-up: the one-time link that signs the new owner in on their institute's own address (10 minutes). */
+export async function signWelcomeLink(v: { org: string; user: string }): Promise<string> {
+  return new SignJWT({ ...v }).setProtectedHeader({ alg: 'HS256' }).setAudience('welcome').setIssuedAt().setExpirationTime('10m').setJti(newSid()).sign(key())
+}
+export async function readWelcomeLink(token: string | undefined): Promise<{ org: string; user: string; jti: string; exp: number } | null> {
+  if (!token) return null
+  try {
+    const { payload } = await jwtVerify(token, key(), { algorithms: ['HS256'], audience: 'welcome' })
+    return typeof payload.org === 'string' && typeof payload.user === 'string' && payload.jti && payload.exp ? { org: payload.org, user: payload.user, jti: payload.jti, exp: payload.exp } : null
+  } catch {
+    return null
+  }
+}
+

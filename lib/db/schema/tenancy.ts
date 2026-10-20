@@ -139,3 +139,28 @@ export const supportSessions = pgTable(
     check('support_sessions_length_ck', sql`expires_at > started_at AND expires_at <= started_at + interval '60 minutes'`),
   ],
 )
+
+/** A self sign-up waiting for its e-mail code (the public site). The org is made once the code is right. */
+export const signups = pgTable(
+  'signups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    ownerName: text('owner_name').notNull(),
+    email: text('email').notNull(),
+    mobile: text('mobile').notNull(),
+    planKey: text('plan_key').notNull().references(() => plans.key, { onUpdate: 'cascade' }),
+    passwordHash: text('password_hash').notNull(),
+    codeHash: text('code_hash').notNull(),
+    attempts: integer('attempts').notNull().default(0),
+    sends: integer('sends').notNull().default(1),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    ip: text('ip'),
+    orgId: uuid('org_id').references(() => organisations.id),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('signups_email_idx').on(t.email, t.createdAt), index('signups_slug_idx').on(t.slug).where(sql`completed_at IS NULL`), check('signups_email_ck', sql`email = lower(email)`)],
+)
+

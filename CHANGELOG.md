@@ -131,3 +131,34 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
   address (the session goes to the sign-in page, the certificate is not found).
 - **Tests:** `test:all` green (1110 checks); e2e 60/60 on a production build.
 
+## Phase 2: the public site and self sign-up (2026-10-20)
+
+- **The public site** on the apex domain (`www.localhost` in development), mapped onto `/site/*` by the proxy and
+  absent on every institute's address. Pages: home, features, pricing (read from the `plans` table), FAQ, contact,
+  terms, privacy, refunds, live status and guides. The product name, contacts and legal name come from
+  `PRODUCT_NAME`, `SUPPORT_EMAIL`, `SALES_PHONE`, `PLATFORM_LEGAL_NAME` and `PLATFORM_ADDRESS` (default "Institute
+  SaaS"), so the public site carries no institute's branding. The terms, privacy and refund pages are templates
+  that match how the service works, marked for a lawyer's review.
+- **Self sign-up** (`modules/signup`):
+  - The visitor gives the institute's name and web address (checked as they type), their name, e-mail, mobile, a
+    password and the plan they will take.
+  - A 6-digit code is e-mailed. It is kept only as an HMAC, works for 15 minutes, allows 5 tries and up to 3 codes
+    per sign-up.
+  - Once confirmed, the institute is made on a 14-day trial of that plan with the owner's chosen password, and a
+    one-time link (10 minutes) signs them in on the institute's own address.
+  - Abuse controls: rate limits per connection and per e-mail, throw-away mailboxes refused, look-alike addresses
+    (banks, government, big brands, payment providers) refused, and an address waiting for its code is not offered
+    to anyone else.
+  - Migration 0101 adds `signups` (a platform table).
+- **Find my institute:** a visitor gives an e-mail and gets the sign-in link of every institute they have a login
+  at, with the same answer whether or not there is one. `platform_orgs_for_email()` (migration 0102) returns ids
+  only, to the platform only.
+- `appOrigin` also works for a production build on this machine (the e2e run): other institutes are then at
+  `<slug>.localhost`. A real server still needs `ROOT_DOMAIN`.
+- The institute home page and the public site share their stylesheet and content (`components/site`).
+- **Fixed: redirects from route handlers now stay on the visitor's host.** `req.url` in a route handler carries the
+  server's own address, so `new URL(path, req.url)` sent someone on an institute's subdomain to the default host.
+  Sign-out, the paper-slip download, the support link and the welcome link now redirect with a relative `Location`
+  (`lib/http.ts`).
+- **Tests:** new `test:signup` (26 checks); e2e adds the public site and a full sign-up in the browser.
+

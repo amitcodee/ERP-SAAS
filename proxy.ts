@@ -51,6 +51,13 @@ export async function proxy(req: NextRequest) {
     return withCsp(req, (headers) => NextResponse.rewrite(new URL(`${path}${req.nextUrl.search}`, req.url), { request: { headers } }))
   }
   if (consolePath) return new NextResponse('Not found', { status: 404 })
+  // The platform's public site (marketing, pricing, sign-up, "find my institute") is the apex domain, and only there.
+  const sitePath = pathname === '/site' || pathname.startsWith('/site/')
+  if (host.kind === 'apex') {
+    const path = sitePath ? pathname : `/site${pathname === '/' ? '' : pathname}`
+    return withCsp(req, (headers) => NextResponse.rewrite(new URL(`${path}${req.nextUrl.search}`, req.url), { request: { headers } }))
+  }
+  if (sitePath) return new NextResponse('Not found', { status: 404 })
   if (pathname === '/verify' || pathname.startsWith('/verify/')) return withCsp(req) // public certificate and receipt checks, and the search
   if (pathname.startsWith('/e/')) return withCsp(req) // public event sign-up (seminars, workshops) and event certificates
   // a session belongs to one organisation: on another org's address it counts as none (getActor checks it again

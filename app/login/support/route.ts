@@ -1,5 +1,6 @@
 import { and, eq, isNull, sql } from 'drizzle-orm'
-import { NextResponse } from 'next/server'
+import { httpsRequest } from '@/lib/auth/https-request'
+import { redirectHere } from '@/lib/http'
 import { cookieOptions, readSupportLink, SESSION_COOKIE, signSession, type Session } from '@/lib/auth/session'
 import { users } from '@/lib/db/schema'
 import { withOrgSystem } from '@/lib/db/withTenant'
@@ -32,8 +33,8 @@ export async function GET(req: Request) {
     return { userId: u.id, org: org.id, orgSlug: org.slug, name: `${open.by} (platform support)`, email: u.email, roles: ['super_admin'], role: 'super_admin', branchId: null, branchName: null, pwv: u.changed.getTime(), sup: open.id }
   })
   if (!session) return refuse()
-  const res = NextResponse.redirect(new URL('/', req.url))
+  const res = redirectHere('/')
   // a support session lasts no longer than its support session (getActor ends it the moment that ends)
-  res.cookies.set(SESSION_COOKIE, await signSession(session), { ...cookieOptions, secure: new URL(req.url).protocol === 'https:', maxAge: 60 * 60 })
+  res.cookies.set(SESSION_COOKIE, await signSession(session), { ...cookieOptions, secure: await httpsRequest(), maxAge: 60 * 60 })
   return res
 }

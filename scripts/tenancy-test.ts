@@ -22,7 +22,7 @@ const check = (n: string, ok: boolean, x = '') => { console.log(`${ok ? 'PASS' :
 const list = (xs: string[]) => (xs.length ? xs.slice(0, 12).join(', ') + (xs.length > 12 ? ` … (${xs.length})` : '') : '')
 
 /** Tables of the platform itself (no org_id guard). Everything else is an org's data. */
-const PLATFORM = ['ip_geo', 'organisations', 'org_domains', 'plans', 'platform_config', 'platform_users', 'support_sessions']
+const PLATFORM = ['ip_geo', 'organisations', 'org_domains', 'plans', 'platform_config', 'platform_users', 'signups', 'support_sessions']
 /** Tenant tables that stay writable while an org is read-only: signing in and out, the audit trail, job bookkeeping. */
 const WRITABLE_WHEN_READ_ONLY = ['audit_logs', 'job_runs', 'login_attempts', 'login_locks', 'revoked_sessions']
 /** Unique keys that are global on purpose: a public link or key carries them, and the host's org must still match. */
@@ -31,6 +31,7 @@ const GLOBAL_UNIQUE = ['api_keys.key_hash', 'certificates.verification_hash', 'e
 const DEFINER_OK: Record<string, string> = {
   org_for_host: 'resolves a host to an org before anyone signs in: returns only id, slug, name, status',
   platform_org_stats: 'platform only (checks app_is_platform())',
+  platform_orgs_for_email: 'platform only (checks app_is_platform()); returns institute ids, nothing of the login',
   app_org_seq: 'writes only the transaction org’s counter (checks app_org())',
   app_can_teach: 'only calls app_has_perm(), which filters by app_org()',
   app_is_branch_manager: 'only calls app_has_perm(), which filters by app_org()',
@@ -177,7 +178,7 @@ async function data(tx: Tx, tenant: string[]) {
 const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? files(p) : /\.(ts|tsx)$/.test(f) ? [p] : [] })
 const rel = (p: string) => p.replace(/\\/g, '/')
 /** What signs a caller in, or names how a public route finds its org. */
-const AUTH = /getActor\(|requirePage\(|loadPanelBase\(|branchEmailOwner\(|headOffice\(\)|requirePlatform\(|requireRequestOrg\(|requestOrg\(|requestHost\(|webLeadsAuthorized\(|apiKeyFrom|authorizeApiKey|CRON_SECRET|cronAuthorized|readChallenge\(|readSupportLink\(/
+const AUTH = /siteOnly\(|getActor\(|requirePage\(|loadPanelBase\(|branchEmailOwner\(|headOffice\(\)|requirePlatform\(|requireRequestOrg\(|requestOrg\(|requestHost\(|webLeadsAuthorized\(|apiKeyFrom|authorizeApiKey|CRON_SECRET|cronAuthorized|readChallenge\(|readSupportLink\(/
 /** Server actions with nothing to protect: they touch no org's data. */
 const PUBLIC_ACTIONS: Record<string, string> = {
   logoutAction: 'clears this browser’s cookies (and revokes its own session id)',
@@ -209,7 +210,9 @@ function code() {
   const RAW_OK = ['lib/db/withTenant.ts', 'lib/db/client.ts', 'app/api/health/route.ts', 'lib/scheduler.ts', 'modules/ops/recycle.ts', 'app/api/import-old/route.ts']
   const raw = all.filter((f) => !RAW_OK.includes(f) && /from ['"](@\/lib\/db\/client|\.\.?\/(\.\.\/)*db\/client|\.\/client)['"]/.test(readFileSync(f, 'utf8')))
   check('no raw database handle outside the audited files', !raw.length, list(raw))
-  const PLATFORM_OK = ['lib/db/withTenant.ts', 'lib/app-url.ts', 'lib/ip-geo.ts', 'lib/tenant/orgs.ts', 'lib/tenant/resolve.ts', 'modules/orgs/provision.ts', 'modules/platform/service.ts']
+  // each reads or writes platform tables only: plans, sign-ups, organisations, the find-my-institute function, a ping
+  const PLATFORM_OK = ['lib/db/withTenant.ts', 'lib/app-url.ts', 'lib/ip-geo.ts', 'lib/tenant/orgs.ts', 'lib/tenant/resolve.ts', 'modules/orgs/provision.ts', 'modules/platform/service.ts',
+    'modules/plans/service.ts', 'modules/signup/service.ts', 'app/site/status/page.tsx']
   const plat = all.filter((f) => !PLATFORM_OK.includes(f) && /withPlatform\(/.test(readFileSync(f, 'utf8')))
   check('the platform context (withPlatform) only in the audited files', !plat.length, list(plat))
   return { RAW_OK, PLATFORM_OK }

@@ -1,4 +1,5 @@
 import { appOrigin } from '@/lib/app-url'
+import { redirectHere } from '@/lib/http'
 import { getActor } from '@/lib/auth/current'
 import { withTenant } from '@/lib/db/withTenant'
 import { receiptPdf } from '@/lib/pdf'
@@ -13,7 +14,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ receipt
   const r = await withTenant(actor, (tx) => getReceipt(tx, actor, decodeURIComponent(receiptNo))).catch(() => null)
   if (!r) return new Response('Not found', { status: 404 })
   // a paper slip has no generated receipt: its own file is what is downloaded
-  if (r.paperSlip) return r.slips[0] ? Response.redirect(new URL(`/receipts/${encodeURIComponent(r.receiptNo)}/slip/${r.slips[0].id}?download`, _req.url), 302) : new Response('Not found', { status: 404 })
+  if (r.paperSlip) return r.slips[0] ? redirectHere(`/receipts/${encodeURIComponent(r.receiptNo)}/slip/${r.slips[0].id}?download`, 302) : new Response('Not found', { status: 404 })
   const pdf = await receiptPdf(r, `${await appOrigin(actor.orgId)}/verify/receipt/${r.token}`)
   return new Response(new Uint8Array(pdf), {
     headers: {

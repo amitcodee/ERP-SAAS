@@ -26,6 +26,7 @@ export const newOrgInput = z.object({
   ownerName: z.string().trim().min(2, 'Enter the owner’s name').max(120),
   ownerEmail: z.string().trim().toLowerCase().email('Enter a valid e-mail'),
   ownerPassword: z.string().min(10).max(200).optional(), // none: a temporary one, changed at first sign-in
+  ownerPasswordHash: z.string().startsWith('$argon2').optional(), // already hashed (self sign-up keeps only the hash)
   status: z.enum(['trial', 'active']).default('trial'),
   planKey: z.string().default('starter'),
   trialDays: z.number().int().min(1).max(90).default(14),
@@ -55,8 +56,9 @@ export async function provisionOrgIn(tx: Tx, raw: NewOrgInput): Promise<Provisio
   const v = newOrgInput.parse(raw)
   const bad = slugProblem(v.slug)
   if (bad) throw new Error(`Web address: ${bad}`)
-  const tempPassword = v.ownerPassword ? null : randomBytes(9).toString('base64url')
-  const passwordHash = await hashPassword(v.ownerPassword ?? tempPassword!)
+  const chosen = !!(v.ownerPassword || v.ownerPasswordHash)
+  const tempPassword = chosen ? null : randomBytes(9).toString('base64url')
+  const passwordHash = v.ownerPasswordHash ?? (await hashPassword(v.ownerPassword ?? tempPassword!))
   const [taken] = (await tx.execute(sql`select 1 from organisations where slug = ${v.slug}`)).rows
   if (taken) throw new Error('That web address is taken: pick another')
   const [org] = (await tx.execute<{ id: string }>(sql`
@@ -71,7 +73,7 @@ export async function provisionOrgIn(tx: Tx, raw: NewOrgInput): Promise<Provisio
     await tx.insert(lookups).values(values.map((value, i) => ({ kind: kind as keyof typeof STARTER_LOOKUPS, value, sortOrder: i })))
   }
   const [b] = await tx.insert(branches).values({ code: v.branch.code, name: v.branch.name }).returning({ id: branches.id })
-  const [u] = await tx.insert(users).values({ name: v.ownerName, email: v.ownerEmail, branchId: null, passwordHash, mustChangePassword: !v.ownerPassword }).returning({ id: users.id })
+  const [u] = await tx.insert(users).values({ name: v.ownerName, email: v.ownerEmail, branchId: null, passwordHash, mustChangePassword: !chosen }).returning({ id: users.id })
   await tx.insert(userRoles).values({ userId: u.id, role: 'super_admin' })
   await tx.execute(sql`update organisations set owner_user_id = ${u.id} where id = ${org.id}`)
   await tx.execute(sql`insert into audit_logs (user_id, action, entity, entity_id, after) values (${u.id}, 'create', 'organisation', ${org.id}, ${JSON.stringify({ name: v.name, slug: v.slug, plan: v.planKey, status: v.status })}::jsonb)`)

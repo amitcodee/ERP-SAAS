@@ -204,9 +204,9 @@ that org only. Certificate hashes include `org_id`.
 
 ## Phase 2: sign-up, onboarding, plans and billing
 
-1. [ ] Marketing site on the apex domain: home, features, pricing (reads `plans`), FAQ, contact, terms, privacy,
+1. [x] Marketing site on the apex domain: home, features, pricing (reads `plans`), FAQ, contact, terms, privacy,
    refund policy, status, and a docs/blog index. Built from the current `/support` landing page.
-2. [ ] Self sign-up:
+2. [x] Self sign-up:
    - institute name, owner name, e-mail and mobile, then an e-mail OTP;
    - the org is provisioned (roles, settings defaults, sample lookups) on a 14-day trial;
    - the owner lands on `<slug>.<root>`.
