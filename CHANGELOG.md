@@ -218,3 +218,19 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
 - **Tests:** new `test:plans` (13 checks) and `test:billing` (32 checks); e2e adds paying for a plan through the
   test payment page; `test:all` green (1199 checks); e2e 64/64.
 
+## Phase 2: the rest of the platform console (2026-10-20)
+
+- **The business at a glance** on the console's home page: institutes by status, MRR (before GST), paying
+  institutes, trials ending this week, sign-ups in 30 days, trial-to-paid conversion over 90 days, institutes lost
+  in 30 days. Each institute's failing daily jobs over the last week are shown too (`platform_job_health()`, counts
+  only).
+- **Plans:** prices, limits and modules, edited in the console. A change applies to the next payment.
+- **Codes:** a percentage or an amount off, for some plans, until a date or a number of uses; switched on or off.
+- **One institute:** change its plan, extend its trial, switch feature flags (`organisations.features`). Each
+  change goes in the institute's own audit log under the platform admin.
+- **Notices to institutes** (`platform_announcements`, migration 0106): shown at the top of every panel page while
+  they run, to everyone or to the institutes on some plans. They are ended, never deleted.
+- Fixed: text arrays are sent to the database as JSON (drizzle spreads a JS array into separate parameters).
+- **Tests:** new `test:console` (14 checks); e2e adds the console's metrics and plans; `test:all` green (1213
+  checks); e2e 65/65.
+

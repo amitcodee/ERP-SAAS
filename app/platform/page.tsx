@@ -2,18 +2,36 @@ import Link from 'next/link'
 import { requirePlatform } from '@/lib/platform/current'
 import { ORG_STATUSES } from '@/lib/db/schema/tenancy'
 import { listOrgs } from '@/modules/platform/service'
+import { metrics } from '@/modules/platform/console'
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—')
+const inr = (paise: number) => '₹' + Math.round(paise / 100).toLocaleString('en-IN')
 const TONE: Record<string, string> = { active: 'green', trial: 'blue', past_due: 'amber', read_only: 'amber', suspended: 'red', cancelled: 'slate' }
 
 // Every organisation, newest first: its status and plan and how big it is (sizes only, never a record).
 export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   await requirePlatform()
   const { q = '', status = '' } = await searchParams
-  const orgs = await listOrgs({ q, status })
+  const [orgs, m] = await Promise.all([listOrgs({ q, status }), metrics()])
   return (
     <section className="page-container">
       <div className="page-heading"><div><p className="eyebrow">Platform</p><h1>Organisations</h1><p className="subheading">{orgs.length} shown. Open one to change its status or start a support session.</p></div></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 16 }}>
+        {[
+          ['MRR (before GST)', inr(m.mrr), `${m.paying} paying`],
+          ['On trial', String(m.byStatus.trial ?? 0), `${m.trialsEnding7} ending this week`],
+          ['Sign-ups, 30 days', String(m.signups30), ''],
+          ['Trial to paid, 90 days', m.conversion90.started ? `${Math.round((m.conversion90.paid / m.conversion90.started) * 100)}%` : '—', `${m.conversion90.paid} of ${m.conversion90.started}`],
+          ['Overdue or read-only', String((m.byStatus.past_due ?? 0) + (m.byStatus.read_only ?? 0)), `${m.byStatus.suspended ?? 0} suspended`],
+          ['Lost, 30 days', String(m.churn30), 'suspended or cancelled'],
+        ].map(([label, value, sub]) => <div key={label} className="panel"><small style={{ color: '#64748b' }}>{label}</small><div style={{ fontSize: 24, fontWeight: 800 }}>{value}</div>{sub && <small style={{ color: '#64748b' }}>{sub}</small>}</div>)}
+      </div>
+      {m.jobFailures.length > 0 && (
+        <div className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #dc2626' }}>
+          <strong>Daily jobs failing (last 7 days)</strong>
+          <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>{m.jobFailures.map((j) => <li key={`${j.org}-${j.job}`}>{j.org}: {j.job}, {j.failed} of {j.runs} failed{j.lastError ? ` (${j.lastError.slice(0, 120)})` : ''}</li>)}</ul>
+        </div>
+      )}
       <form className="panel" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
         <input name="q" defaultValue={q} placeholder="Name or web address" aria-label="Search" style={{ flex: '1 1 220px' }} />
         <select name="status" defaultValue={status} aria-label="Status"><option value="">Every status</option>{ORG_STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}</select>

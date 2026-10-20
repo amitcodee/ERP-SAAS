@@ -68,7 +68,7 @@ export async function listOrgs(f: { q?: string; status?: string } = {}): Promise
     order by o.created_at desc limit 500`)).rows)
 }
 
-export type OrgDetail = OrgListRow & { ownerName: string | null; ownerEmail: string | null; sessions: SupportRow[] }
+export type OrgDetail = OrgListRow & { ownerName: string | null; ownerEmail: string | null; sessions: SupportRow[]; features: Record<string, boolean> }
 export type SupportRow = { id: string; by: string; reason: string; mode: 'read' | 'write'; startedAt: string; expiresAt: string; endedAt: string | null; endedBy: string | null; open: boolean }
 
 export async function orgDetail(id: string): Promise<OrgDetail | null> {
@@ -77,7 +77,8 @@ export async function orgDetail(id: string): Promise<OrgDetail | null> {
   // the owner's name and e-mail, so support can reach them: read inside the org, nothing else
   const owner = await withOrgSystem(id, async (tx) => (await tx.execute<{ name: string; email: string }>(sql`
     select u.name, u.email from organisations o join users u on u.id = o.owner_user_id where o.id = ${id}`)).rows[0] ?? null)
-  return { ...row, ownerName: owner?.name ?? null, ownerEmail: owner?.email ?? null, sessions: await withPlatform((tx) => supportSessionsIn(tx, id)) }
+  const features = await withPlatform(async (tx) => (await tx.execute<{ f: Record<string, boolean> }>(sql`select features as f from organisations where id = ${id}`)).rows[0]?.f ?? {})
+  return { ...row, ownerName: owner?.name ?? null, ownerEmail: owner?.email ?? null, sessions: await withPlatform((tx) => supportSessionsIn(tx, id)), features }
 }
 
 /** Writes a platform admin's action into the org's own audit log (inside an open platform transaction). */

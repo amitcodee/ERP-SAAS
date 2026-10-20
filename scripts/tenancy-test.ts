@@ -22,7 +22,7 @@ const check = (n: string, ok: boolean, x = '') => { console.log(`${ok ? 'PASS' :
 const list = (xs: string[]) => (xs.length ? xs.slice(0, 12).join(', ') + (xs.length > 12 ? ` … (${xs.length})` : '') : '')
 
 /** Tables of the platform itself (no org_id guard). Everything else is an org's data. */
-const PLATFORM = ['billing_events', 'coupons', 'ip_geo', 'organisations', 'org_domains', 'plans', 'platform_config', 'platform_counters', 'platform_invoices', 'platform_payments', 'platform_users', 'signups', 'subscriptions', 'support_sessions']
+const PLATFORM = ['billing_events', 'coupons', 'ip_geo', 'organisations', 'org_domains', 'plans', 'platform_config', 'platform_counters', 'platform_announcements', 'platform_invoices', 'platform_payments', 'platform_users', 'signups', 'subscriptions', 'support_sessions']
 /** Tenant tables that stay writable while an org is read-only: signing in and out, the audit trail, job bookkeeping. */
 const WRITABLE_WHEN_READ_ONLY = ['audit_logs', 'job_runs', 'login_attempts', 'login_locks', 'revoked_sessions']
 /** Unique keys that are global on purpose: a public link or key carries them, and the host's org must still match. */
@@ -31,6 +31,7 @@ const GLOBAL_UNIQUE = ['api_keys.key_hash', 'certificates.verification_hash', 'e
 const DEFINER_OK: Record<string, string> = {
   org_for_host: 'resolves a host to an org before anyone signs in: returns only id, slug, name, status',
   platform_org_stats: 'platform only (checks app_is_platform())',
+  platform_job_health: 'platform only (checks app_is_platform()); counts and the last error of each org’s jobs',
   platform_orgs_for_email: 'platform only (checks app_is_platform()); returns institute ids, nothing of the login',
   app_org_seq: 'writes only the transaction org’s counter (checks app_org())',
   app_can_teach: 'only calls app_has_perm(), which filters by app_org()',
@@ -213,7 +214,7 @@ function code() {
   // each reads or writes platform tables (plans, sign-ups, organisations, billing) or the find-my-institute function or
   // a ping; billing and dunning step into one org's own context only to write its audit log
   const PLATFORM_OK = ['lib/db/withTenant.ts', 'lib/app-url.ts', 'lib/ip-geo.ts', 'lib/tenant/orgs.ts', 'lib/tenant/resolve.ts', 'modules/orgs/provision.ts', 'modules/platform/service.ts',
-    'modules/plans/service.ts', 'modules/signup/service.ts', 'app/site/status/page.tsx', 'modules/billing/service.ts', 'modules/billing/dunning.ts']
+    'modules/plans/service.ts', 'modules/signup/service.ts', 'app/site/status/page.tsx', 'modules/billing/service.ts', 'modules/billing/dunning.ts', 'modules/platform/console.ts']
   const plat = all.filter((f) => !PLATFORM_OK.includes(f) && /withPlatform\(/.test(readFileSync(f, 'utf8')))
   check('the platform context (withPlatform) only in the audited files', !plat.length, list(plat))
   return { RAW_OK, PLATFORM_OK }

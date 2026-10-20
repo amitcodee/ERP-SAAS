@@ -889,6 +889,11 @@ async function main() {
         await pp.getByRole('button', { name: 'Sign in' }).click()
         await expectText(pp, 'Organisations'); await expectText(pp, 'Sample Institute')
       }, pp)
+      await ok('the console: the business at a glance, and the plans', async () => {
+        await expectText(pp, 'MRR (before GST)'); await expectText(pp, 'Trial to paid, 90 days')
+        await pp.getByRole('link', { name: 'Plans' }).click(); await expectText(pp, 'What institutes pay and get'); await expectText(pp, 'Save Starter')
+        await pp.getByRole('link', { name: 'Organisations' }).click(); await expectText(pp, 'Sample Institute')
+      }, pp)
       await ok('a read-only support session: a one-time link in, a banner on both sides, ended by the institute', async () => {
         await pp.getByRole('row', { name: /Sample Institute/ }).getByRole('link', { name: 'Open' }).click()
         await pp.getByLabel('Why').fill(`e2e ${RUN}: checking the fee screen`)

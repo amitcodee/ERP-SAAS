@@ -235,7 +235,7 @@ that org only. Certificate hashes include `org_id`.
    - proration and monthly/yearly plans;
    - dunning: grace period (7 days) → `read_only` → `suspended`;
    - an invoice history page.
-6. [ ] Platform console:
+6. [x] Platform console (global message templates are still to do):
    - organisations, including usage and health;
    - MRR, churn and trial conversion;
    - plans and coupons;

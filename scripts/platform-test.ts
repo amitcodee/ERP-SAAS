@@ -60,7 +60,7 @@ async function main() {
     const s = await startSupport(pu, orgId, { reason: 'ticket 42: fees not adding up', mode: 'read', minutes: 15 })
     await throws('one open session per org', () => startSupport(pu, orgId, { reason: 'another look', mode: 'read' }), /already open/)
     const open = await openSupport(orgId)
-    check('the org sees it: who, why, read-only, when it ends', open?.id === s.id && open.by === 'Platform Tester' && open.mode === 'read' && open.reason.startsWith('ticket 42') && new Date(open.expiresAt).getTime() - Date.now() <= 15 * 60_000)
+    check('the org sees it: who, why, read-only, when it ends', open?.id === s.id && open.by === 'Platform Tester' && open.mode === 'read' && open.reason.startsWith('ticket 42') && new Date(open.expiresAt).getTime() - Date.now() <= 15 * 60_000 + 5_000) // the database's clock and this one may differ by a little
     check('another org does not', (await openSupport(SAMPLE_ORG_ID))?.id !== s.id)
 
     // tokens: each kind is good only where it belongs

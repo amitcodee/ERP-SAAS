@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import { boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core'
-import { organisations, plans } from './tenancy'
+import { organisations, plans, platformUsers } from './tenancy'
 
 // Billing (migration 0105, modules/billing): what each institute pays the platform. Platform tables: the platform
 // writes them; an institute reads its own subscription, payments and invoices.
@@ -122,3 +122,25 @@ export const billingEvents = pgTable(
   },
   (t) => [primaryKey({ name: 'billing_events_pk', columns: [t.provider, t.eventId] })],
 )
+
+/** Notices the platform shows to institutes (all, or those on some plans) while they run. */
+export const platformAnnouncements = pgTable(
+  'platform_announcements',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    title: text('title').notNull(),
+    body: text('body').notNull(),
+    tone: text('tone').$type<'info' | 'warning'>().notNull().default('info'),
+    plans: text('plans').array().notNull().default(sql`'{}'`), // empty: every institute
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    createdBy: uuid('created_by').references(() => platformUsers.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('platform_announcements_live_idx').on(t.startsAt, t.endsAt),
+    check('platform_announcements_tone_ck', sql`tone IN ('info', 'warning')`),
+    check('platform_announcements_period_ck', sql`ends_at IS NULL OR ends_at > starts_at`),
+  ],
+)
+

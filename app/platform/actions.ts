@@ -10,6 +10,7 @@ import { userMessage } from '@/lib/errors'
 import { requirePlatform } from '@/lib/platform/current'
 import { underLimit } from '@/lib/redis'
 import { requestHost } from '@/lib/tenant/request'
+import { announcementInput, couponInput, createAnnouncement, createCoupon, endAnnouncement, extendTrial, planInput, savePlan, setCouponActive, setFeature, setOrgPlan } from '@/modules/platform/console'
 import { assertOwnOpenSession, endSupportByPlatform, platformLogin, setOrgStatus, startSupport } from '@/modules/platform/service'
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string }
@@ -62,3 +63,30 @@ export async function supportLinkAction(orgId: string, sessionId: string) {
 export async function endSupportAction(sessionId: string) {
   return run(async () => { const pu = await requirePlatform(); await endSupportByPlatform(pu, z.string().uuid().parse(sessionId)) })
 }
+
+// ---- the rest of the console (modules/platform/console.ts) ----
+export async function savePlanAction(v: z.input<typeof planInput>) {
+  return run(async () => { await requirePlatform(); await savePlan(v) })
+}
+export async function createCouponAction(v: z.input<typeof couponInput>) {
+  return run(async () => { await requirePlatform(); await createCoupon(v) })
+}
+export async function setCouponActiveAction(code: string, active: boolean) {
+  return run(async () => { await requirePlatform(); await setCouponActive(code, active) })
+}
+export async function setOrgPlanAction(orgId: string, plan: string, reason: string) {
+  return run(async () => { const pu = await requirePlatform(); await setOrgPlan(pu, z.string().uuid().parse(orgId), plan, reason) })
+}
+export async function extendTrialAction(orgId: string, days: number, reason: string) {
+  return run(async () => { const pu = await requirePlatform(); await extendTrial(pu, z.string().uuid().parse(orgId), days, reason) })
+}
+export async function setFeatureAction(orgId: string, flag: string, on: boolean) {
+  return run(async () => { const pu = await requirePlatform(); await setFeature(pu, z.string().uuid().parse(orgId), flag, on) })
+}
+export async function createAnnouncementAction(v: z.input<typeof announcementInput>) {
+  return run(async () => { const pu = await requirePlatform(); await createAnnouncement(pu, v) })
+}
+export async function endAnnouncementAction(id: string) {
+  return run(async () => { await requirePlatform(); await endAnnouncement(z.string().uuid().parse(id)) })
+}
+
