@@ -16,6 +16,7 @@ import { MIN_FIRST_PAYMENT, type FeePlan } from '../fees/plan'
 import { upsertPerson } from '../people/upsert'
 import { REG_TRANSITIONS } from './status'
 import { aadhaarColumns, openAadhaar } from '../people/aadhaar-store'
+import { assertWithinLimit } from '@/lib/plan/limits'
 import {
   createRegistrationInput, regDatesInput, regTransitionInput,
   type CreateRegistrationInput, type RegDatesInput, type RegTransitionInput,
@@ -32,6 +33,7 @@ const needBranch = (actor: Actor) => {
 export async function createRegistration(tx: Tx, actor: Actor, raw: CreateRegistrationInput, opts: { quiet?: boolean } = {}) {
   assertCan(actor, 'create', 'registration')
   const input = createRegistrationInput.parse(raw)
+  await assertWithinLimit(tx, 'activeStudents')
   const branchId = needBranch(actor)
   const [branch] = await tx.select().from(branches).where(eq(branches.id, branchId))
   if (!branch) throw new Error('Branch not found')

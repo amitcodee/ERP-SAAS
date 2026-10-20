@@ -8,6 +8,7 @@ import { assertEmailFree } from '@/lib/email-taken'
 import { persons, registrations, roles, userRoles, users } from '@/lib/db/schema'
 import type { Role } from '@/lib/db/schema'
 import type { Actor, Tx } from '@/lib/db/withTenant'
+import { assertWithinLimit } from '@/lib/plan/limits'
 
 export const createUserInput = z.object({
   name: z.string().trim().min(2).max(100),
@@ -73,6 +74,7 @@ export async function createUser(tx: Tx, actor: Actor, raw: CreateUserInput) {
   const input = createUserInput.parse(raw)
   const keys = [...new Set(input.roles?.length ? input.roles : input.role ? [input.role] : [])]
   const granted = await assertMayGrant(tx, actor, keys)
+  if (granted.some((r) => r.kind !== 'student')) await assertWithinLimit(tx, 'staff')
   const isSuper = granted.some((r) => r.kind === 'super')
   let branchId = input.branchId ?? null
   if (actor.role !== 'super_admin') branchId = actor.branchId // branch heads only ever add to their own branch

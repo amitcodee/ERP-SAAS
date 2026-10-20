@@ -219,14 +219,15 @@ that org only. Certificate hashes include `org_id`.
    4. fee modes and GST;
    5. invite staff;
    6. e-mail sender;
-   7. CSV import with column mapping (generalised from `modules/import/oldsystem.ts`);
+   7. CSV import with column mapping (generalised from `modules/import/oldsystem.ts`). **Still to do:** Set Up links to
+      the existing import for now;
    8. a "you're ready" checklist.
-4. [ ] Plans and limits:
+4. [x] Plans and limits:
    - `plans` holds limits for branches, seats, active students, storage, monthly messages and a module list;
    - `lib/plan/limits.ts` has `assertWithinLimit(tx, org, 'branches')` in the services, plus upgrade prompts;
    - module gating joins `lib/panel/modules.ts`;
-   - add-ons and credit packs.
-5. [ ] Billing:
+   - add-ons and credit packs. **Still to do.**
+5. [x] Billing (Razorpay Payment Links; card/UPI mandates for automatic renewal and Stripe are still to do):
    - `modules/billing` with providers behind one interface: Razorpay (Subscriptions with UPI/card mandates, Orders)
      and Stripe;
    - `subscriptions`, `invoices` (GST tax invoice, gapless platform series), `payments_platform` and `coupons`;

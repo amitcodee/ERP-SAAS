@@ -10,6 +10,7 @@ import { withTenant } from '@/lib/db/withTenant'
 import { listBranches, setupOverview } from '@/modules/branches/service'
 import { listRoles } from '@/modules/roles/service'
 import { MODULES, type ModuleKey } from './modules'
+import { orgPlan, planHasModule } from '@/lib/plan/limits'
 
 const initials = (n: string) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 
@@ -19,18 +20,20 @@ export const loadPanelBase = cache(async () => {
   const ok = (a: Action, r: Resource) => can(actor, a, r)
   // Kept in the shared cache (lib/cache.ts): each key holds everything that decides what the database shows for it.
   // Branches: head office sees them all, anyone else their own branch (branches_read). Role user counts follow who asks.
-  const [branches, setupPct, roleRows] = await Promise.all([
+  const [branches, setupPct, roleRows, plan] = await Promise.all([
     cached(actor.orgId, `branches:${isSuper ? '*' : actor.branchId}`, () => withTenant(actor, listBranches)),
     isSuper ? cached(actor.orgId, 'setup-pct', () => withTenant(actor, setupOverview)) : ({} as Record<string, number>),
     cached(actor.orgId, `roles:${actor.userId}:${actor.role}:${actor.branchId}:${!!actor.ownOnly}`, () => withTenant(actor, listRoles)),
+    cached(actor.orgId, 'plan', () => withTenant(actor, orgPlan)),
   ])
   const base = { branches, setupPct, roleRows }
   const acting = base.branches.find((b) => b.id === actor.branchId)
   // the name from the live branch (the session's copy is as old as the sign-in)
   const branchName = isSuper ? acting?.name ?? 'All branches' : acting?.name ?? myBranches.find((b) => b.id === actor.branchId)?.name ?? 'Branch'
-  const modules = MODULES.filter((m) => m.allowed(ok)).map((m) => m.key)
+  // pages of a paid module show only when the plan includes it (every module during the trial)
+  const modules = MODULES.filter((m) => m.allowed(ok) && (!m.planModule || planHasModule(plan, m.planModule))).map((m) => m.key)
   return {
-    session: s, actor, mustChange, isSuper, ok, modules,
+    session: s, actor, mustChange, isSuper, ok, modules, plan,
     roleRows: base.roleRows,
     // The branches the sidebar lets this person switch between: all for a super admin, their own for shared staff.
     switchBranches: isSuper ? base.branches.map((b) => ({ id: b.id, code: b.code, name: b.name })) : myBranches,

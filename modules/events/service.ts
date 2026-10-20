@@ -19,6 +19,7 @@ import { withOrgSystem, type Actor, type Tx } from '@/lib/db/withTenant'
 import { publicGet } from '@/lib/net-guard'
 import { mailButton } from '@/lib/notify/layout'
 import { fillTemplate, resolveTemplate } from '@/modules/templates/service'
+import { assertModule } from '@/lib/plan/limits'
 
 export const EVENT_KINDS: Record<EventKind, string> = { seminar: 'Seminar', workshop: 'Workshop', webinar: 'Webinar', bootcamp: 'Bootcamp', competition: 'Competition', other: 'Event' }
 export const EVENT_MODES = { offline: 'At the branch', online: 'Online', hybrid: 'Both' } as const
@@ -70,6 +71,7 @@ export async function getDesign(tx: Tx, actor: Actor, id: string): Promise<Desig
 /** Adds (no id) or changes a design. A new one belongs to the branch being worked in (head office with none: to all). */
 export async function saveDesign(tx: Tx, actor: Actor, id: string | null, input: DesignInput) {
   assertCan(actor, 'update', 'certdesign')
+  await assertModule(tx, 'events', 'Certificate designs')
   const v = designInput.parse(input)
   if (JSON.stringify(v.design).length > MAX_DESIGN_BYTES) throw new Error('The design is too big (its pictures weigh over 8 MB): use smaller pictures')
   const design = v.design as Design
@@ -208,6 +210,7 @@ const values = (v: z.output<typeof eventInput>) => ({
 
 export async function createEvent(tx: Tx, actor: Actor, input: EventInput) {
   assertCan(actor, 'create', 'event')
+  await assertModule(tx, 'events', 'Seminars & workshops')
   const v = eventInput.parse(input)
   await assertDesign(tx, v.designId)
   const [row] = await tx.insert(events).values({ ...values(v), branchId: actor.branchId, token: newToken(), createdBy: actor.userId }).returning({ id: events.id })

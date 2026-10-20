@@ -4,7 +4,7 @@
 // address (?tab=). Head office only, except Business rules and Certificates. Your own password is under My account.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { BadgeCheck, BellRing, Check, Clock3, Copy, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Webhook, X } from 'lucide-react'
+import { BadgeCheck, BellRing, Check, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Webhook, X } from 'lucide-react'
 import {
   createApiKeyAction, createWebhookAction, deleteWebhookAction, revokeApiKeyAction, runJobNowAction, saveBranchEmailAction, saveEmailSettingsAction, saveJobsAction, saveNumberingAction, saveRemindersAction,
   saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
@@ -22,6 +22,7 @@ import type { DeliveryRow, WebhookRow } from '@/modules/integrations/webhooks'
 import type { IntegrationsData } from '@/modules/reports/integrations'
 import type { RuleRow } from '@/modules/settings/service'
 import type { NumberingRow } from '@/modules/settings/numbering'
+import { BillingTab, type BillingTabData } from '@/components/billing-tab'
 import { formatProblem, renderNumber } from '@/lib/number-format'
 import { PasswordInput } from '@/components/password-input'
 
@@ -35,6 +36,7 @@ export type SettingsData = {
     sms: { config: SmsConfig; hasAuthKey: boolean; saved: boolean; updatedAt: string | null }
     campaigns: CampaignRow[]
     numbering: NumberingRow[]
+    billing: BillingTabData
     reminders: RemindersConfig
     jobs: JobsConfig
     jobInfo: Record<string, { label: string; what: string }>
@@ -58,6 +60,7 @@ const TABS = [
   { key: 'email', label: 'E-mail', icon: Mail, admin: true },
   { key: 'messaging', label: 'WhatsApp & SMS', icon: MessageCircle, admin: true },
   { key: 'campaigns', label: 'WhatsApp campaigns', icon: Megaphone, admin: true },
+  { key: 'billing', label: 'Plan & billing', icon: CreditCard, admin: true },
   { key: 'numbering', label: 'Numbering', icon: Hash, admin: true },
   { key: 'reminders', label: 'Reminders', icon: BellRing, admin: true },
   { key: 'jobs', label: 'Scheduled jobs', icon: Clock3, admin: true },
@@ -129,6 +132,7 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
         {current === 'email' && data.admin && <EmailTab key="central" d={data.admin.email} />}
         {current === 'messaging' && data.admin && <MessagingTab wa={data.admin.whatsapp} sms={data.admin.sms} />}
         {current === 'campaigns' && data.admin && <WaCampaignsTab list={data.admin.campaigns} whatsappOn={data.admin.whatsapp.config.enabled} />}
+        {current === 'billing' && data.admin && <BillingTab d={data.admin.billing} />}
         {current === 'numbering' && data.admin && <NumberingTab rows={data.admin.numbering} />}
         {current === 'reminders' && data.admin && <RemindersTab cfg={data.admin.reminders} ready={{ email: data.admin.email.config.enabled, whatsapp: data.admin.whatsapp.config.enabled, sms: data.admin.sms.config.enabled }} goJobs={() => go('jobs')} goChannels={() => go('messaging')} />}
         {current === 'jobs' && data.admin && <JobsTab cfg={data.admin.jobs} info={data.admin.jobInfo} runs={data.admin.runs} cronSecretSet={data.admin.cronSecretSet} origin={data.admin.origin} />}

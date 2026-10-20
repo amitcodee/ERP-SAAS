@@ -9,6 +9,7 @@ import { registrationDocuments, registrations } from '@/lib/db/schema'
 import type { Actor, Tx } from '@/lib/db/withTenant'
 
 import { DOC_KINDS, type DocKind, type DocumentRow } from './kinds'
+import { assertWithinLimit } from '@/lib/plan/limits'
 
 export { DOC_KINDS }
 export const MAX_DOC_BYTES = 5 * 1024 * 1024
@@ -34,6 +35,7 @@ export async function uploadDocument(tx: Tx, actor: Actor, raw: { registrationId
   const bytes = raw.bytes
   if (!bytes.length) throw new Error('The file is empty')
   if (bytes.length > MAX_DOC_BYTES) throw new Error('Files must be 5 MB or smaller')
+  await assertWithinLimit(tx, 'storageMb', bytes.length / 1048576)
   const mime = sniffMime(bytes)
   if (!mime) throw new Error('Only PDF, JPG, PNG or WebP files can be uploaded')
   const [reg] = await tx.select({ id: registrations.id, branchId: registrations.branchId }).from(registrations).where(eq(registrations.id, input.registrationId))

@@ -11,6 +11,7 @@ import { emailOwner, emailTakenMessage } from '@/lib/email-taken'
 import { branches, certificates, roles, userBranches, userRoles, users } from '@/lib/db/schema'
 import type { Actor, Tx } from '@/lib/db/withTenant'
 import { claimSiteLeads, siteHostOf } from '../web-leads/service'
+import { assertWithinLimit } from '@/lib/plan/limits'
 
 // Branch life cycle (head office only):
 //   1. create  -> status "setup", with its branch admin login (a Branch Manager for the branch e-mail), nobody can sign in
@@ -74,6 +75,7 @@ async function ensureBranchAdmin(tx: Tx, b: { id: string; name: string; email: s
 
 export async function createBranch(tx: Tx, actor: Actor, raw: CreateBranchInput) {
   assertCan(actor, 'create', 'branch')
+  await assertWithinLimit(tx, 'branches') // before the form: no use filling it in past the plan
   const input = createBranchInput.parse(raw)
   const city = titleCase(input.city.replace(/\s+/g, ' '))
   const base = codeForCity(city)

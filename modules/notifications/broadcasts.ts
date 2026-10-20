@@ -10,6 +10,7 @@ import { notifications, waBroadcasts, waCampaigns } from '@/lib/db/schema'
 import type { Actor, Tx } from '@/lib/db/withTenant'
 import { todayIST } from '@/lib/ist'
 import { branchWord, campaignText, WA_AUDIENCES, WA_FIELD_KEYS, WA_FIELDS, type WaCampaignParam } from '@/lib/notify/whatsapp'
+import { assertWithinLimit } from '@/lib/plan/limits'
 
 /** The most a single send may go to (a bigger list: split it by branch, course or category). */
 export const MAX_RECIPIENTS = 5000
@@ -228,6 +229,7 @@ export async function sendBroadcast(tx: Tx, actor: Actor, campaignId: string, in
   const texts = checkTexts(c, rawTexts)
   const { rows, total } = await recipients(tx, actor, a, MAX_RECIPIENTS + 1)
   if (!total) throw new Error('Nobody matches this filter (or nobody has a mobile number)')
+  await assertWithinLimit(tx, 'messagesPerMonth', Math.min(total, MAX_RECIPIENTS + 1))
   if (total > MAX_RECIPIENTS) throw new Error(`This picks ${total.toLocaleString('en-IN')} people; one send can go to at most ${MAX_RECIPIENTS.toLocaleString('en-IN')}. Narrow it by branch, course, category or dates.`)
   const [b] = await tx.insert(waBroadcasts).values({
     campaignId: c.id, branchId: branchOf(actor, a), audience: a, summary: summaryOf(a, await names(tx, actor, a)), texts, total, createdBy: actor.userId,

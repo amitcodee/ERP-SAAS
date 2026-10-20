@@ -12,6 +12,7 @@ import { audit } from '@/lib/audit'
 import { webLeadsSecretFor } from '@/lib/tenant/web-leads-secret'
 import { setNumbering } from '@/modules/settings/numbering'
 import { endSupportByOrg } from '@/modules/platform/service'
+import { checkoutInput, quoteFor, setCancelAtPeriodEnd, startCheckout } from '@/modules/billing/service'
 import { applyCatalogue, brandingInput, feesInput, markStep, saveBranding, saveFees, type StepKey } from '@/modules/onboarding/service'
 import { deleteBatch, deleteCourse, deleteRegistration, deleteUser, deleteWebLeadSoft, purgeItem, restoreItem, type Kind as RecycleKind } from '@/modules/ops/recycle'
 import { z } from 'zod'
@@ -1438,6 +1439,21 @@ export async function testWebhookAction(id: string) {
 }
 export async function webhookSecretAction(id: string) {
   return run(async () => { const a = await headOffice(); return withTenant(a, (tx) => webhookSecret(tx, id)) })
+}
+/** Plan & billing: what a plan would cost now (credit, coupon, GST). Head office only. */
+export async function billingQuoteAction(v: z.input<typeof checkoutInput>) {
+  return run(async () => {
+    const a = await headOffice()
+    return quoteFor(a, v)
+  })
+}
+/** Starts paying: the provider's page to send head office to. */
+export async function billingCheckoutAction(v: z.input<typeof checkoutInput>) {
+  return run(async () => { const a = await headOffice(); return (await startCheckout(a, v, `${await appOrigin(a.orgId)}/billing/return`)).url })
+}
+/** Stops (or resumes) renewing at the end of the paid period. */
+export async function billingCancelAction(cancel: boolean) {
+  return run(async () => { const a = await headOffice(); await setCancelAtPeriodEnd(a, cancel); revalidatePath('/settings') })
 }
 /** Set Up (modules/onboarding): head office only (each service checks it too). */
 export async function setupStepAction(step: StepKey | 'dismiss', how: 'done' | 'skip' | 'undo') {

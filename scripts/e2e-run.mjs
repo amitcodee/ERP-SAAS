@@ -2,13 +2,16 @@
 // Needs the private dev database running (pnpm dev:db in another terminal). Builds the PRODUCTION bundle,
 // starts it on :3300, runs scripts/e2e.ts against it in real Chrome, then stops the server.
 import { spawn, spawnSync } from 'node:child_process'
+import { mkdirSync, openSync } from 'node:fs'
 
 const PORT = 3300
 // No real e-mail from test runs: blank values win over .env.local, so the app behaves as if no mail server is set
 // (and branches may work without their own mail server).
-const env = { ...process.env, NEXT_DIST_DIR: '.next-build', BASE_URL: `http://localhost:${PORT}`, EMAIL_USER: '', EMAIL_PASS: '', SENDGRID_API_KEY: '', BRANCH_EMAIL_OPTIONAL: '1' }
+const env = { ...process.env, NEXT_DIST_DIR: '.next-build', BASE_URL: `http://localhost:${PORT}`, EMAIL_USER: '', EMAIL_PASS: '', SENDGRID_API_KEY: '', BRANCH_EMAIL_OPTIONAL: '1', BILLING_FAKE: '1', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '' }
 const sh = (cmd, opts = {}) => spawnSync(cmd, { shell: true, stdio: 'inherit', env, ...opts })
 
+// something already answering on the port would be tested instead of this build: stop rather than mislead
+if (await fetch(`http://localhost:${PORT}/api/health`).then(() => true, () => false)) { console.error(`[e2e] port ${PORT} is already in use: stop that server first`); process.exit(1) }
 console.log('[e2e] building production bundle…')
 if (sh('pnpm exec next build').status !== 0) process.exit(1)
 sh('git checkout tsconfig.json', { stdio: 'ignore' }) // next build touches it
@@ -16,7 +19,10 @@ sh('git checkout tsconfig.json', { stdio: 'ignore' }) // next build touches it
 console.log('[e2e] starting server…')
 const win = process.platform === 'win32'
 // POSIX (CI): own process group, so stopping it also stops `next start` under the shell.
-const server = spawn(`pnpm exec next start -p ${PORT}`, { shell: true, stdio: 'ignore', env, detached: !win })
+// the server's own log is kept for when a step fails (.e2e-out/server.log)
+mkdirSync('.e2e-out', { recursive: true })
+const serverLog = openSync('.e2e-out/server.log', 'w')
+const server = spawn(`pnpm exec next start -p ${PORT}`, { shell: true, stdio: ['ignore', serverLog, serverLog], env, detached: !win })
 const stop = () => {
   if (win) { try { spawnSync(`taskkill /pid ${server.pid} /T /F`, { shell: true, stdio: 'ignore' }) } catch {} }
   else { try { process.kill(-server.pid, 'SIGTERM') } catch {} }

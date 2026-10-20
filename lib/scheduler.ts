@@ -50,10 +50,31 @@ async function orgTick(org: JobOrg) {
   }
 }
 
+// Billing (modules/billing/dunning): once an hour, for the whole platform, by one instance at a time.
+let lastDunning = 0
+async function platformTick() {
+  if (Date.now() - lastDunning < 3_600_000) return
+  const client = await pool.connect()
+  try {
+    if (!(await client.query<{ ok: boolean }>("select pg_try_advisory_lock(hashtext('platform:dunning')) as ok")).rows[0]?.ok) return
+    try {
+      lastDunning = Date.now()
+      const { runDunning } = await import('@/modules/billing/dunning')
+      const r = await runDunning()
+      if (r.changed.length || r.reminded.length) log.info('scheduler.dunning', r)
+    } finally {
+      await client.query("select pg_advisory_unlock(hashtext('platform:dunning'))")
+    }
+  } finally {
+    client.release()
+  }
+}
+
 async function tick() {
   if (busy) return
   busy = true
   try {
+    await platformTick().catch((e) => log.error('scheduler.dunning', { error: e instanceof Error ? e.message : String(e) }))
     for (const org of await activeOrgs()) {
       // one org's trouble never holds back the next
       await orgTick(org).catch((e) => log.error('scheduler.org', { org: org.slug, error: e instanceof Error ? e.message : String(e) }))

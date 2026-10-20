@@ -9,6 +9,7 @@ import { sql, type SQL } from 'drizzle-orm'
 import { z } from 'zod'
 import { withOrgSystem, type Tx } from '@/lib/db/withTenant'
 import { underLimit } from '@/lib/redis'
+import { assertModule, hasModule } from '@/lib/plan/limits'
 
 type Dataset = {
   label: string; what: string; dateField: string
@@ -137,6 +138,7 @@ const keyInput = z.object({
 
 /** Makes a key. The full key is returned only here: it cannot be shown again. */
 export async function createApiKey(tx: Tx, userId: string, raw: z.input<typeof keyInput>) {
+  await assertModule(tx, 'api', 'The read API')
   const v = keyInput.parse(raw)
   const key = `tc_live_${randomBytes(24).toString('base64url')}`
   await tx.execute(sql`
@@ -179,6 +181,7 @@ export async function serveApi(orgId: string, datasetKey: string, req: Request):
       select id, scopes, branch_id, expires_at, revoked_at from api_keys where key_hash = ${hash(auth)}`)).rows
     if (!k || k.revoked_at || (k.expires_at && new Date(k.expires_at) < new Date())) return json(401, { error: 'This API key is not valid (revoked, expired or wrong)' })
     if (!k.scopes.includes(datasetKey)) return json(403, { error: `This key may not read ${datasetKey}. It may read: ${k.scopes.join(', ')}` })
+    if (!(await hasModule(tx, 'api'))) return json(402, { error: 'The read API is not part of this institute’s plan' })
     // a leaked key must not be able to pull everything in one go: 60 calls a minute and 2,000 an hour per key
     if (!(await underLimit(`api:min:${k.id}`, 60, 60)) || !(await underLimit(`api:hour:${k.id}`, 2000, 3600))) return json(429, { error: 'Too many requests with this key: slow down and try again in a minute' })
     await tx.execute(sql`update api_keys set last_used_at = now(), last_used_ip = ${ip}, use_count = use_count + 1 where id = ${k.id}`)

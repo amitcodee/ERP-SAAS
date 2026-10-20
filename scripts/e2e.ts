@@ -843,6 +843,13 @@ async function main() {
         await w.getByRole('button', { name: 'Add these' }).first().click()
         await expectText(w, 'Added 3 departments and 8 courses'); await expectText(w, '1 of 7 done')
       }, w)
+      await ok('pay for the plan: the payment page, then back with a GST invoice', async () => {
+        await w.goto(new URL('/settings?tab=billing', w.url()).href)
+        await expectText(w, 'Choose a plan'); await expectText(w, 'To pay')
+        await w.getByRole('button', { name: /^Pay ₹/ }).click()
+        await expectText(w, 'Test payment page'); await w.getByRole('button', { name: 'Pay (test)' }).click()
+        await expectText(w, 'Payment received'); await expectText(w, /INV\/\d{4}-\d{2}\/\d{5}/)
+      }, w)
       await ctx.close()
     }
 
@@ -894,6 +901,7 @@ async function main() {
         if (again.status() !== 403) throw new Error(`a used link must not work again, got ${again.status()}`)
         await sp.goto(`${BASE}/dashboard`); await expectText(sp, 'Platform support is working in your institute')
         await sp.getByRole('button', { name: 'End now' }).click()
+        await sp.getByText('Platform support is working in your institute').waitFor({ state: 'detached' }) // ended (the action has run)
         await s.goto(`${BASE}/dashboard`); await s.waitForURL(/\/login/)
         await sctx.close()
       }, pp)

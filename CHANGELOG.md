@@ -186,3 +186,35 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
 - **Tests:** new `test:onboarding` (18 checks); e2e adds landing on Set Up and adding a course list; `test:all`
   green (1154 checks); e2e 63/63.
 
+## Phase 2: plans, limits and billing (2026-10-20)
+
+- **Plans and limits** (`lib/plan/limits.ts`):
+  - The plan's limits on branches, staff logins, active students, stored files and SMS/WhatsApp messages a month
+    are checked where things are added: a new branch, a staff login, a registration, an uploaded document, a bulk
+    WhatsApp send. A refusal says what the plan allows, what is in use, and where to upgrade.
+  - Usage is counted for the whole institute, whoever asks, by `org_usage()` (migration 0104).
+  - Paid modules are closed outside the plans that have them: seminars and workshops, certificate designs, the read
+    API and webhooks. Their pages leave the menu, and the services and the API refuse them. During the trial every
+    module is open, while the plan's limits apply from the start.
+- **Billing** (`modules/billing`, migration 0105: `subscriptions`, `coupons`, `platform_payments`,
+  `platform_invoices`, `platform_counters`, `billing_events`, all platform tables):
+  - Settings → Plan & billing (head office) shows the plan and status, usage against the limits, and lets head
+    office pay monthly or yearly, with an optional code. Paying for the same plan carries on from the end of the
+    paid period; another plan starts now, with the unused part of the current period credited. GST is shown.
+  - Payment is on Razorpay's hosted page (Payment Links), so no payment script runs in our pages. It is confirmed
+    by the signed return and by the signed webhook (`/api/webhooks/razorpay`); each event is handled once, and each
+    payment completes once whichever arrives first.
+  - A completed payment moves the paid period on, opens an institute billing had closed, and issues a GST tax
+    invoice. Invoices are numbered without gaps per financial year (INV/2026-27/00001), never changed once issued,
+    with CGST + SGST or IGST by the institute's state. They can be printed or saved as PDF.
+  - Head office can stop renewal at the end of the period.
+  - Without Razorpay keys, outside production (or with `BILLING_FAKE=1`, which the e2e run sets) a test payment
+    page stands in.
+- **Dunning** (hourly in the scheduler, one instance at a time): a trial over with nothing paid becomes read-only.
+  An unpaid period becomes past due (7 days' grace), then read-only, then suspended after 30 more days. A cancelled
+  plan becomes read-only at the end of its period. Owners are e-mailed a week before renewal and at each change.
+- The e2e runner keeps the server's log in `.e2e-out/server.log`, and refuses to start if its port is already in
+  use (it would otherwise test that other server).
+- **Tests:** new `test:plans` (13 checks) and `test:billing` (32 checks); e2e adds paying for a plan through the
+  test payment page; `test:all` green (1199 checks); e2e 64/64.
+

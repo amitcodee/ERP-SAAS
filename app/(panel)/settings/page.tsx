@@ -14,15 +14,18 @@ import { EVENTS, listWebhooks } from '@/modules/integrations/webhooks'
 import { integrations } from '@/modules/reports/integrations'
 import { listRules } from '@/modules/settings/service'
 import { listNumbering } from '@/modules/settings/numbering'
+import { billingOverview } from '@/modules/billing/service'
+import { orgPlan, orgUsage } from '@/lib/plan/limits'
+import { LIMIT_LABELS, publicPlans } from '@/modules/plans/service'
 import { listCampaigns } from '@/modules/notifications/broadcasts'
 
 // Settings, in tabs: business rules and certificate signatures for everyone who may see them; e-mail, WhatsApp &
 // SMS, reminders, scheduled jobs, integrations and API access for head office; the branch's own mail server for its
 // branch manager (and head office while working in a branch). Passwords and tokens never reach
 // the page: only whether one is saved.
-export default async function Page({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ tab?: string; payment?: string }> }) {
   const b = await requirePage('Settings')
-  const { tab } = await searchParams
+  const { tab, payment } = await searchParams
   const canEdit = b.ok('update', 'setting')
   const headOffice = b.isSuper
   const base = await withTenant(b.actor, async (tx) => ({
@@ -45,6 +48,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       keys: await listApiKeys(tx),
       campaigns: await listCampaigns(tx),
       numbering: await listNumbering(tx),
+      billing: await billingOverview(tx), plan: await orgPlan(tx), usage: await orgUsage(tx),
       branches: (await tx.execute<{ id: string; name: string; code: string }>(sql`select id, name, code from branches where is_active order by name`)).rows,
       runs: (await tx.execute<{ id: string; job: string; started_at: string; finished_at: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }>(sql`
         select id, job, started_at::text, finished_at::text, ok, error, summary from job_runs order by started_at desc limit 30`)).rows,
@@ -55,6 +59,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       sms: { config: sms.config, hasAuthKey: !!sms.secrets.authKey, saved: sms.saved, updatedAt: sms.updatedAt },
       campaigns: data.campaigns,
       numbering: data.numbering,
+      billing: {
+        overview: data.billing, payment: payment ?? null,
+        usage: (Object.keys(LIMIT_LABELS) as (keyof typeof LIMIT_LABELS)[]).map((k) => ({ key: k, label: LIMIT_LABELS[k][0].toUpperCase() + LIMIT_LABELS[k].slice(1), used: data.usage[k], limit: data.plan.limits[k] ?? null })),
+        plans: (await publicPlans()).filter((p) => p.priceMonthly > 0).map((p) => ({ key: p.key, name: p.name, monthly: p.priceMonthly, yearly: p.priceYearly })),
+      },
       reminders: reminders.config,
       jobs: jobs.config,
       jobInfo: Object.fromEntries(Object.entries(JOBS).map(([k, j]) => [k, { label: j.label, what: j.what }])),

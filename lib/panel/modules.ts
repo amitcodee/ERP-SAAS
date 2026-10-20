@@ -6,7 +6,7 @@ export type ModuleKey =
   | 'Dashboard' | 'Overdues' | 'My Tickets' | 'My Classes' | 'Project Help' | 'Random Call' | 'Leads' | 'Web Leads' | 'Lead Categories' | 'Enquiry' | 'Registration' | 'Enquiry Update' | 'My Leads' | 'Lead Distribution' | 'Transfers' | 'Shared Students'
   | 'Fees' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
 
-export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (ok: Ok) => boolean }[] = [
+export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (ok: Ok) => boolean; planModule?: string }[] = [
   { key: 'Dashboard', path: '/dashboard', group: 'Overview', allowed: () => true },
   // leads past their follow-up date and fees past their installment date, escalated to the branch manager and head office
   { key: 'Overdues', path: '/overdues', group: 'Overview', allowed: (ok) => ok('read', 'enquiry') || ok('read', 'call') || ok('read', 'fee') },
@@ -37,8 +37,8 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   { key: 'Internship Complete', path: '/internship-complete', group: 'Documents', allowed: (ok) => ok('read', 'internship') },
   { key: 'Letter Templates', path: '/letter-templates', group: 'Documents', allowed: (ok) => ok('update', 'setting') },
   // Events: seminars, workshops and webinars with a sign-up link / QR code, an optional quiz and e-mailed certificates
-  { key: 'Seminars & Workshops', path: '/events', group: 'Events', allowed: (ok) => ok('read', 'event') },
-  { key: 'Certificate Designs', path: '/certificate-designs', group: 'Events', allowed: (ok) => ok('read', 'certdesign') },
+  { key: 'Seminars & Workshops', path: '/events', group: 'Events', allowed: (ok) => ok('read', 'event'), planModule: 'events' },
+  { key: 'Certificate Designs', path: '/certificate-designs', group: 'Events', allowed: (ok) => ok('read', 'certdesign'), planModule: 'events' },
   // Reports: the numbers, charts and the day-by-day calendar of the admissions work.
   { key: 'Collection', path: '/collection', group: 'Reports', allowed: (ok) => ok('read', 'fee') },
   { key: 'Reports', path: '/reports', group: 'Reports', allowed: (ok) => ok('read', 'report') },

@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { seal, unseal } from '@/lib/secret-box'
 import { assertPublicHost } from '@/lib/net-guard'
 import { txOrg, withOrgSystem, type Tx } from '@/lib/db/withTenant'
+import { assertModule } from '@/lib/plan/limits'
 
 export const EVENTS = [
   { key: 'lead.created', label: 'New lead or enquiry', what: 'A lead is added (by staff, a call, or a website form).' },
@@ -57,6 +58,7 @@ export async function listWebhooks(tx: Tx): Promise<WebhookRow[]> {
 
 /** Adds a webhook. Its signing secret is returned (and can be shown again later). */
 export async function createWebhook(tx: Tx, userId: string, raw: { name: string; url: string; events: string[] }) {
+  await assertModule(tx, 'api', 'Webhooks')
   const v = input.parse(raw)
   await checkUrl(v.url)
   const secret = `whsec_${randomBytes(24).toString('base64url')}`
