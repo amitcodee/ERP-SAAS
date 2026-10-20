@@ -2,6 +2,7 @@ import 'server-only'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { loadUserState, type WorkBranch } from '@/modules/auth/account'
+import { openSupport } from '@/modules/platform/service'
 import { requestOrg } from '../tenant/request'
 import type { Actor } from '../db/withTenant'
 import { actingBranch } from './acting'
@@ -35,7 +36,10 @@ export async function getActor(opts: { allowMustChange?: boolean } = {}): Promis
   if (!org || org.id !== session.org || org.status === 'suspended' || org.status === 'cancelled') redirect('/api/logout')
   const state = await loadUserState(org.id, session.userId, session.sid)
   if (sessionValidity(session.pwv, state) === 'revoked' || !state?.roles.length || !state.branchActive) redirect('/api/logout')
-  const mustChange = state!.mustChange
+  // a platform admin's support session: good only while it is open (ended by either side, or run out: signed out)
+  const support = session.sup ? await openSupport(org.id) : null
+  if (session.sup && support?.id !== session.sup) redirect('/api/logout')
+  const mustChange = support ? false : state!.mustChange
   if (mustChange && !opts.allowMustChange) throw new Error('Password change required: sign in again and choose a new password')
 
   const roles = state!.roles
@@ -45,5 +49,8 @@ export async function getActor(opts: { allowMustChange?: boolean } = {}): Promis
   if (role !== 'super_admin' && !branchId) redirect('/api/logout') // a staff role needs a home branch
   // the session's own branch fields are as old as the sign-in: hand on the live ones
   const live = { branchId: role === 'super_admin' ? session.branchId : state!.homeBranchId, branchName: role === 'super_admin' ? session.branchName : state!.branches.find((b) => b.id === state!.homeBranchId)?.name ?? null }
-  return { session: { ...session, ...live, role, roles }, mustChange, myBranches: state!.branches, actor: { userId: session.userId, orgId: org.id, role, roles, perms: state!.perms, branchId, personId: session.personId ?? null, ownOnly, readOnly: org.status === 'read_only' } }
+  return { session: { ...session, ...live, role, roles }, mustChange, myBranches: state!.branches, actor: {
+    userId: session.userId, orgId: org.id, role, roles, perms: state!.perms, branchId, personId: session.personId ?? null, ownOnly,
+    readOnly: org.status === 'read_only' || support?.mode === 'read', impersonatorId: support?.platformUserId ?? null, supportSessionId: support?.id ?? null,
+  } }
 }

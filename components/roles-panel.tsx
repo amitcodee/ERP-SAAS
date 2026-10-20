@@ -81,8 +81,8 @@ export function RolesPanel({ roles, canEdit, notify }: { roles: RoleRow[]; canEd
             <li>A <b>permission</b> is one tick: one thing the role may do in one area of the panel. No tick means that button or page is not available.</li>
             <li>A person with several roles can do everything any of their roles allows.</li>
             <li><b>See</b> comes first: ticking anything in an area also ticks its “See”, and removing “See” clears the whole area.</li>
-            <li>Staff work inside their own branch. Only Super Admin works across every branch.</li>
-            <li>Super Admin and Student are fixed and cannot be changed. Built-in roles can be changed but not deleted; a role you created can be deleted once nobody holds it.</li>
+            <li>Staff work inside their own branch. Only the Institute Admin (head office) works across every branch.</li>
+            <li>Institute Admin and Student are fixed and cannot be changed. Built-in roles can be changed but not deleted; a role you created can be deleted once nobody holds it.</li>
             <li>Press the <Info size={13} /> next to an area to read what each of its ticks allows.</li>
           </ul>
         </div>
@@ -112,7 +112,7 @@ export function RolesPanel({ roles, canEdit, notify }: { roles: RoleRow[]; canEd
                   <span className="status-badge status-slate">{countOf(role)} of {TOTAL} permissions</span>
                   {drafts[role.key] && <em className="rp-edited">unsaved changes</em>}
                 </div>
-                {role.locked && <p className="rp-note"><Lock size={14} /> {role.kind === 'super' ? 'Super Admin always has every permission in every branch. It cannot be changed.' : 'This role is fixed and cannot be changed.'}</p>}
+                {role.locked && <p className="rp-note"><Lock size={14} /> {role.kind === 'super' ? 'The Institute Admin (head office) always has every permission in every branch. It cannot be changed.' : 'This role is fixed and cannot be changed.'}</p>}
               </div>
               {canEdit && !role.locked && <button className="button secondary" onClick={() => open({ key: role.key, name: role.name, description: role.description ?? '' })}><Pencil size={14} /> Rename or delete</button>}
             </div>

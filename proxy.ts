@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { readSession, SESSION_COOKIE } from '@/lib/auth/session'
+import { PLATFORM_COOKIE, readPlatformSession, readSession, SESSION_COOKIE } from '@/lib/auth/session'
 import { classifyHost } from '@/lib/tenant/host'
 
 // Content Security Policy, fresh for every page: only scripts carrying this request's nonce run (Next.js puts it on its
@@ -39,11 +39,22 @@ function withCsp(req: NextRequest, res?: (headers: Headers) => NextResponse) {
 // webhooks and static assets needs a valid session.
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+  // The platform console lives on its own host (admin.<root>) and only there: on it, every path is a console page
+  // (behind its own cookie); on an institute's address the console's pages do not exist.
+  const host = classifyHost(req.headers.get('host'))
+  const consolePath = pathname === '/platform' || pathname.startsWith('/platform/')
+  if (host.kind === 'platform') {
+    const path = consolePath ? pathname : `/platform${pathname === '/' ? '' : pathname}`
+    const signedIn = !!(await readPlatformSession(req.cookies.get(PLATFORM_COOKIE)?.value))
+    if (!signedIn && path !== '/platform/login') return NextResponse.redirect(new URL('/login', req.url))
+    if (signedIn && path === '/platform/login') return NextResponse.redirect(new URL('/', req.url))
+    return withCsp(req, (headers) => NextResponse.rewrite(new URL(`${path}${req.nextUrl.search}`, req.url), { request: { headers } }))
+  }
+  if (consolePath) return new NextResponse('Not found', { status: 404 })
   if (pathname === '/verify' || pathname.startsWith('/verify/')) return withCsp(req) // public certificate and receipt checks, and the search
   if (pathname.startsWith('/e/')) return withCsp(req) // public event sign-up (seminars, workshops) and event certificates
   // a session belongs to one organisation: on another org's address it counts as none (getActor checks it again
   // against the database, which also covers custom domains)
-  const host = classifyHost(req.headers.get('host'))
   const cookie = await readSession(req.cookies.get(SESSION_COOKIE)?.value)
   const session = cookie && (host.kind !== 'org' || host.slug === cookie.orgSlug) ? cookie : null
   if (pathname === '/login') return session ? NextResponse.redirect(new URL('/', req.url)) : withCsp(req)

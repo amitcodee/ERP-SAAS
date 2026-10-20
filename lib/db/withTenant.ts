@@ -14,6 +14,7 @@ export type Actor = {
   perms?: string[] // live union of those roles' permissions; when absent, the default role definitions apply
   readOnly?: boolean // the org is read-only (billing) or this is a read-only support session: the database refuses writes
   impersonatorId?: string | null // a platform admin working in the org through a support session
+  supportSessionId?: string | null // ... and which support session (audit_logs.support_session_id)
 }
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]

@@ -687,6 +687,27 @@
       "when": 1792563200000,
       "tag": "0097_org_numbering",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1792649600000,
+      "tag": "0098_institute_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1792736000000,
+      "tag": "0099_platform_support",
+      "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1792822400000,
+      "tag": "0100_org_owner_backfill",
+      "breakpoints": true
     }
   ]
 }

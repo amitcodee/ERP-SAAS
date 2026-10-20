@@ -9,6 +9,8 @@ import { withTenant } from '@/lib/db/withTenant'
 import { todayIST } from '@/lib/ist'
 import { todaysBirthdays } from '@/modules/notifications/birthday'
 import { BirthdayToast } from '@/components/birthday-toast'
+import { SupportBanner } from '@/components/support-banner'
+import { openSupport } from '@/modules/platform/service'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +20,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (b.mustChange) return <ForcedChangeScreen name={b.session.name} />
   if (b.session.role === 'student') redirect('/') // students have their own portal
   const a = b.actor, today = todayIST()
-  const [askEmail, birthdays] = await Promise.all([
+  const [askEmail, birthdays, support] = await Promise.all([
     // a branch with no mail server of its own works only once it is set up: its staff are told on every page
     needsBranchEmail(a),
     // students whose birthday it is today, shown bottom-right to the staff who look after them (who sees whom depends
@@ -26,9 +28,12 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     b.ok('read', 'registration')
       ? cached(a.orgId, `birthdays:${today}:${a.userId}:${a.role}:${a.branchId}:${!!a.ownOnly}`, () => withTenant(a, (tx) => todaysBirthdays(tx, today)), 10 * 60_000).catch(() => [])
       : [],
+    // a platform support session open in this institute: head office sees who is in and why
+    b.isSuper ? openSupport(a.orgId).catch(() => null) : null,
   ])
   return (
     <PanelShell user={b.user} modules={b.modules} branches={b.switchBranches} isSuper={b.isSuper} actingBranchId={b.actor.branchId}>
+      {support && <SupportBanner s={support} isSupport={!!a.impersonatorId} />}
       {children}
       {birthdays.length > 0 && <BirthdayToast people={birthdays} today={today} showBranch={b.isSuper && !b.actor.branchId} />}
       {askEmail && <BranchEmailPrompt branchName={b.user.branchName} canSetUp={canManageBranchEmail(b.actor)} />}

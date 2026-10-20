@@ -19,6 +19,7 @@ export type Session = {
   personId?: string | null // students only
   pwv?: number // password version (ms of password_changed_at) this session was issued under
   sid?: string // this sign-in's own id: signing out puts it on the revoked list, so a copied cookie dies with it
+  sup?: string // a platform admin's support session (support_sessions.id): checked open on every request
 }
 
 /** 128 random bits, base64url (Web Crypto: also works in proxy.ts). */
@@ -53,7 +54,40 @@ export async function readSession(token: string | undefined): Promise<Session | 
   if (!token) return null
   try {
     const { payload } = await jwtVerify(token, key(), { algorithms: ['HS256'] })
+    // a platform session or a support link is signed with the same key: never an institute session
+    if (payload.aud !== undefined) return null
     return payload as unknown as Session
+  } catch {
+    return null
+  }
+}
+
+// ---- the platform console (admin.<root>): its own cookie, and tokens only it accepts (audience 'platform')
+export const PLATFORM_COOKIE = 'tc_platform'
+export type PlatformSession = { pid: string; name: string; email: string }
+
+export async function signPlatformSession(s: PlatformSession): Promise<string> {
+  return new SignJWT({ ...s }).setProtectedHeader({ alg: 'HS256' }).setAudience('platform').setIssuedAt().setExpirationTime('8h').sign(key())
+}
+export async function readPlatformSession(token: string | undefined): Promise<PlatformSession | null> {
+  if (!token) return null
+  try {
+    const { payload } = await jwtVerify(token, key(), { algorithms: ['HS256'], audience: 'platform' })
+    return typeof payload.pid === 'string' ? (payload as unknown as PlatformSession) : null
+  } catch {
+    return null
+  }
+}
+
+/** The one-time link a support session opens the org's workspace with (audience 'support', a few minutes). */
+export async function signSupportLink(v: { sup: string; org: string }): Promise<string> {
+  return new SignJWT({ ...v }).setProtectedHeader({ alg: 'HS256' }).setAudience('support').setIssuedAt().setExpirationTime('5m').setJti(newSid()).sign(key())
+}
+export async function readSupportLink(token: string | undefined): Promise<{ sup: string; org: string; jti: string; exp: number } | null> {
+  if (!token) return null
+  try {
+    const { payload } = await jwtVerify(token, key(), { algorithms: ['HS256'], audience: 'support' })
+    return typeof payload.sup === 'string' && typeof payload.org === 'string' && payload.jti && payload.exp ? { sup: payload.sup, org: payload.org, jti: payload.jti, exp: payload.exp } : null
   } catch {
     return null
   }

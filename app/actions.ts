@@ -11,6 +11,7 @@ import { withOrgSystem, withTenant, type Actor } from '@/lib/db/withTenant'
 import { audit } from '@/lib/audit'
 import { webLeadsSecretFor } from '@/lib/tenant/web-leads-secret'
 import { setNumbering } from '@/modules/settings/numbering'
+import { endSupportByOrg } from '@/modules/platform/service'
 import { deleteBatch, deleteCourse, deleteRegistration, deleteUser, deleteWebLeadSoft, purgeItem, restoreItem, type Kind as RecycleKind } from '@/modules/ops/recycle'
 import { z } from 'zod'
 import { isDialCode } from '@/lib/countries'
@@ -1436,6 +1437,10 @@ export async function testWebhookAction(id: string) {
 }
 export async function webhookSecretAction(id: string) {
   return run(async () => { const a = await headOffice(); return withTenant(a, (tx) => webhookSecret(tx, id)) })
+}
+/** Head office ends the platform support session open in the institute (the banner's "End now"). */
+export async function endSupportSessionAction(sessionId: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => endSupportByOrg(tx, actor, z.string().uuid().parse(sessionId))); revalidatePath('/', 'layout') })
 }
 /** The org's number formats (Settings → Numbering). Head office only. */
 export async function saveNumberingAction(formats: Record<string, string | null>) {

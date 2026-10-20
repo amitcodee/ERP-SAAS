@@ -106,7 +106,7 @@ const HEAD_OFFICE: Perm[] = [...p('branch', 'read', 'create', 'update', 'delete'
 /** A branch manager runs the branch but does not teach (is not listed as a trainer). */
 const NOT_MANAGER: Perm[] = [...HEAD_OFFICE, ...p('teaching', 'read')]
 export const DEFAULT_ROLES: RoleDef[] = [
-  { key: 'super_admin', name: 'Super Admin', kind: 'super', locked: true, description: 'Head office. Everything, in every branch.', perms: ALL_PERMS },
+  { key: 'super_admin', name: 'Institute Admin', kind: 'super', locked: true, description: 'Head office of the institute. Everything, in every branch.', perms: ALL_PERMS },
   { key: 'branch_manager', name: 'Branch Manager', kind: 'staff', locked: false, description: 'Branch head: everything a super admin can do, inside their own branch.', perms: ALL_PERMS.filter((x) => !NOT_MANAGER.includes(x)) },
   { key: 'academic_manager', name: 'Academic Manager', kind: 'staff', locked: false, description: 'Courses, batches, trainers, attendance, grades; requests certificates.', perms: [
     ...p('catalog', 'read', 'create', 'update'), ...p('registration', 'read'), ...p('batch', 'read', 'create', 'update'), ...p('attendance', 'read', 'create'),

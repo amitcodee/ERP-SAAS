@@ -1,7 +1,7 @@
 // Seeds catalogs straight from fildes.md (P3) + global rules (P7) + first super admin.
 // Idempotent: safe to re-run. Branches are NOT seeded — we need the real list (insti.md §12).
 import { hash } from '@node-rs/argon2'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { pool } from '../lib/db/client'
 import { withOrgSystem } from '../lib/db/withTenant'
 import { departments, lookups, settings, userRoles, users } from '../lib/db/schema'
@@ -51,6 +51,8 @@ await withOrgSystem(ORG, async (tx) => {
         .values({ name: 'Super Admin', email, passwordHash: await hash(password), mustChangePassword: true })
         .returning()
       await tx.insert(userRoles).values({ userId: u.id, orgId: ORG, role: 'super_admin' })
+      // the first admin owns the org (a support session works as the owner)
+      await tx.execute(sql`update organisations set owner_user_id = ${u.id} where id = ${ORG} and owner_user_id is null`)
       console.log('super admin created:', email)
     }
   } else {

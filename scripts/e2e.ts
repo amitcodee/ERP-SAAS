@@ -119,6 +119,16 @@ async function resetDevAdmin() {
   await c.end()
 }
 
+/** Local only: a platform admin for the console steps. */
+async function setPlatformUser(email: string, pw: string) {
+  const url = process.env.DATABASE_URL ?? ''
+  if (!/127.0.0.1|localhost/.test(url)) throw new Error('refusing to add a platform admin on a non-local database')
+  const c = new pg.Client({ connectionString: url }); await c.connect()
+  await c.query(`insert into platform_users (name, email, password_hash) values ('E2E Platform', $1, $2)
+    on conflict (lower(email)) do update set password_hash = excluded.password_hash, is_active = true`, [email, await hash(pw)])
+  await c.end()
+}
+
 /** Local only: the one-time password the student would get by e-mail (e-mail is off in test runs), with a change forced. */
 async function setTempPassword(email: string, pw: string) {
   const url = process.env.DATABASE_URL ?? ''
@@ -777,6 +787,40 @@ async function main() {
       await sp.getByLabel('Current password').first().waitFor()
       await expectText(sp, 'We then e-mail you a code to confirm the change.')
     }, sp)
+
+    // ============ PLATFORM CONSOLE (admin.<host>) and a support session ============
+    {
+      const PBASE = BASE.replace('//localhost', '//admin.localhost')
+      const pEmail = `platform.${RUN}@e2e.test`, pPw = `Platform-${RUN}-pass`
+      await setPlatformUser(pEmail, pPw)
+      const ctx = await browser.newContext(); const pp = await ctx.newPage(); pp.setDefaultTimeout(20000)
+      await ok('the platform console is only on its own host: an institute address has no /platform', async () => {
+        const r = await pp.request.get(`${BASE}/platform`)
+        if (r.status() !== 404) throw new Error(`expected 404 on the institute host, got ${r.status()}`)
+        await pp.goto(`${PBASE}/`); await pp.waitForURL(/\/login/); await expectText(pp, 'Platform console')
+      }, pp)
+      await ok('a platform admin signs in and sees the organisations, sizes only', async () => {
+        await pp.getByLabel('E-mail').fill(pEmail); await pp.getByLabel('Password').fill(pPw)
+        await pp.getByRole('button', { name: 'Sign in' }).click()
+        await expectText(pp, 'Organisations'); await expectText(pp, 'Sample Institute')
+      }, pp)
+      await ok('a read-only support session: a one-time link in, a banner on both sides, ended by the institute', async () => {
+        await pp.getByRole('row', { name: /Sample Institute/ }).getByRole('link', { name: 'Open' }).click()
+        await pp.getByLabel('Why').fill(`e2e ${RUN}: checking the fee screen`)
+        await pp.getByRole('button', { name: 'Start' }).click()
+        const href = await pp.getByRole('link', { name: 'enter the institute' }).getAttribute('href')
+        if (!href?.includes('/login/support?t=')) throw new Error(`no support link: ${href}`)
+        const sctx = await browser.newContext(); const s = await sctx.newPage(); s.setDefaultTimeout(20000)
+        await s.goto(href); await expectText(s, 'You are in this institute as platform support')
+        const again = await (await browser.newContext()).request.get(href, { maxRedirects: 0 })
+        if (again.status() !== 403) throw new Error(`a used link must not work again, got ${again.status()}`)
+        await sp.goto(`${BASE}/dashboard`); await expectText(sp, 'Platform support is working in your institute')
+        await sp.getByRole('button', { name: 'End now' }).click()
+        await s.goto(`${BASE}/dashboard`); await s.waitForURL(/\/login/)
+        await sctx.close()
+      }, pp)
+      await ctx.close()
+    }
 
     await ok('sign out returns to the login page', async () => {
       await mp.getByRole('button', { name: 'Sign out' }).click(); await mp.waitForURL(/\/login/)

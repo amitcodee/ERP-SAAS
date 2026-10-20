@@ -152,7 +152,7 @@ export async function setUserRoles(tx: Tx, actor: Actor, userId: string, keys: s
   const wanted = [...new Set(keys)]
   const granted = await assertMayGrant(tx, actor, wanted)
   if (actor.role !== 'super_admin') await assertMayGrant(tx, actor, before) // cannot strip roles you could not grant
-  if (granted.some((r) => r.kind === 'super') !== !u.branchId) throw new Error(u.branchId ? 'A branch user cannot be made super admin here; create a head-office account instead' : 'A head-office account must keep the Super Admin role')
+  if (granted.some((r) => r.kind === 'super') !== !u.branchId) throw new Error(u.branchId ? 'A branch user cannot be made super admin here; create a head-office account instead' : 'A head-office account must keep the Institute Admin role')
   await tx.delete(userRoles).where(eq(userRoles.userId, userId))
   await tx.insert(userRoles).values(wanted.map((role) => ({ userId, role })))
   await audit(tx, actor, { action: 'set_roles', entity: 'user', entityId: userId, before: { roles: before }, after: { roles: wanted } })

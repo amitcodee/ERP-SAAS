@@ -165,11 +165,11 @@ that org only. Certificate hashes include `org_id`.
     - one renderer (`lib/number-format.ts`) with the tokens `{BRANCH}`/`{code}`, `{YYYY}`/`{yyyy}`, `{yy}`, `{FY}`,
       `{n}` and `{nnnn}`;
     - org-wide counters in `org_sequences`, minted only by `app_org_seq()`; the global sequences are gone.
-11. [ ] **1.11 Roles per org**: seed on org creation (`modules/orgs/provision.ts`), and the Roles screen shows the
-    org's roles.
-12. [ ] **1.12 Platform admin core**:
-    - `platform_users` login at the platform host;
-    - an organisations list (search, status) with suspend and reactivate;
+11. [x] **1.11 Roles per org**: seed on org creation (`modules/orgs/provision.ts`), and the Roles screen shows the
+    org's roles. `pnpm org:create` makes an institute from the command line.
+12. [x] **1.12 Platform admin core**:
+    - `platform_users` login at the platform host (`pnpm platform:user` adds one);
+    - an organisations list (search, status, sizes only) with suspend, read-only and reactivate;
     - support sessions with an audit trail, and a banner in the org's panel while one is open.
     (The rest of the console is in Phase 2.)
 13. [ ] **1.13 `pnpm test:tenancy`**:
@@ -384,4 +384,14 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
 - Tickets, help requests and event certificates count per org (`org_sequences`); the Sample Institute carries on
   its old series.
 
-**Next:** 1.11 roles per org.
+**Done in the fourth tenancy commit (1.11, 1.12):**
+- `provisionOrg`: one transaction makes the org, its roles (from `DEFAULT_ROLES`), the standard lists, a first branch
+  and the owner's head-office login (a temporary password). The head-office role is now called "Institute Admin".
+- The platform console at `admin.<root>`: its own cookie and token audience; `/platform/*` is 404 on every
+  institute's address.
+- Support sessions: reason, read or write, at most 60 minutes, one open per org. A one-time link (5 minutes) signs
+  the platform admin in as the org's owner, marked as support; `getActor` checks the session is open on every
+  request; read-only is enforced by the database; audit rows carry `impersonator_id` and `support_session_id`.
+  The org's head office sees a banner and can end it.
+
+**Next:** 1.13 `pnpm test:tenancy`.

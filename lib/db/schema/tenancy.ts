@@ -124,6 +124,7 @@ export const supportSessions = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     orgId: uuid('org_id').notNull().references(() => organisations.id, { onDelete: 'cascade' }),
     platformUserId: uuid('platform_user_id').notNull().references(() => platformUsers.id),
+    byName: text('by_name').notNull().default(''), // the platform admin's name, for the org (it cannot read platform_users)
     reason: text('reason').notNull(),
     mode: text('mode').$type<'read' | 'write'>().notNull().default('read'),
     startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
@@ -133,6 +134,7 @@ export const supportSessions = pgTable(
   },
   (t) => [
     index('support_sessions_org_idx').on(t.orgId, t.startedAt.desc()),
+    index('support_sessions_open_idx').on(t.orgId).where(sql`ended_at IS NULL`),
     check('support_sessions_mode_ck', sql`mode IN ('read', 'write')`),
     check('support_sessions_length_ck', sql`expires_at > started_at AND expires_at <= started_at + interval '60 minutes'`),
   ],

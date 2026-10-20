@@ -15,7 +15,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
-import { orgId } from './tenancy'
+import { orgId, platformUsers, supportSessions } from './tenancy'
 
 /** Binary data (signature images), stored in the database so a redeploy cannot lose it. */
 export const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' })
@@ -245,6 +245,8 @@ export const auditLogs = pgTable(
     after: jsonb('after'),
     ip: text('ip'),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    impersonatorId: uuid('impersonator_id').references(() => platformUsers.id), // a platform admin working in the org (support session)
+    supportSessionId: uuid('support_session_id').references(() => supportSessions.id),
   },
   (t) => [index('audit_entity_idx').on(t.entity, t.entityId), index('audit_branch_at_idx').on(t.branchId, t.at), index('audit_logs_user_idx').on(t.userId)],
 )

@@ -82,3 +82,30 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
 - The e2e run now leaves the dev admin on the seed password, so `test:auth` passes after it.
 - **Tests:** new `test:numbering` (29 checks); `test:all` green (1034 checks); e2e 56/56 on a production build.
 
+## Phase 1: multi-tenancy, part 4: new institutes and the platform console (2026-10-20)
+
+- **New institutes** (`modules/orgs/provision.ts`, and `pnpm org:create` from the command line). One transaction
+  makes the org on a 14-day trial, its roles from the defaults, the standard lists (sources, payment and class
+  modes, …), a first branch (MAIN) and the owner's head-office login with a temporary password.
+- **Roles are per institute.** Changing or adding a role in one institute never touches another's, and a person can
+  only hold their own institute's roles (tested). The head-office role is now called "Institute Admin"; migration
+  0098 renames it where an institute had not renamed it.
+- **The platform console** at `admin.<root>` (`admin.localhost` in development):
+  - the platform's own team signs in there, with its own cookie (`pnpm platform:user` adds someone);
+  - the institutes list shows status, plan and sizes only (branches, logins, active students, receipts this
+    month, last sign-in), never a record;
+  - suspend, make read-only or reactivate, with a reason that goes in the institute's own audit log;
+  - `/platform/*` does not exist on an institute's address.
+- **Support sessions.** A platform admin opens one with a reason, read-only or with changes, for at most an hour.
+  A one-time link signs them in to the institute as its head office, marked as support. Every request checks that
+  the session is still open, read-only is enforced by the database, and everything they do is in the institute's
+  audit log with their name (`audit_logs.impersonator_id`, `support_session_id`, migration 0099). The institute's
+  head office sees a banner and can end the session at once.
+- The host cache moved to `lib/tenant/resolve.ts` (no request APIs), so scripts can provision institutes.
+- Migration 0100 gives orgs from before organisations an owner (their first head-office login), and the seed sets
+  it on a fresh database: a support session works as the owner.
+- Console server actions redirect to the console's own routes: a server action's redirect renders without the
+  proxy's rewrite, so `redirect('/')` showed the institute landing page on the platform host.
+- **Tests:** new `test:orgs` (17 checks) and `test:platform` (24 checks); `test:all` green (1075 checks); e2e 59/59
+  on a production build, with the console and a support session in the browser.
+
