@@ -1,0 +1,17 @@
+export const dynamic = 'force-dynamic'
+import { Screen } from '@/components/screen'
+import { requirePage } from '@/lib/panel/base'
+import { withTenant } from '@/lib/db/withTenant'
+import { cachedCatalogs } from '@/modules/catalog/service'
+import { listEnquiries } from '@/modules/enquiries/service'
+import { summaries } from '@/modules/reports/service'
+
+// Leads: people who have not visited yet (website, e-mail, other sources). A visit turns a lead into an enquiry.
+export default async function Page() {
+  const { actor, ok, needsBranch } = await requirePage('Leads')
+  const d = await withTenant(actor, async (tx) => ({ list: await listEnquiries(tx, actor, { limit: 25, visited: false }), catalogs: await cachedCatalogs(tx, actor.orgId), sums: await summaries(tx, actor) }))
+  return <Screen name="enquiries" props={{
+    mode: 'leads', rows: d.list.rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString(), nextFollowUp: r.nextFollowUp ?? null, callAt: r.callAt?.toISOString() ?? null })), total: d.list.total, summary: d.sums.enquiries, catalogs: d.catalogs,
+    canCreate: ok('create', 'enquiry'), canUpdate: ok('update', 'enquiry'), canDelete: ok('delete', 'enquiry'), needsBranch,
+  }} />
+}

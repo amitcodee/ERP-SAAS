@@ -1,0 +1,64 @@
+# Every push and pull request: type check, migrate a fresh PostgreSQL 16, seed it, run every database-backed
+# suite, build the production bundle, then drive real Chrome through the full journey (scripts/e2e.ts).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# the workflow only reads the code
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: saas_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Write .env.local (throw-away values for this run only)
+        run: |
+          cat > .env.local <<ENV
+          DATABASE_URL=postgresql://postgres:ci-only-password@127.0.0.1:5432/saas_ci
+          REDIS_URL=redis://127.0.0.1:6379
+          AUTH_SECRET=$(openssl rand -base64 32)
+          CERT_SECRET=$(openssl rand -base64 32)
+          CRON_SECRET=$(openssl rand -hex 24)
+          SEED_ADMIN_EMAIL=ci-admin@example.test
+          SEED_ADMIN_PASSWORD=ci-$(openssl rand -hex 12)
+          APP_URL=http://localhost:3300
+          DEFAULT_ORG_SLUG=sample
+          ENV
+
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - name: Type check + database suites
+        run: pnpm test:all
+
+      - name: Browser end-to-end (production build + Chrome)
+        run: pnpm test:e2e:full

@@ -1,0 +1,29 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables (secrets): every .env file but the example
+.env
+.env.*
+!.env.example
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+*.tsbuildinfo
+.next-build
+.next-check
+deploy.env
+.devdb
+.e2e-out
+
+# legacy import reject reports (contain student data)
+import-rejects-*.csv
+
+# files made by pnpm test:export
+/.export-test/
