@@ -1,4 +1,4 @@
-// Website leads: the forms sent on the institute websites (one per city, e.g. techcadd-<city>).
+// Website leads: the forms sent on the institute's websites (often one per city, e.g. acme-<city>.com).
 // Each one is kept here as it arrived (web_leads), then placed in a branch as a Lead:
 //   1. by the website's address, when a branch has that website set (Branches > website), else
 //   2. by place, when the site's address or the lead's location names exactly one branch's city, else
@@ -13,7 +13,7 @@ import { placeWebEnquiry } from '../enquiries/service'
 import { log } from '@/lib/log'
 import { isMobile, normalizePhone } from '../people/phone'
 
-/** 'https://www.TechcaddLudhiana.com/contact?x=1' -> 'techcaddludhiana.com'. Null when it is not a web address. */
+/** 'https://www.AcmeLudhiana.com/contact?x=1' -> 'acmeludhiana.com'. Null when it is not a web address. */
 export function siteHostOf(raw: string | null | undefined): string | null {
   const v = raw?.trim()
   if (!v) return null
@@ -48,17 +48,19 @@ type LeadRow = typeof webLeads.$inferSelect
 export async function matchBranch(tx: Tx, host: string, location: string | null): Promise<{ branchId: string; by: 'website' | 'location' } | null> {
   const [own] = await tx.select({ id: branches.id }).from(branches).where(and(eq(branches.websiteHost, host), eq(branches.isActive, true)))
   if (own) return { branchId: own.id, by: 'website' }
-  // By place: exactly one branch's city IS the site's name (techcaddludhiana.com, techcadd-ludhiana.in, ludhiana.techcadd.com)
+  // By place: exactly one branch's city is the site's name or ends it (acmeludhiana.com, acme-ludhiana.in, ludhiana.acme.com)
   // or is a whole word of the lead's location ("Model Town, Ludhiana"). Whole words only: "Zirakpur" is not "Zira".
   const all = await tx.select({ id: branches.id, city: branches.city }).from(branches).where(eq(branches.isActive, true))
   const words = (s: string) => s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
   const labels = host.split('.').slice(0, -1) // without the top-level part (.com, .in)
-  const siteNames = new Set(labels.flatMap((l) => [l.replace(/^techcadd-?/, ''), ...l.split('-')]).filter((x) => x && x !== 'techcadd' && x !== 'www'))
+  const siteNames = new Set(labels.flatMap((l) => [l, ...l.split('-')]).filter((x) => x && x !== 'www'))
+  // the institute's name in front of the city: "acmeludhiana"
+  const endsWith = (city: string) => labels.some((l) => l.length > city.length && l.endsWith(city))
   const place = ` ${words(location ?? '').join(' ')} `
   const hits = all.filter((b) => {
     const city = words(b.city ?? '')
     if (city.join('').length < 3) return false
-    return siteNames.has(city.join('')) || siteNames.has(city.join('-')) || place.includes(` ${city.join(' ')} `)
+    return siteNames.has(city.join('')) || siteNames.has(city.join('-')) || endsWith(city.join('')) || place.includes(` ${city.join(' ')} `)
   })
   return hits.length === 1 ? { branchId: hits[0].id, by: 'location' } : null
 }

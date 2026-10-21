@@ -1,7 +1,7 @@
 import { SitePage } from '@/components/site/shell'
 import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `Refund policy | ${PRODUCT.name}` }
+export const metadata = { title: 'Refund policy' }
 
 // A starting text. It must be reviewed by the owner's lawyer before launch.
 export default function Refund() {

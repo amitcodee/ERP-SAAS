@@ -2,7 +2,7 @@ import 'server-only'
 // A design made on the canvas (lib/cert-design.ts) and one participant's details, as the layout ops the certificate
 // page draws as SVG and lib/pdf.ts draws into the PDF (the same ops the course certificate uses), so both match.
 import { certWidth, type CertOp } from '@/lib/cert-course'
-import { fillDesignText, layoutText, lineX, pageSize, shapePath, type Design } from '@/lib/cert-design'
+import { BRAND_LOGO, fillDesignText, layoutText, lineX, pageSize, shapePath, type Design } from '@/lib/cert-design'
 
 /** A dashed line as its dashes. */
 function dashed(x1: number, y1: number, x2: number, y2: number, sw: number) {
@@ -14,8 +14,10 @@ function dashed(x1: number, y1: number, x2: number, y2: number, sw: number) {
   return d
 }
 
-/** The design's ops for these details; qr: what the QR codes open (the certificate's own page). */
-export function designOps(design: Design, values: Record<string, string>, qr: string): CertOp[] {
+/** The design's ops for these details; qr: what the QR codes open (the certificate's own page); brand: the institute
+ * whose certificate it is (its name fills {{institute}}, its logo BRAND_LOGO; without one that image is left out). */
+export function designOps(design: Design, values: Record<string, string>, qr: string, brand: { name: string; logo: string | null }): CertOp[] {
+  values = { ...values, institute: brand.name }
   const { W, H } = pageSize(design)
   const ops: CertOp[] = [{ k: 'path', d: `M0,0 H${W} V${H} H0 Z`, fill: design.bg || '#ffffff' }]
   for (const e of design.els) {
@@ -28,7 +30,9 @@ export function designOps(design: Design, values: Record<string, string>, qr: st
     } else if (e.t === 'line') {
       ops.push({ k: 'path', d: e.dash ? dashed(e.x, e.y, e.x + e.w, e.y + e.h, e.sw) : `M${e.x},${e.y} L${e.x + e.w},${e.y + e.h}`, stroke: e.stroke, sw: e.sw, opacity, round: true })
     } else if (e.t === 'image') {
-      ops.push({ k: 'img', x: e.x, y: e.y, w: e.w, h: e.h, src: e.src, ...(e.stretch ? { stretch: true } : {}), ...(opacity !== undefined ? { opacity } : {}) })
+      const src = e.src === BRAND_LOGO ? brand.logo : e.src
+      if (!src) continue
+      ops.push({ k: 'img', x: e.x, y: e.y, w: e.w, h: e.h, src, ...(e.stretch ? { stretch: true } : {}), ...(opacity !== undefined ? { opacity } : {}) })
     } else if (e.t === 'qr') {
       ops.push({ k: 'qr', x: e.x, y: e.y, size: Math.min(e.w, e.h), text: qr, fill: e.color })
     } else {

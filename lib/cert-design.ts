@@ -15,26 +15,29 @@ export type DesignEl =
   | (Box & Paint & { t: 'ellipse' })
   | (Box & Paint & { t: 'poly'; sides: number; r?: number; rot?: number }) // a regular polygon in its box: 3 a triangle, 6 a hexagon
   | (Box & { t: 'line'; stroke: string; sw: number; dash?: boolean }) // from (x, y) to (x + w, y + h)
-  | (Box & { t: 'image'; src: string; stretch?: boolean }) // src: a data: URL (PNG / JPEG) or a file of the panel (/tce-logo.png)
+  | (Box & { t: 'image'; src: string; stretch?: boolean }) // src: a data: URL (PNG / JPEG), a file of the panel, or BRAND_LOGO
   | (Box & { t: 'qr'; color: string }) // the code that opens the certificate's own page
 
 export type Design = { page: 'landscape' | 'portrait'; bg: string; els: DesignEl[] }
+/** An image's src that stands for the institute's logo (Set Up), drawn as it is when the certificate is made. */
+export const BRAND_LOGO = 'brand:logo'
 export const pageSize = (d: Pick<Design, 'page'>) => (d.page === 'portrait' ? { W: 210, H: 297 } : { W: 297, H: 210 })
 
 /** What a design can print, filled for each participant. */
 export const DESIGN_FIELDS = {
   name: { label: 'Participant name', sample: 'Aman Gill' },
+  institute: { label: 'Institute name', sample: 'Your institute' },
   event: { label: 'Event title', sample: 'Hands-on Workshop on Generative AI' },
   kind: { label: 'Event type (Seminar, Workshop…)', sample: 'Workshop' },
   date: { label: 'Event date', sample: '19 Oct 2026' },
-  venue: { label: 'Venue', sample: 'techcadd Jalandhar' },
+  venue: { label: 'Venue', sample: 'Jalandhar branch, Hall 2' },
   speaker: { label: 'Speaker / trainer', sample: 'Er. Rohit Sharma' },
   organisation: { label: 'Participant’s college / company', sample: 'DAV College, Jalandhar' },
   score: { label: 'Quiz score (8 / 10)', sample: '8 / 10' },
   percent: { label: 'Quiz score in % (80%)', sample: '80%' },
   cert_no: { label: 'Certificate number', sample: 'EV-26-000123' },
   issued: { label: 'Date issued', sample: '20 Oct 2026' },
-  branch: { label: 'Branch', sample: 'techcadd Jalandhar' },
+  branch: { label: 'Branch', sample: 'Jalandhar' },
 } as const
 export type DesignField = keyof typeof DESIGN_FIELDS
 export const SAMPLE_VALUES = Object.fromEntries(Object.entries(DESIGN_FIELDS).map(([k, v]) => [k, v.sample])) as Record<DesignField, string>
@@ -135,7 +138,7 @@ const P = (x: number, y: number, w: number, h: number, sides: number, paint: Pai
 const R = (x: number, y: number, w: number, h: number, paint: Paint & { r?: number; rot?: number; opacity?: number }): DesignEl => ({ id: id(), t: 'rect', x, y, w, h, ...paint })
 const E = (x: number, y: number, w: number, h: number, paint: Paint & { opacity?: number }): DesignEl => ({ id: id(), t: 'ellipse', x, y, w, h, ...paint })
 const L = (x: number, y: number, w: number, h: number, stroke: string, sw: number, dash?: boolean): DesignEl => ({ id: id(), t: 'line', x, y, w, h, stroke, sw, ...(dash ? { dash } : {}) })
-const LOGO = (x: number, y: number, w: number): DesignEl => ({ id: id(), t: 'image', x, y, w, h: w / (952 / 262), src: '/tce-logo.png' })
+const LOGO = (x: number, y: number, w: number): DesignEl => ({ id: id(), t: 'image', x, y, w, h: w / (952 / 262), src: BRAND_LOGO })
 const QR = (x: number, y: number, s: number, color = '#111827'): DesignEl => ({ id: id(), t: 'qr', x, y, w: s, h: s, color })
 const BODY = 'For taking part in the {{kind}} “{{event}}” held on {{date}}[ at {{venue}}][, conducted by {{speaker}}].'
 
@@ -146,13 +149,13 @@ const seal = (cx: number, cy: number, r: number, gold = '#c9a227', dark = '#8a6d
   P(cx - r, cy - r, r * 2, r * 2, 12, { fill: gold, r: r * 0.08 }),
   E(cx - r * 0.78, cy - r * 0.78, r * 1.56, r * 1.56, { stroke: '#fff7d6', sw: 0.5 }),
   T(cx - r, cy - r * 0.02, r * 2, 'CERTIFIED', 'bold', r * 0.25, '#ffffff', 'center', { track: 0.04 }),
-  T(cx - r, cy + r * 0.36, r * 2, 'techcadd', 'semibold', r * 0.2, '#fff7d6', 'center', { track: 0.1 }),
+  T(cx - r, cy + r * 0.36, r * 2, '{{institute}}', 'semibold', r * 0.2, '#fff7d6', 'center', { track: 0.1 }),
 ]
 
 export type Preset = { key: string; name: string; about: string; make: () => Design }
 export const PRESETS: Preset[] = [
   {
-    key: 'hexagon', name: 'Hexagon — teal & navy', about: 'White page with navy, teal and grey hexagons, the techcadd logo; the name in handwriting.',
+    key: 'hexagon', name: 'Hexagon — teal & navy', about: 'White page with navy, teal and grey hexagons, your logo; the name in handwriting.',
     make: () => {
       const NAVY = '#0b4a73', TEAL = '#21c1bd', GREY = '#e6e9ed', INK = '#123d5c'
       return {
@@ -188,7 +191,7 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    key: 'classic', name: 'Classic — gold border', about: 'Cream page in a double gold frame, serif heading, the techcadd logo and a seal.',
+    key: 'classic', name: 'Classic — gold border', about: 'Cream page in a double gold frame, serif heading, your logo and a seal.',
     make: () => {
       const GOLD = '#b8902f', INK = '#2b2416'
       return {
@@ -260,7 +263,7 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    key: 'dark', name: 'Elegant — dark & gold', about: 'Midnight page, gold frame and lettering, the techcadd logo on a white plate; for awards and toppers.',
+    key: 'dark', name: 'Elegant — dark & gold', about: 'Midnight page, gold frame and lettering, your logo on a white plate; for awards and toppers.',
     make: () => {
       const GOLD = '#d9b45a', SOFT = '#efe3c2'
       return {

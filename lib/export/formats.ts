@@ -2,12 +2,14 @@ import 'server-only'
 // A list as a file: Excel (.xlsx), CSV or PDF. No extra libraries: the .xlsx is a small zip of XML parts written here
 // (Node's own deflate), the PDF a landscape table drawn with pdf-lib. Every cell that would start a formula is defused.
 import { deflateRawSync } from 'node:zlib'
+import { PRODUCT } from '@/lib/product'
 import { PDFDocument, rgb } from 'pdf-lib'
 import { embedFaces, type Face } from '@/lib/pdf-fonts'
 
 export type Cell = string | number | null | undefined
 export type Column = { label: string; kind?: 'text' | 'money' | 'number' | 'date' | 'datetime'; width?: number }
-export type Sheet = { title: string; subtitle?: string; columns: Column[]; rows: Cell[][] }
+/** `by`: the institute whose list it is (named at the foot of each PDF page). */
+export type Sheet = { title: string; subtitle?: string; by?: string; columns: Column[]; rows: Cell[][] }
 
 // ---- shared
 
@@ -123,7 +125,7 @@ function fit(s: string, font: Face, size: number, w: number) {
 
 export async function toPdf(s: Sheet): Promise<Buffer> {
   const doc = await PDFDocument.create()
-  doc.setTitle(s.title); doc.setCreator('techcadd ERP')
+  doc.setTitle(s.title); doc.setAuthor(s.by ?? ''); doc.setCreator(PRODUCT.name)
   const { sans: font, sansBold: bold } = await embedFaces(doc, ['sans', 'sansBold'])
   const W = 842, H = 595, M = 28, size = 7.5, rowH = 15
   const navy = rgb(0.063, 0.094, 0.416), line = rgb(0.88, 0.89, 0.94), zebra = rgb(0.965, 0.97, 0.99), muted = rgb(0.42, 0.45, 0.55)
@@ -148,7 +150,7 @@ export async function toPdf(s: Sheet): Promise<Buffer> {
     })
     y -= rowH
   }
-  const foot = () => font.draw(page, `techcadd  ·  page ${doc.getPageCount()}`, { x: W - M - 80, y: M - 14, size: 7, color: muted })
+  const foot = () => font.draw(page, `${s.by ? `${s.by}  ·  ` : ''}page ${doc.getPageCount()}`, { x: W - M - 80, y: M - 14, size: 7, color: muted })
   head()
   for (const r of cells) {
     if (y - rowH < M) { foot(); page = doc.addPage([W, H]); head() }

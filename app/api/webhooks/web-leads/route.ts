@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 // Website forms post their leads here, on the institute's own address, from the website's SERVER (the secret must
 // never be in the browser). The secret is the org's own (lib/tenant/web-leads-secret.ts):
 //   POST https://<institute>.<root>/api/webhooks/web-leads   Authorization: Bearer <org secret>   Content-Type: application/json
-//   { "site": "https://techcaddludhiana.com", "sourceUrl": "<page of the form>", "externalId": "<the site's own id>",
+//   { "site": "https://acmeludhiana.com", "sourceUrl": "<page of the form>", "externalId": "<the site's own id>",
 //     "name": "...", "phone": "...", "email": "...", "course": "...", "location": "...", "message": "...", "submittedAt": "..." }
 // Several at once: send an array (at most 500). Sending the same lead again (same site + externalId) adds nothing.
 const MAX = 500

@@ -23,7 +23,7 @@ async function main() {
   try {
     await db.transaction(async (tx) => {
       await tx.execute(sql`select set_config('app.org_id', ${ORG}, true)`) // the Sample Institute owns what the test makes
-      const [b] = await tx.insert(branches).values({ code: 'LTR', name: 'techcadd Letterpur', status: 'active' }).returning()
+      const [b] = await tx.insert(branches).values({ code: 'LTR', name: 'Letterpur', status: 'active' }).returning()
       const [u] = await tx.insert(users).values({ branchId: b.id, name: 'l', email: 'l@letters.test.invalid', passwordHash: 'x' }).returning()
       const head: Actor = { userId: u.id, orgId: ORG, role: 'super_admin', branchId: null }
       const manager: Actor = { userId: u.id, orgId: ORG, role: 'branch_manager', branchId: b.id }
@@ -61,7 +61,7 @@ async function main() {
       check('the letter is the company\'s template with its names', !!draft && draft.text.includes('# SYNTAX OFFER') && draft.text.includes('welcome to Syntax Developer (Syntax Developer Pvt. Ltd.)'), draft?.text.slice(0, 120))
       check('…on a plain letterhead with the company name, and no stamp (none uploaded)', !!draft && draft.art.letterhead.startsWith('data:image/svg+xml') && decodeURIComponent(draft.art.letterhead).includes('Syntax Developer') && draft.art.stamp === null)
       const own = await letterFor(tx, manager, plain.id, 'internship_offer')
-      check('a techcadd letter keeps the techcadd letterhead and stamp, and says techcadd', !!own && own.art.letterhead === '/letterhead.jpg' && own.art.stamp === '/letters/stamp-signature.png' && own.text.includes('internship opportunity with techcadd'))
+      check('the main company prints on its uploaded letterhead and stamp (the Sample Institute: techcadd’s, as data), and says its name', !!own && own.art.letterhead.startsWith('data:image/jpeg;base64,') && !!own.art.stamp?.startsWith('data:image/png;base64,') && own.text.includes('internship opportunity with techcadd'))
       await issueOffer(tx, manager, intern.id)
       const [issued] = await tx.select({ text: internships.offerText }).from(internships).where(eq(internships.id, intern.id))
       check('issuing freezes the company\'s wording', !!issued.text?.includes('welcome to Syntax Developer'))

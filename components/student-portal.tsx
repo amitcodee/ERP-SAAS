@@ -26,6 +26,8 @@ import type { Study } from '@/modules/portal/study'
 import { namedProject } from '@/lib/project-title'
 import type { Announcement, TicketMessage, TicketRow } from '@/modules/support/service'
 import type { HelpRequest, NoteRow } from '@/modules/teaching/service'
+import { useBrand } from '@/components/brand-context'
+import { BrandMark } from '@/components/brand-mark'
 
 const inr = (paise: number) => '₹' + Math.round(paise / 100).toLocaleString('en-IN')
 const fmt = (d: string | null) => (d ? new Date(d.length > 10 ? d : `${d}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—')
@@ -54,6 +56,7 @@ type Props = {
 }
 
 export function StudentPortal(p: Props) {
+  const brand = useBrand()
   const router = useRouter()
   const asked = useSearchParams().get('tab')
   const [tab, setTab] = useState<Tab>((TABS.find((t) => t[0] === asked)?.[0] ?? 'home') as Tab)
@@ -84,7 +87,7 @@ export function StudentPortal(p: Props) {
     <div className="pt">
       {/* sidebar (computer) */}
       <aside className="pt-side">
-        <div className="pt-logo"><Image src="/tce.webp" alt="techcadd" width={940} height={270} priority /><span>Student portal</span></div>
+        <div className="pt-logo"><BrandMark brand={brand} height={34} /><span>Student portal</span></div>
         <nav className="pt-nav" aria-label="Portal sections">
           {TABS.map(([k, l, I]) => (
             <button key={k} type="button" className={tab === k ? 'on' : ''} aria-current={tab === k ? 'page' : undefined} onClick={() => go(k)}>
@@ -108,7 +111,7 @@ export function StudentPortal(p: Props) {
       <div className="pt-main">
         <header className="pt-bar">
           <div className="pt-bar-title">
-            <div className="pt-logo-mobile"><Image src="/tce.webp" alt="techcadd" width={940} height={270} /></div>
+            <div className="pt-logo-mobile"><BrandMark brand={brand} height={30} /></div>
             <h1>{tab === 'home' ? 'Dashboard' : current[1]}</h1>
             <p>{SUBTITLE[tab]}</p>
           </div>

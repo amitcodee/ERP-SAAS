@@ -6,20 +6,20 @@ import { orgId } from './tenancy'
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' })
 
-// The companies internship letters are issued for (techcadd, Syntax Developer, Zabi Technologies…), each with its own
+// The companies internship letters are issued for (the institute itself, the main one, and others it places interns with), each with its own
 // name, contact, letterhead (a full A4 page image) and stamp / signature. Head office keeps them in Letter Templates.
 export const letterCompanies = pgTable('letter_companies', {
   orgId: orgId(),
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(), // as the letters write it in a sentence, e.g. "Syntax Developer"
-  legalName: text('legal_name').notNull(), // {{company}}, e.g. "techcadd Computer Education (OPC) Private Ltd."
+  legalName: text('legal_name').notNull(), // {{company}}, e.g. "Acme Learning Pvt. Ltd."
   contactPhone: text('contact_phone'),
   contactEmail: text('contact_email'),
   letterheadMime: text('letterhead_mime'),
-  letterhead: bytea('letterhead'), // none: techcadd's own letterhead (public/letterhead.jpg), else a plain one with the name
+  letterhead: bytea('letterhead'), // none: a plain one with the name
   stampMime: text('stamp_mime'),
-  stamp: bytea('stamp'), // none: techcadd's stamp (public/letters/stamp-signature.png), else no stamp
-  isDefault: boolean('is_default').notNull().default(false), // techcadd: what letters so far belong to
+  stamp: bytea('stamp'), // none: no stamp
+  isDefault: boolean('is_default').notNull().default(false), // the institute itself: what an intern or template without a company belongs to
   isActive: boolean('is_active').notNull().default(true),
   sortOrder: integer('sort_order').notNull().default(0),
   updatedBy: uuid('updated_by').references(() => users.id),

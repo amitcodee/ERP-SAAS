@@ -1,7 +1,7 @@
 import { PrintButton } from '@/components/print-button'
 import { CERT_FONT_FAMILY, CERT_FONT_FILES, CERT_FONT_WEIGHT, certTextPath, qrPath, type CertFont, type CertOp } from '@/lib/cert-course'
 
-// The two techcadd certificates, A4 landscape, each drawn from its layout (the same one the PDF draws):
+// The institute's two certificates, A4 landscape, each drawn from its layout (the same one the PDF draws):
 //   course  — Course Completion Certificate (lib/cert-course.ts), with the QR code that opens the public verification.
 //   project — Project Completion Certificate (lib/cert-project.ts): the project the trainer approved.
 
@@ -65,7 +65,7 @@ export function LayoutSheet({ ops, revoked, label, portrait }: { ops: CertOp[]; 
             case 'text': { const d = certTextPath(o); return d ? <path key={i} d={d} fill={o.fill} /> : <text key={i} x={o.x} y={o.y} fontSize={o.size} style={{ fontFamily: CERT_FONT_FAMILY[o.font] }} fontWeight={CERT_FONT_WEIGHT[o.font]} fill={o.fill} letterSpacing={o.track ? o.track * o.size : undefined} xmlSpace="preserve">{o.s}</text> }
             case 'glyph': { const d = certTextPath(o); if (d) return <path key={i} d={d} fill={o.fill} /> }
               return <text key={i} x={-o.w / 2} y={o.size * 0.35} transform={`translate(${o.x} ${o.y}) rotate(${o.rot})`} fontSize={o.size} style={{ fontFamily: CERT_FONT_FAMILY[o.font] }} fontWeight={CERT_FONT_WEIGHT[o.font]} fill={o.fill} xmlSpace="preserve">{o.ch}</text>
-            case 'img': return <image key={i} href={o.src} x={o.x} y={o.y} width={o.w} height={o.h} preserveAspectRatio={o.stretch ? 'none' : 'xMidYMax meet'} opacity={o.opacity} />
+            case 'img': return <image key={i} href={o.src} x={o.x} y={o.y} width={o.w} height={o.h} preserveAspectRatio={o.stretch ? 'none' : o.left ? 'xMinYMax meet' : 'xMidYMax meet'} opacity={o.opacity} />
             case 'qr': return <path key={i} d={qrPath(o.text, o.x, o.y, o.size)} fill={o.fill} />
           }
         })}

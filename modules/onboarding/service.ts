@@ -59,22 +59,36 @@ export async function markStep(tx: Tx, actor: Actor, step: StepKey | 'dismiss', 
 
 // ---- the steps that are filled in here ----------------------------------------------------------------------------
 
+const image = (what: string) => z.string().max(450_000).regex(/^(data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+)?$/, `Use a PNG or JPEG ${what}`).optional().default('')
+
 export const brandingInput = z.object({
   legalName: z.string().trim().min(2, 'Enter the name as it should be printed').max(160),
   tagline: z.string().trim().max(120).optional().default(''),
   color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, 'Pick a colour').default('#10186a'),
-  // a small logo as a data URL (PNG / JPEG / WebP / SVG, at most 200 KB); empty keeps the one there is
-  logo: z.string().max(280_000).regex(/^(data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+)?$/, 'Use a PNG, JPEG, WebP or SVG logo').optional().default(''),
+  // a small logo as a PNG / JPEG data URL (the page turns a WebP or SVG into PNG first: certificates and receipts can
+  // only print those); empty keeps the one there is
+  logo: image('logo'),
+  // an image of the institute's affiliations / accreditations for the course certificate (optional); empty keeps it
+  accreditations: image('accreditations image'),
+  removeAccreditations: z.boolean().optional().default(false),
+  // printed on the student ID card; each may be left empty
+  contact: z.object({
+    address: z.string().trim().max(200).default(''),
+    phone: z.string().trim().max(40).default(''),
+    website: z.string().trim().max(120).default(''),
+    social: z.string().trim().max(200).refine((s) => !s || /^https?:\/\/\S+$/i.test(s), 'The social page must be a link (https://…)').default(''),
+  }).optional(),
 })
 
-/** The institute as it is printed and shown: legal name, tagline, colour, logo (organisations.branding). */
+/** The institute as it is printed and shown: legal name, tagline, colour, logo, contacts (organisations.branding). */
 export async function saveBranding(tx: Tx, actor: Actor, raw: z.input<typeof brandingInput>) {
   assertHead(actor)
   const v = brandingInput.parse(raw)
   const [o] = (await tx.execute<{ branding: Record<string, unknown> }>(sql`select branding from organisations where id = app_org()`)).rows
-  const branding = { ...(o?.branding ?? {}), tagline: v.tagline, color: v.color, ...(v.logo ? { logo: v.logo } : {}) }
+  const branding: Record<string, unknown> = { ...(o?.branding ?? {}), tagline: v.tagline, color: v.color, ...(v.logo ? { logo: v.logo } : {}), ...(v.accreditations ? { accreditations: v.accreditations } : {}), ...(v.contact ? { contact: v.contact } : {}) }
+  if (v.removeAccreditations) delete branding.accreditations
   await tx.execute(sql`update organisations set legal_name = ${v.legalName}, branding = ${JSON.stringify(branding)}::jsonb where id = app_org()`)
-  await audit(tx, actor, { action: 'update', entity: 'organisation', entityId: 'branding', after: { legalName: v.legalName, tagline: v.tagline, color: v.color, logo: !!v.logo } })
+  await audit(tx, actor, { action: 'update', entity: 'organisation', entityId: 'branding', after: { legalName: v.legalName, tagline: v.tagline, color: v.color, logo: !!v.logo, accreditations: v.removeAccreditations ? null : !!v.accreditations } })
 }
 
 /** Adds a ready-made catalogue's departments and courses (what is there already is left as it is). */

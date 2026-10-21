@@ -33,14 +33,14 @@ const asSystem = async (tx: Tx) => { await tx.execute(sql`reset role`); await tx
 async function main() {
   // every template draws, with the sample details, into the layout and a PDF
   for (const p of PRESETS) {
-    const ops = designOps(p.make(), SAMPLE_VALUES, 'https://example.test/e/c/x')
+    const ops = designOps(p.make(), SAMPLE_VALUES, 'https://example.test/e/c/x', { name: 'Acme', logo: null })
     const pdf = await layoutPdf('t', ops, p.make().page === 'portrait')
     check(`template "${p.name}" lays out and makes a PDF`, ops.length > 5 && pdf.length > 5000 && !ops.some((o) => o.k === 'text' && /\{\{/.test(o.s)))
   }
   // a long name is shrunk to its box, never past it
   const hex = presetDesign('hexagon')
   const nameEl = hex.els.find((e) => e.t === 'text' && e.text === '{{name}}')!
-  const long = designOps(hex, { ...SAMPLE_VALUES, name: 'Gurpreet Singh Sandhu Dhillon Randhawa Bajwa Grewal' }, 'q').find((o) => o.k === 'text' && o.s.startsWith('Gurpreet'))
+  const long = designOps(hex, { ...SAMPLE_VALUES, name: 'Gurpreet Singh Sandhu Dhillon Randhawa Bajwa Grewal' }, 'q', { name: 'Acme', logo: null }).find((o) => o.k === 'text' && o.s.startsWith('Gurpreet'))
   check('a long name gets smaller to fit its box', !!long && long.k === 'text' && long.size < (nameEl as { size: number }).size && long.x >= nameEl.x - 0.01)
 
   try {
@@ -105,7 +105,7 @@ async function main() {
       // ---- the certificate ----
       const cert = (await eventCertificateIn(tx, pass.hash))!
       check('the certificate is filled with the participant', cert.values.name === 'Aman Gill' && cert.values.score === '2 / 2' && cert.values.percent === '100%' && cert.values.kind === 'Workshop' && cert.values.organisation === 'DAV College')
-      const ops = designOps(cert.design, cert.values, `https://example.test/e/c/${pass.hash}`)
+      const ops = designOps(cert.design, cert.values, `https://example.test/e/c/${pass.hash}`, { name: 'Acme', logo: null })
       check('it prints the name and the QR code of its own page', ops.some((o) => o.k === 'text' && o.s === 'Aman Gill') && ops.some((o) => o.k === 'qr' && o.text.endsWith(pass.hash)))
       check('no certificate page for one who did not pass', (await eventCertificateIn(tx, fail.hash)) === null && (await eventCertificateIn(tx, 'zz')) === null)
 

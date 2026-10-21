@@ -28,7 +28,7 @@ const details = {
   email: z.string().trim().toLowerCase().email('Enter a valid branch e-mail'),
   certCode: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{2,10}$/, 'Certificate code: 2-10 letters/digits').optional().nullable(), // defaults to the branch code
   // The branch's own website: the leads its forms send come to this branch (modules/web-leads).
-  websiteUrl: z.string().trim().max(300).optional().nullable().transform((v) => v || null).refine((v) => !v || !!siteHostOf(v), 'Enter the website address, e.g. https://techcaddludhiana.com'),
+  websiteUrl: z.string().trim().max(300).optional().nullable().transform((v) => v || null).refine((v) => !v || !!siteHostOf(v), 'Enter the website address, e.g. https://www.yourinstitute.com'),
 }
 export const createBranchInput = z.object({
   ...details,

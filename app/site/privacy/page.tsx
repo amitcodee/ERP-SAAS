@@ -1,7 +1,7 @@
 import { SitePage } from '@/components/site/shell'
 import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `Privacy policy | ${PRODUCT.name}` }
+export const metadata = { title: 'Privacy policy' }
 
 // A starting text that matches how the service handles data (DPDP Act 2023: the institute is the data fiduciary for
 // its students' data, we are its processor). It must be reviewed by the owner's lawyer before launch.

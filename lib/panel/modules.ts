@@ -62,7 +62,7 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   { key: 'Logs', path: '/logs', group: 'Administration', allowed: (ok) => ok('read', 'audit') },
   { key: 'Sign-in Security', path: '/login-logs', group: 'Administration', allowed: (ok) => ok('update', 'setting') },
   { key: 'Recycle Bin', path: '/recycle-bin', group: 'Administration', allowed: (ok) => ok('read', 'recycle') },
-  // head office: a branch's students and payments from the old techcadd system (phpMyAdmin CSV), re-runnable to sync
+  // head office: a branch's students and payments from the institute's old system (phpMyAdmin CSV), re-runnable to sync
   { key: 'Old System Import', path: '/import-old', group: 'Administration', allowed: (ok) => ok('create', 'branch') },
   { key: 'Settings', path: '/settings', group: 'Administration', allowed: () => true },
   // head office: the first steps of a new institute (modules/onboarding)
@@ -116,7 +116,7 @@ export const ABOUT: Record<ModuleKey, string> = {
   Logs: 'Who did what and when, across the panel.',
   'Sign-in Security': 'Sign-in history, locked accounts and allowed IP addresses.',
   'Recycle Bin': 'Deleted records: restore them if removed by mistake.',
-  'Old System Import': 'Bring a branch’s students and payments over from the old techcadd system; run again to sync.',
+  'Old System Import': 'Bring a branch’s students and payments over from your old system (phpMyAdmin exports); run again to sync.',
   Settings: 'How the panel works for every branch: e-mail, messages, reminders and more.',
 }
 export const PATH = Object.fromEntries(MODULES.map((m) => [m.key, m.path])) as Record<ModuleKey, string>

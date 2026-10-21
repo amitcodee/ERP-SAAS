@@ -1,8 +1,11 @@
-import Image from 'next/image'
+'use client'
 import Link from 'next/link'
+import { BrandMark } from './brand-mark'
+import { useBrand } from './brand-context'
 
-/** The split layout shared by the sign-in and password-reset pages: art panel on the left, logo + form on the right. */
+/** The split layout shared by the sign-in and password-reset pages: art panel on the left, the institute's logo + form on the right. */
 export function AuthShell({ tagline, children }: { tagline: string; children: React.ReactNode }) {
+  const brand = useBrand()
   return (
     <main className="login-page">
       <aside className="login-art" aria-hidden="true">
@@ -36,15 +39,15 @@ export function AuthShell({ tagline, children }: { tagline: string; children: Re
         </svg>
         <div className="login-art-top"><span>Welcome</span><i /></div>
         <div className="login-art-bottom">
-          <h2>Your Skill &amp;<br />Technology<br />Partner</h2>
+          <h2>{brand.tagline || brand.name}</h2>
           <p>{tagline}</p>
         </div>
       </aside>
 
       <section className="login-side">
-        <Image className="login-logo" src="/tce.webp" alt="techcadd — Your Skill & Technology Partner" width={940} height={270} priority />
+        <div className="login-logo" style={{ width: "auto" }}><BrandMark brand={brand} height={44} /></div>
         {children}
-        <p className="login-foot">© techcadd · <Link href="/">Help &amp; Support</Link></p>
+        <p className="login-foot">© {brand.legalName} · <Link href="/">Help &amp; Support</Link></p>
       </section>
     </main>
   )

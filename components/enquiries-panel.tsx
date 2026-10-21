@@ -591,7 +591,7 @@ function SiteChip({ url }: { url: string }) {
   return <a className="src-chip" href={url} target="_blank" rel="noreferrer noopener" title={url}><Globe size={10} />{hostOf(url)}</a>
 }
 
-/** 'https://www.techcaddludhiana.com/x' -> 'techcaddludhiana.com' */
+/** 'https://www.example.com/x' -> 'example.com' */
 function hostOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url.slice(0, 40) }
 }

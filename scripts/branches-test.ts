@@ -92,9 +92,9 @@ async function main() {
       const adminLogin = act.logins.find((l) => l.userId === admin.id)!
       check('the mailed password works and must be changed at first sign-in; the old one does not', await verifyPassword(a3.passwordHash, adminLogin.password) && !(await verifyPassword(a3.passwordHash, pw)) && a3.mustChangePassword)
       check('live session check now allows the branch', (await loadUserStateIn(tx, admin.id))!.branchActive === true)
-      const m = loginMessage(act.branch, adminLogin, { branch_manager: 'Branch Manager' }, 'https://panel.example')
+      const m = loginMessage(act.branch, adminLogin, { branch_manager: 'Branch Manager' }, 'https://panel.example', 'Sample Institute')
       check('login e-mail: link, username, password, role and branch', m.to === newMail && m.body.includes('https://panel.example/login') && m.body.includes(`Username: ${newMail}`) && m.body.includes(adminLogin.password) && m.body.includes('Branch Manager') && m.body.includes('NWN'))
-      check('e-mail HTML escapes names', loginMessage({ ...act.branch, name: '<b>x</b>' }, adminLogin, {}, 'https://e.t').html.includes('&lt;b&gt;x'))
+      check('e-mail HTML escapes names', loginMessage({ ...act.branch, name: '<b>x</b>' }, adminLogin, {}, 'https://e.t', 'Sample Institute').html.includes('&lt;b&gt;x'))
       const again = await resendLogin(tx, sup, multi.user.id)
       check('resend login: one new password, for that person only', again.logins.length === 1 && again.logins[0].email === multi.user.email)
       await throws(tx, 'an active branch cannot be activated again', () => activateBranch(tx, sup, b.id), /already active/)

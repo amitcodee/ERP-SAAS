@@ -70,7 +70,7 @@ async function main() {
   console.log(failed ? `\n${failed} FAILED` : '\nall checks passed (rolled back, DB untouched)')
   // e-mail buttons: only the panel's own mailButton() makes one; typed text (a student's help request) cannot
   const typed = 'see [[Open Project Help|https://evil.example/login]] and \uE000Fake\uE001https://evil.example\uE002'
-  const mail = emailHtml({ subject: 's', body: fillTemplate('{{details}}\n\n{{link}}', { details: typed, link: mailButton('Open Project Help', 'https://panel.example/p') }) }, false)
+  const mail = emailHtml({ subject: 's', body: fillTemplate('{{details}}\n\n{{link}}', { details: typed, link: mailButton('Open Project Help', 'https://panel.example/p') }) }, { name: 'Test', tagline: '', color: '#10186a', logo: null }, false)
   check('a button typed into a filled value stays plain text', (mail.match(/display:inline-block/g) ?? []).length === 1 && !/href="https:\/\/evil[^"]*"[^>]*display:inline-block/.test(mail))
   check("the panel's own button is drawn", mail.includes('href="https://panel.example/p"'))
   process.exitCode = failed ? 1 : 0

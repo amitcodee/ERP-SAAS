@@ -57,7 +57,7 @@ export const createRegistrationInput = z
     internshipCompletion: z.boolean().default(false),
     offerTemplateId: z.string().uuid().nullable().optional(),
     completionTemplateId: z.string().uuid().nullable().optional(),
-    letterCompanyId: z.string().uuid().nullable().optional(), // the company the letters come from (null: techcadd)
+    letterCompanyId: z.string().uuid().nullable().optional(), // the company the letters come from (null: the main one)
   })
   .refine((v) => v.enquiryId || v.person, { message: 'Pick an enquiry or enter the student details' })
   .refine((v) => (v.courseFee == null) === (v.gstAmount == null) && (v.courseFee == null || v.courseFee + v.gstAmount! === v.totalFee), { message: 'Course fee and GST must add up to the total fee' })

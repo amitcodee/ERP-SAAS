@@ -5,7 +5,7 @@ import { checkResetToken } from '@/modules/auth/reset'
 import { ResetForm } from './reset-form'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Reset password | techcadd', referrer: 'no-referrer' as const }
+export const metadata = { title: 'Reset password', referrer: 'no-referrer' as const }
 
 export default async function ResetPasswordPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token = '' } = await searchParams

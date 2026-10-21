@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { changePasswordAction, startPasswordChangeAction } from '@/app/actions'
 import { logoutAction } from '@/app/login/actions'
 import { PasswordInput } from '@/components/password-input'
+import { useBrand } from '@/components/brand-context'
 
 const HINT = 'At least 10 characters, with a letter and a number.'
 
@@ -68,10 +69,11 @@ export function ChangePasswordForm({ onDone, withCode = false }: { onDone?: () =
 
 /** Full page shown instead of the app when an account must choose its own password first. */
 export function ForcedChangeScreen({ name }: { name: string }) {
+  const brand = useBrand()
   return (
     <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, background: '#f5f7fa' }}>
       <div className="modal-card" style={{ width: 'min(420px,100%)' }}>
-        <div className="modal-head"><div><p className="eyebrow">techcadd Institute ERP</p><h2>Set a new password</h2></div></div>
+        <div className="modal-head"><div><p className="eyebrow">{brand.name}</p><h2>Set a new password</h2></div></div>
         <p className="section-hint" style={{ margin: '-6px 0 14px' }}>Welcome, {name.split(' ')[0]}. The password you signed in with was temporary. Choose your own to continue.</p>
         <ChangePasswordForm onDone={() => window.location.reload()} />
         <form action={logoutAction} style={{ marginTop: 8 }}><button className="filter-button" type="submit">Sign out</button></form>

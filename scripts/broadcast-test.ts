@@ -23,8 +23,8 @@ async function main() {
   try {
     await db.transaction(async (tx) => {
       await tx.execute(sql`select set_config('app.org_id', ${ORG}, true)`) // the Sample Institute owns what the test makes
-      const [b] = await tx.insert(branches).values({ code: 'BC1', name: 'techcadd Bcpur' }).returning()
-      const [b2] = await tx.insert(branches).values({ code: 'BC2', name: 'techcadd Other' }).returning()
+      const [b] = await tx.insert(branches).values({ code: 'BC1', name: 'Bcpur' }).returning()
+      const [b2] = await tx.insert(branches).values({ code: 'BC2', name: 'Other' }).returning()
       const [u] = await tx.insert(users).values({ branchId: b.id, name: 'bc', email: 'bc@w.test.invalid', passwordHash: 'x' }).returning()
       const [dept] = await tx.select().from(departments).limit(1)
       const [cat] = await tx.insert(leadCategories).values({ name: 'BC test category' }).returning()
@@ -40,7 +40,7 @@ async function main() {
       await throws('every {{n}} in the template needs a parameter', () => saveCampaign(tx, head, null, { label: 'Offer', campaign: 'bc_offer', audience: 'any', body: 'Hi {{1}} {{2}}', params: [{ field: 'first_name' }], isActive: true }), /\{\{n\}\}/)
       await throws('a typed parameter says what to type', () => saveCampaign(tx, head, null, { label: 'Offer', campaign: 'bc_offer', audience: 'any', params: [{ field: 'text' }], isActive: true }), /Typed when sending/)
       const offer = await saveCampaign(tx, head, null, {
-        label: 'Diwali offer', campaign: 'bc_offer', audience: 'any', body: 'Hello {{1}}, get {{2}} off at techcadd {{3}}. Due: {{4}}',
+        label: 'Diwali offer', campaign: 'bc_offer', audience: 'any', body: 'Hello {{1}}, get {{2}} off at our {{3}} branch. Due: {{4}}',
         params: [{ field: 'first_name' }, { field: 'text', label: 'Offer' }, { field: 'branch' }, { field: 'balance' }], mediaUrl: 'https://x.test/a.jpg', isActive: true,
       })
       await throws('the same AiSensy campaign is not listed twice', () => saveCampaign(tx, head, null, { label: 'Again', campaign: 'BC_OFFER', audience: 'any', params: [], isActive: true }), /already listed/)
@@ -62,10 +62,10 @@ async function main() {
       const active = await previewBroadcast(tx, manager, offer.id, { kind: 'students', statuses: ['active'] }, ['20%'])
       check('students: one message per number, own branch only', active.sample.filter((x) => x.phone === '9822200001').length === 1 && !active.sample.some((x) => x.phone === '9822200009'), JSON.stringify(active.sample.map((x) => x.phone)))
       check('students: status filter (nobody here has completed)', (await previewBroadcast(tx, manager, offer.id, { kind: 'students', statuses: ['completed'] }, [])).total === 0)
-      check('the preview reads as the message, with the details filled in', active.sample.find((x) => x.phone === '9822200001')?.text.startsWith('Hello Sita, get 20% off at techcadd Bcpur. Due: ₹') === true, active.sample[0]?.text)
+      check('the preview reads as the message, with the details filled in', active.sample.find((x) => x.phone === '9822200001')?.text.startsWith('Hello Sita, get 20% off at our Bcpur branch. Due: ₹') === true, active.sample[0]?.text)
       const leads = await previewBroadcast(tx, manager, offer.id, { kind: 'leads', types: ['call', 'lead', 'visited'], categoryIds: [cat.id] }, ['20%'])
       check('leads: a category picks its calls and leads (and nobody else)', leads.total === 2 && leads.sample.every((x) => ['9822200003', '9822200004'].includes(x.phone)), JSON.stringify(leads.sample.map((x) => x.phone)))
-      check('the filter in words', leads.summary.includes('BC test category') && leads.summary.includes('techcadd Bcpur'), leads.summary)
+      check('the filter in words', leads.summary.includes('BC test category') && leads.summary.includes('Bcpur'), leads.summary)
       await applyTenant(tx, other)
       check('another branch does not see these people', (await previewBroadcast(tx, other, offer.id, { kind: 'leads', types: ['call', 'lead', 'visited'], categoryIds: [cat.id] }, [])).total === 0)
       await applyTenant(tx, telecaller)

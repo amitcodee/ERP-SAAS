@@ -1,11 +1,10 @@
 import 'server-only'
 // The Project Completion Certificate, laid out once and drawn twice like the course certificate (lib/cert-course.ts):
-// as SVG on the certificate page and into the PDF. The design follows the techcadd project certificate artwork: all
-// centred on white, the logo, PROJECT COMPLETION / CERTIFICATE between two short bars, the student, the project the
+// as SVG on the certificate page and into the PDF. All centred on white: the institute's logo (or its name), PROJECT COMPLETION / CERTIFICATE between two short bars, the student, the project the
 // trainer approved, a row of duration / tools / registration number, the head of the department's signature and the
 // branch at the foot. Positions in mm on A4 landscape (297 x 210), y from the top.
 import { fmtCertDate } from '@/lib/cert-art'
-import { branchPlace, certWidth, type CertFont, type CertOp } from '@/lib/cert-course'
+import { branchPlace, certWidth, type CertBrand, type CertFont, type CertOp } from '@/lib/cert-course'
 
 export type ProjectCertInput = {
   name: string; father: string | null; gender: string | null
@@ -14,9 +13,10 @@ export type ProjectCertInput = {
   tools: string[]
   joined: string; ended: string | null; issuedAt: string; regNo: string; branch: string
   head: { image: string | null; title: string }
+  brand: CertBrand
 }
 
-const NAVY = '#141a6e', INK = '#1d2470', BLUE = '#1638d6'
+const INK = '#1d2470', BLUE = '#1638d6'
 const CX = 148.5
 
 /** The largest size (down to min) at which s fits max; at min it is cut with "…". */
@@ -42,6 +42,7 @@ const withTitle = (n: string) => (/^(mr|mr\.|shri|sh\.?|s\.|sardar|late|dr\.?|sr
 
 export function projectCertOps(v: ProjectCertInput): CertOp[] {
   const ops: CertOp[] = []
+  const NAVY = /^#[0-9a-fA-F]{6}$/.test(v.brand.color) ? v.brand.color : '#141a6e'
   const T = (x: number, y: number, s: string, font: CertFont, size: number, fill: string, track?: number) => { ops.push({ k: 'text', x, y, s, font, size, fill, ...(track ? { track } : {}) }); return x + certWidth(s, font, size, track) }
   const centred = (y: number, s: string, font: CertFont, size: number, fill: string, track?: number, cx = CX) => T(cx - certWidth(s, font, size, track) / 2, y, s, font, size, fill, track)
   /** One centred line in several weights. */
@@ -55,7 +56,8 @@ export function projectCertOps(v: ProjectCertInput): CertOp[] {
   ops.push({ k: 'path', d: 'M0,0 H297 V210 H0 Z', fill: '#ffffff' })
 
   // the logo, and the heading between two short bars
-  ops.push({ k: 'img', x: CX - 42, y: 4.5, w: 84, h: 84 / (952 / 262), src: '/tce-logo.png' })
+  if (v.brand.logo) ops.push({ k: 'img', x: CX - 42, y: 4.5, w: 84, h: 84 / (952 / 262), src: v.brand.logo })
+  else { const n = fit(v.brand.name, 'bold', 9, 200, 5); centred(22, n.s, 'bold', n.size, NAVY) }
   bar(30.6)
   centred(39.8, 'PROJECT COMPLETION', 'regular', 5.4, NAVY, 0.36)
   centred(58.6, 'CERTIFICATE', 'medium', 22, NAVY, 0.02)
@@ -82,7 +84,7 @@ export function projectCertOps(v: ProjectCertInput): CertOp[] {
   y += (title.length - 1) * pSize * 1.15
 
   // what the project shows
-  const about = 'This project was designed and developed as part of the practical training at techcadd, demonstrating proficiency in project development and implementation.'
+  const about = `This project was designed and developed as part of the practical training at ${v.brand.name}, demonstrating proficiency in project development and implementation.`
   // under a two-line title it takes two wider lines, so it stays clear of the row below
   for (const [i, l] of wrap(about, 'regular', 4.4, title.length > 1 ? 222 : 172).slice(0, 3).entries()) centred(y + 9.9 + i * 6.3, l, 'regular', 4.4, INK)
 
@@ -115,8 +117,8 @@ export function projectCertOps(v: ProjectCertInput): CertOp[] {
   const ht = fit(v.head.title, 'semibold', 4.1, 66, 3.2)
   centred(193.8, ht.s, 'semibold', ht.size, NAVY)
 
-  // the foot: techcadd | <place> branch, between two lines
-  const left = 'techcadd', right = `${branchPlace(v.branch).toLowerCase()} branch`, FS = 3.25, TR = 0.12
+  // the foot: <institute> | <place> branch, between two lines
+  const left = fit(v.brand.name, 'semibold', 3.25, 110, 2.6).s, right = `${branchPlace(v.branch, v.brand.name).toLowerCase()} branch`, FS = 3.25, TR = 0.12
   const gap = 4.2, wl = certWidth(left, 'semibold', FS, TR), wr = certWidth(right, 'semibold', FS, TR)
   const x0 = CX - (wl + gap * 2 + wr) / 2
   T(x0, 200.9, left, 'semibold', FS, NAVY, TR)

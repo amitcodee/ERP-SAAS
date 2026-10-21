@@ -1,7 +1,6 @@
 import { SitePage } from '@/components/site/shell'
-import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `Guides | ${PRODUCT.name}` }
+export const metadata = { title: 'Guides' }
 
 const GUIDES = [
   { area: 'Getting started', items: [

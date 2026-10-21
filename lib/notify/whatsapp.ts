@@ -3,6 +3,7 @@
 // AiSensy → Manage → Template Message). The provider, the event hooks, Settings → WhatsApp & SMS and the tests all
 // read this list; nothing else names a campaign or a parameter.
 // Fee reminders: the wording lives in Settings → Reminders and fills {{1}}, so it can change without a new approval.
+// Each institute submits the templates under its own name: [Institute] in a body is its name, written in as it is.
 
 export type WaMessage = {
   label: string
@@ -25,10 +26,10 @@ export const WA_MESSAGES = {
     label: 'Fee reminders',
     when: 'Before, on and after an installment’s due date (Settings → Reminders)',
     covers: ['fee_due_soon', 'fee_due_today', 'fee_overdue', 'settings_test'],
-    campaign: 'techcadd_installment_reminder',
+    campaign: 'installment_reminder',
     template: {
-      name: 'techcadd_installment_reminder', category: 'UTILITY', language: 'en',
-      body: 'Fee reminder from techcadd\n\n{{1}}\n\nIf you have already paid, please ignore this message. For any help, reply here or visit your branch office.',
+      name: 'installment_reminder', category: 'UTILITY', language: 'en',
+      body: 'Fee reminder from [Institute]\n\n{{1}}\n\nIf you have already paid, please ignore this message. For any help, reply here or visit your branch office.',
     },
     params: ['text'],
   },
@@ -36,10 +37,10 @@ export const WA_MESSAGES = {
     label: 'Thank you for your enquiry',
     when: 'A new lead (added in the panel or from the website) or a random call is saved',
     covers: ['enquiry_thanks'],
-    campaign: 'techcadd_enquiry_thanks',
+    campaign: 'enquiry_thanks',
     template: {
-      name: 'techcadd_enquiry_thanks', category: 'UTILITY', language: 'en',
-      body: 'Hello {{1}},\n\nThank you for choosing techcadd {{2}}! We have received your enquiry and our counsellor will get in touch with you shortly.\n\nFor any questions, simply reply to this message.',
+      name: 'enquiry_thanks', category: 'UTILITY', language: 'en',
+      body: 'Hello {{1}},\n\nThank you for choosing [Institute] {{2}}! We have received your enquiry and our counsellor will get in touch with you shortly.\n\nFor any questions, simply reply to this message.',
     },
     params: ['first_name', 'branch'],
     maxAgeHours: 48,
@@ -48,10 +49,10 @@ export const WA_MESSAGES = {
     label: 'Thank you for visiting',
     when: 'A walk-in enquiry is saved, a lead is marked visited, or a call is made into an enquiry',
     covers: ['visit_thanks'],
-    campaign: 'techcadd_visit_thanks',
+    campaign: 'visit_thanks',
     template: {
-      name: 'techcadd_visit_thanks', category: 'UTILITY', language: 'en',
-      body: 'Hello {{1}},\n\nThank you for visiting techcadd {{2}}. It was great meeting you! If you have any questions about courses, fees or batch timings, just reply to this message and our team will help you.',
+      name: 'visit_thanks', category: 'UTILITY', language: 'en',
+      body: 'Hello {{1}},\n\nThank you for visiting [Institute] {{2}}. It was great meeting you! If you have any questions about courses, fees or batch timings, just reply to this message and our team will help you.',
     },
     params: ['first_name', 'branch'],
     maxAgeHours: 48,
@@ -61,10 +62,10 @@ export const WA_MESSAGES = {
     when: 'A student is registered (the login itself goes by e-mail after the first payment)',
     covers: ['registration_confirmed'],
     // Meta refused a wording pointing to login details in the e-mail (INCORRECT_CATEGORY): keep to this one
-    campaign: 'techcadd_registration_done',
+    campaign: 'registration_done',
     template: {
-      name: 'techcadd_registration_done', category: 'UTILITY', language: 'en',
-      body: 'Hello {{1}},\n\nCongratulations! Your registration at techcadd {{2}} is confirmed.\n\nRegistration no: {{3}}\nCourse: {{4}}\n\nYour student panel login will be sent to you after your first fee payment. Welcome to techcadd!',
+      name: 'registration_done', category: 'UTILITY', language: 'en',
+      body: 'Hello {{1}},\n\nCongratulations! Your registration at [Institute] {{2}} is confirmed.\n\nRegistration no: {{3}}\nCourse: {{4}}\n\nYour student panel login will be sent to you after your first fee payment. Welcome to [Institute]!',
     },
     params: ['first_name', 'branch', 'reg_no', 'course'],
     maxAgeHours: 72,
@@ -73,10 +74,10 @@ export const WA_MESSAGES = {
     label: 'Certificate issued',
     when: 'A certificate request is approved',
     covers: ['certificate_issued'],
-    campaign: 'techcadd_certificate_issued',
+    campaign: 'certificate_issued',
     template: {
-      name: 'techcadd_certificate_issued', category: 'UTILITY', language: 'en',
-      body: 'Hello {{1}},\n\nCongratulations! Your techcadd certificate for {{2}} has been issued.\n\nCertificate no: {{3}}\nView / download: {{4}}\n\nWe wish you all the best for your career ahead.',
+      name: 'certificate_issued', category: 'UTILITY', language: 'en',
+      body: 'Hello {{1}},\n\nCongratulations! Your [Institute] certificate for {{2}} has been issued.\n\nCertificate no: {{3}}\nView / download: {{4}}\n\nWe wish you all the best for your career ahead.',
     },
     params: ['first_name', 'course', 'cert_no', 'link'],
     maxAgeHours: 168,
@@ -102,13 +103,19 @@ export function waParams(key: WaMessageKey, vars: Record<string, string | null |
   return (WA_MESSAGES[key].params as readonly string[]).map((p) => (vars[p] ?? '').replace(/\s+/g, ' ').trim().slice(0, 900) || '-')
 }
 
+/** A template's wording as the institute submits it: its name in place of [Institute]. */
+export const waBody = (key: WaMessageKey, institute: string) => WA_MESSAGES[key].template.body.replaceAll('[Institute]', institute)
+
 /** The message as the student reads it (kept in the outbox log). */
-export function waText(key: WaMessageKey, params: string[]): string {
-  return WA_MESSAGES[key].template.body.replace(/\{\{(\d+)\}\}/g, (m, i: string) => params[Number(i) - 1] ?? m)
+export function waText(key: WaMessageKey, params: string[], institute: string): string {
+  return waBody(key, institute).replace(/\{\{(\d+)\}\}/g, (m, i: string) => params[Number(i) - 1] ?? m)
 }
 
-/** The branch as the messages name it: "techcadd Mohali" → "Mohali". */
-export const branchWord = (name: string) => name.replace(/^techcadd\s*/i, '').trim()
+/** The branch as the messages name it, without the institute's name in front: "Acme Mohali" → "Mohali". */
+export const branchWord = (name: string, institute: string) => {
+  const own = institute.trim().toLowerCase()
+  return (own && name.toLowerCase().startsWith(own + ' ') ? name.slice(own.length) : name).trim()
+}
 
 // ---- Bulk WhatsApp: campaigns made in AiSensy (Campaigns → API) and listed in Settings → WhatsApp campaigns, sent
 // from the Bulk WhatsApp page to students or leads. What can fill a campaign's {{1}}, {{2}}… is listed here.

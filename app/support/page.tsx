@@ -1,4 +1,6 @@
-import Image from 'next/image'
+import { BrandMark } from '@/components/brand-mark'
+import { orgBrand } from '@/lib/brand'
+import { requestOrg, requireRequestOrg } from '@/lib/tenant/request'
 import Link from 'next/link'
 import { FEATURES, JOURNEY, SECURITY } from '@/components/site/content'
 import { LANDING_CSS } from '@/components/site/landing-css'
@@ -9,7 +11,10 @@ import {
 // The public home page: what a visitor who is not signed in sees at the panel's address (and /support). Who it is for,
 // the journey from the first call to the certificate, what it does, how it keeps data safe, certificate checks, step-by-
 // step help and answers. Server-rendered, no script; the "screens" are illustrations, not live data.
-export const metadata = { title: 'techcadd | Institute ERP — sign in, help & certificate check' }
+export async function generateMetadata() {
+  const org = await requestOrg()
+  return { title: `${org?.name ?? 'Institute'} | sign in, help & certificate check` }
+}
 
 const AUDIENCES = [
   { icon: Users, tag: 'Staff', title: 'Run your branch', href: '/login', cta: 'Staff sign in',
@@ -43,7 +48,9 @@ const FAQ = [
   { q: 'How do I change my password later?', a: 'Sign in, open your profile (top right) → My account → Change password. Staff get a code by e-mail to confirm it.' },
 ]
 
-export default function SupportPage() {
+export default async function SupportPage() {
+  const org = await requireRequestOrg()
+  const brand = await orgBrand(org.id)
   const year = new Date().getFullYear()
   return (
     <div className="lp">
@@ -52,7 +59,7 @@ export default function SupportPage() {
       {/* ---- top bar ---- */}
       <header className="lp-nav">
         <div className="lp-wrap lp-nav-in">
-          <Link href="/" className="lp-logo"><Image src="/tce.webp" alt="techcadd — Your Skill & Technology Partner" width={940} height={270} priority /></Link>
+          <Link href="/" className="lp-logo"><BrandMark brand={brand} height={40} /></Link>
           <nav aria-label="Sections">
             <a href="#who">Who it’s for</a>
             <a href="#features">Features</a>
@@ -67,9 +74,9 @@ export default function SupportPage() {
       <section className="lp-hero">
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-copy">
-            <span className="lp-pill"><Sparkles size={14} /> The workspace of every techcadd branch</span>
+            <span className="lp-pill"><Sparkles size={14} /> The workspace of every {brand.name} branch</span>
             <h1>From the first call to the <span>certificate in hand.</span></h1>
-            <p>Leads, admissions, fees, classes and certificates for every techcadd branch — one sign-in, each person seeing just their part.</p>
+            <p>Leads, admissions, fees, classes and certificates for every {brand.name} branch — one sign-in, each person seeing just their part.</p>
             <div className="lp-hero-cta">
               <Link href="/login" className="lp-btn lp-btn-lime">Sign In <ArrowRight size={16} /></Link>
               <Link href="/verify" className="lp-btn lp-btn-ghost"><BadgeCheck size={16} /> Verify a certificate</Link>
@@ -96,7 +103,7 @@ export default function SupportPage() {
                 {['Follow-up due', 'Fee reminder sent', 'Certificate issued'].map((t, i) => <div key={t}><span className={`d d${i}`} /><em>{t}</em><b /></div>)}
               </div>
             </div>
-            <div className="lp-shot-float"><BadgeCheck size={18} /><div><b>Certificate verified</b><small>Genuine · techcadd</small></div></div>
+            <div className="lp-shot-float"><BadgeCheck size={18} /><div><b>Certificate verified</b><small>Genuine · {brand.name}</small></div></div>
           </div>
         </div>
       </section>
@@ -170,14 +177,14 @@ export default function SupportPage() {
           <div className="lp-verify">
             <div className="lp-verify-text">
               <span className="lp-eyebrow">For employers & colleges</span>
-              <h2>Is this techcadd certificate genuine?</h2>
+              <h2>Is this {brand.name} certificate genuine?</h2>
               <p>Scan the QR code printed on it, or type the certificate number or the student’s registration number. You see the student, the course and whether it stands — in seconds, with no account.</p>
               <Link href="/verify" className="lp-btn lp-btn-dark">Verify a certificate <ArrowRight size={15} /></Link>
             </div>
             <div className="lp-verify-card" aria-hidden="true">
               <div className="ok"><BadgeCheck size={20} /> Genuine certificate</div>
               <div className="who"><span>AG</span><div><b>Student name</b><small>Registration no. TCD/4002/1234</small></div></div>
-              <div className="rows"><div><small>Course</small><b>Full Stack Development</b></div><div><small>Issued</small><b>by techcadd</b></div></div>
+              <div className="rows"><div><small>Course</small><b>Full Stack Development</b></div><div><small>Issued</small><b>by {brand.name}</b></div></div>
             </div>
           </div>
         </div>
@@ -224,7 +231,7 @@ export default function SupportPage() {
       <section className="lp-sec">
         <div className="lp-wrap">
           <div className="lp-cta">
-            <div><h2>Ready to start?</h2><p>Sign in with your techcadd account. Stuck? Your branch office can reset your password and set up what you see.</p></div>
+            <div><h2>Ready to start?</h2><p>Sign in with your {brand.name} account. Stuck? Your branch office can reset your password and set up what you see.</p></div>
             <div className="lp-cta-btns">
               <Link href="/login" className="lp-btn lp-btn-lime">Sign In <ArrowRight size={16} /></Link>
               <Link href="/login/forgot" className="lp-btn lp-btn-ghost"><BellRing size={16} /> Forgot password</Link>
@@ -237,14 +244,14 @@ export default function SupportPage() {
       <footer className="lp-foot">
         <div className="lp-wrap lp-foot-in">
           <div className="lp-foot-brand">
-            <Image src="/tce.webp" alt="techcadd" width={940} height={270} />
-            <p>Your Skill &amp; Technology Partner. The institute ERP of every techcadd branch.</p>
+            <BrandMark brand={brand} height={40} />
+            <p>{brand.tagline ? `${brand.tagline}. ` : ''}Admissions, fees, classes and certificates for every {brand.name} branch.</p>
           </div>
           <div><h4>Sign in</h4><Link href="/login">Staff &amp; students</Link><Link href="/login/forgot">Forgot password</Link></div>
           <div><h4>Check</h4><Link href="/verify">Verify a certificate</Link><a href="#help">Help &amp; questions</a></div>
           <div><h4>Explore</h4><a href="#who">Who it’s for</a><a href="#features">Features</a></div>
         </div>
-        <div className="lp-wrap lp-copy">© {year} techcadd Computer Education. All rights reserved.</div>
+        <div className="lp-wrap lp-copy">© {year} {brand.legalName}. All rights reserved.</div>
       </footer>
     </div>
   )

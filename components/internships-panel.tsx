@@ -27,7 +27,7 @@ export function InternshipsPanel({ page, data, fromReg, templates, companies, fi
   page: 'requests' | 'complete'
   fromReg: RegistrationLetterRow[]
   templates: TemplateRef[]
-  companies: LetterCompany[] // the active ones, the main company (techcadd) first
+  companies: LetterCompany[] // the active ones, the main company (the institute) first
   data: { tab: string; counts: Record<string, number>; rows: InternListRow[] }
   filters: { tab: string; q: string }
   can: { request: boolean; issue: boolean }
@@ -185,7 +185,7 @@ function InternForm({ row, prefill, templates, companies, onClose, onDone }: { r
           {txt('designation', 'Designation / role', { req: true, ph: 'e.g. Junior Digital Marketer' })}{txt('domain', 'Work area', { ph: 'e.g. mobile app development' })}
           {txt('trainingFrom', 'Training from', { type: 'date' })}{txt('trainingTo', 'Training to', { type: 'date' })}
           {(prefill?.registrationId || row?.input.registrationId) && <small className="reg-note wide" style={{ marginTop: -6 }}>Training dates come from the registration (joining date to expected end); change them if needed.</small>}
-          {txt('trainingLocation', 'Training location', { ph: 'the branch, e.g. techcadd Jalandhar' })}{txt('workLocation', 'Working location', { ph: 'the branch address, e.g. Amritsar, Punjab' })}
+          {txt('trainingLocation', 'Training location', { ph: 'the branch, e.g. Jalandhar' })}{txt('workLocation', 'Working location', { ph: 'the branch address, e.g. Amritsar, Punjab' })}
           {txt('fromDate', 'Internship from', { req: true, type: 'date' })}{txt('toDate', 'Internship to', { req: true, type: 'date' })}
           <div className="reg-field">
             <span className="reg-field-label">Stipend</span>

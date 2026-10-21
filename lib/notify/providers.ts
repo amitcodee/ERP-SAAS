@@ -4,9 +4,11 @@
 // E-mail is per branch: mail sent for a branch goes out from that branch's own server (Settings → Branch e-mail)
 // once it is set up there; until then, from the central one.
 import { branchEmailReady, getBranchEmail, getConfig, type Channel, type EmailConfig, type SmsConfig, type WhatsAppConfig } from '@/lib/config/store'
-import { emailHtml, emailText, LOGO_CID, logoPng } from './layout'
+import { emailHtml, emailText, LOGO_CID, mailLogo, type MailBrand } from './layout'
+import { DEFAULT_COLOR, orgBrand } from '@/lib/brand'
+import { PRODUCT } from '@/lib/product'
 import { assertPublicHost } from '@/lib/net-guard'
-import { WA_MESSAGES, waMessageFor, waParams } from './whatsapp'
+import { WA_MESSAGES, waMessageFor, waParams, type WaMessageKey } from './whatsapp'
 
 export type { Channel }
 /** `name`: the person's full name, when known (WhatsApp greets by it and AiSensy files the contact under it). */
@@ -21,6 +23,9 @@ export interface Provider {
   readonly name: string
   send(m: Outgoing): Promise<SendResult>
 }
+
+/** An event message's template on Meta: the name set in Settings for it, else the one lib/notify/whatsapp.ts gives. */
+const waTemplateName = (c: WhatsAppConfig, key: WaMessageKey) => c.campaigns?.[key] || WA_MESSAGES[key].template.name
 
 const digits = (p: string, cc = '91') => p.replace(/\D/g, '').replace(/^0+/, '').replace(/^(?=\d{10}$)/, cc)
 
@@ -43,7 +48,7 @@ function whatsapp(c: WhatsAppConfig, token: string): Provider {
           template: m.campaign
             ? { name: m.campaign, language: { code: c.language || 'en' }, components: m.params?.length ? [{ type: 'body', parameters: m.params.map((text) => ({ type: 'text', text })) }] : [] }
             : m.params?.length
-            ? { name: WA_MESSAGES[waMessageFor(m.template) ?? 'fee_reminder'].template.name, language: { code: 'en' }, components: [{ type: 'body', parameters: m.params.map((text) => ({ type: 'text', text })) }] }
+            ? { name: waTemplateName(c, waMessageFor(m.template) ?? 'fee_reminder'), language: { code: 'en' }, components: [{ type: 'body', parameters: m.params.map((text) => ({ type: 'text', text })) }] }
             : { name: c.reminderTemplate || m.template, language: { code: c.language || 'en' }, components: [{ type: 'body', parameters: [{ type: 'text', text: m.body }] }] },
         }),
       })
@@ -79,7 +84,7 @@ export function aisensy(c: WhatsAppConfig, apiKey: string): Provider {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           apiKey, campaignName: key ? c.campaigns?.[key] || WA_MESSAGES[key].campaign : m.campaign, destination: digits(m.to, c.countryCode), userName: name,
-          templateParams: m.params?.length || !key ? m.params ?? [] : waParams(key, { text: m.body }), source: 'techcadd-panel',
+          templateParams: m.params?.length || !key ? m.params ?? [] : waParams(key, { text: m.body }), source: 'institute-panel',
           ...(m.media ? { media: m.media } : {}),
         }),
       })
@@ -108,8 +113,14 @@ function sms(c: SmsConfig, authKey: string): Provider {
   }
 }
 
-const SUBJECT: Record<string, string> = { ops_alert: 'techcadd — system alert', password_reset: 'techcadd — reset your password', branch_welcome: 'techcadd — your login', settings_test: 'techcadd — test e-mail', birthday: 'Happy Birthday from techcadd! 🎉' }
-const subjectOf = (m: Outgoing) => m.subject ?? SUBJECT[m.template] ?? 'techcadd — fee reminder'
+const SUBJECT: Record<string, (name: string) => string> = {
+  ops_alert: (n) => `${n} — system alert`, password_reset: (n) => `${n} — reset your password`, branch_welcome: (n) => `${n} — your login`,
+  settings_test: (n) => `${n} — test e-mail`, birthday: (n) => `Happy Birthday from ${n}! 🎉`,
+}
+const subjectOf = (m: Outgoing, brand: MailBrand) => m.subject ?? (SUBJECT[m.template] ?? ((n) => `${n} — fee reminder`))(brand.name)
+
+/** The platform's own mail (sign-up codes, alerts, billing) goes out under its name. */
+const PLATFORM_BRAND: MailBrand = { name: PRODUCT.name, tagline: '', color: DEFAULT_COLOR, logo: null }
 
 /** Any SMTP mailbox (Gmail: use a Google "app password", not the account password). One transport per mailbox setting. */
 const transports = new Map<string, import('nodemailer').Transporter>()
@@ -123,7 +134,8 @@ function plainSmtpError(e: unknown): string {
   return responseCode ? `The mail server refused the message (code ${responseCode})` : 'The e-mail could not be sent'
 }
 
-function smtp(c: EmailConfig, password: string, name = 'smtp'): Provider {
+/** `brand`: whose mail this is (the institute's logo, name and colour in the frame; its name as the sender by default). */
+function smtp(c: EmailConfig, password: string, brand: MailBrand, name = 'smtp'): Provider {
   const branch = name === 'branch-smtp'
   return {
     name,
@@ -141,11 +153,11 @@ function smtp(c: EmailConfig, password: string, name = 'smtp'): Provider {
           if (transports.size >= 50) transports.clear()
           transports.set(id, t)
         }
-        const logo = await logoPng(), subject = subjectOf(m)
+        const logo = mailLogo(brand), subject = subjectOf(m, brand)
         const info = await t.sendMail({
-          from: { name: c.fromName || 'techcadd', address: c.fromAddress || c.user }, ...(c.replyTo ? { replyTo: c.replyTo } : {}),
-          to: m.to, subject, text: emailText(m.body), html: emailHtml({ ...m, subject }, !!logo),
-          ...(logo ? { attachments: [{ filename: 'techcadd.png', content: logo, contentType: 'image/png', cid: LOGO_CID }] } : {}),
+          from: { name: c.fromName || brand.name, address: c.fromAddress || c.user }, ...(c.replyTo ? { replyTo: c.replyTo } : {}),
+          to: m.to, subject, text: emailText(m.body), html: emailHtml({ ...m, subject }, brand, !!logo),
+          ...(logo ? { attachments: [{ ...logo, cid: LOGO_CID }] } : {}),
         })
         return { ok: true, ref: info.messageId }
       } catch (e) {
@@ -159,29 +171,29 @@ function smtp(c: EmailConfig, password: string, name = 'smtp'): Provider {
 }
 
 /** The platform's own mailbox (environment: EMAIL_HOST / EMAIL_PORT / EMAIL_USER / EMAIL_PASS / MAIL_FROM), for orgs
- * that have not set up their own e-mail. Sends under MAIL_FROM_NAME (the org's name comes with Phase 3 branding). */
-const platformSmtp: Provider | null = process.env.EMAIL_USER && process.env.EMAIL_PASS
+ * that have not set up their own e-mail. Sends under the org's name (the platform's own mail: MAIL_FROM_NAME, else its name). */
+const platformSmtp = (brand: MailBrand): Provider | null => process.env.EMAIL_USER && process.env.EMAIL_PASS
   ? smtp({
       enabled: true, host: process.env.EMAIL_HOST ?? 'smtp.gmail.com', port: Number(process.env.EMAIL_PORT ?? 465),
       security: Number(process.env.EMAIL_PORT ?? 465) === 465 ? 'ssl' : 'starttls', user: process.env.EMAIL_USER,
-      fromName: process.env.MAIL_FROM_NAME ?? '', fromAddress: process.env.MAIL_FROM ?? process.env.EMAIL_USER, replyTo: '', alertEmail: '',
-    }, process.env.EMAIL_PASS, 'platform-smtp')
+      fromName: brand === PLATFORM_BRAND ? process.env.MAIL_FROM_NAME ?? '' : '', fromAddress: process.env.MAIL_FROM ?? process.env.EMAIL_USER, replyTo: '', alertEmail: '',
+    }, process.env.EMAIL_PASS, brand, 'platform-smtp')
   : null
 
 /** SendGrid transactional email (environment only: SENDGRID_API_KEY + MAIL_FROM), the platform's mailer when it has no SMTP. */
-const sendgrid: Provider | null =
+const sendgrid = (brand: MailBrand): Provider | null =>
   process.env.SENDGRID_API_KEY && process.env.MAIL_FROM
     ? {
         name: 'sendgrid',
         async send(m) {
-          const logo = await logoPng(), subject = subjectOf(m)
+          const logo = mailLogo(brand), subject = subjectOf(m, brand)
           const { status } = await post('https://api.sendgrid.com/v3/mail/send', {
             method: 'POST',
             headers: { Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              personalizations: [{ to: [{ email: m.to }] }], from: { email: process.env.MAIL_FROM, name: 'techcadd' }, subject,
-              content: [{ type: 'text/plain', value: emailText(m.body) }, { type: 'text/html', value: emailHtml({ ...m, subject }, !!logo) }],
-              ...(logo ? { attachments: [{ content: logo.toString('base64'), type: 'image/png', filename: 'techcadd.png', disposition: 'inline', content_id: LOGO_CID }] } : {}),
+              personalizations: [{ to: [{ email: m.to }] }], from: { email: process.env.MAIL_FROM, name: brand.name }, subject,
+              content: [{ type: 'text/plain', value: emailText(m.body) }, { type: 'text/html', value: emailHtml({ ...m, subject }, brand, !!logo) }],
+              ...(logo ? { attachments: [{ content: logo.content.toString('base64'), type: logo.contentType, filename: logo.filename, disposition: 'inline', content_id: LOGO_CID }] } : {}),
             }),
           })
           return status < 300 ? { ok: true } : { ok: false, error: `SendGrid HTTP ${status}`, retryable: status >= 500 || status === 429 }
@@ -196,12 +208,13 @@ const sendgrid: Provider | null =
  */
 export async function providerFor(orgId: string, channel: Channel, branchId?: string | null): Promise<Provider | null> {
   if (channel === 'email') {
+    const brand = await orgBrand(orgId)
     if (branchId) {
       const b = await getBranchEmail(orgId, branchId)
-      if (branchEmailReady(b)) return smtp(b.config, b.secrets.password!, 'branch-smtp')
+      if (branchEmailReady(b)) return smtp(b.config, b.secrets.password!, brand, 'branch-smtp')
     }
     const { config: c, secrets: s } = await getConfig(orgId, 'email')
-    return c.enabled && c.host && c.user && s.password ? smtp(c, s.password) : platformMailer()
+    return c.enabled && c.host && c.user && s.password ? smtp(c, s.password, brand) : platformMailer(brand)
   }
   if (channel === 'whatsapp') {
     const { config: c, secrets: s } = await getConfig(orgId, 'whatsapp')
@@ -215,8 +228,9 @@ export async function providerFor(orgId: string, channel: Channel, branchId?: st
   return c.enabled && c.templateId && s.authKey ? sms(c, s.authKey) : null
 }
 
-/** The platform's own mailer (sign-up codes, alerts to the platform), or null when the server has none set up. */
-export const platformMailer = (): Provider | null => platformSmtp ?? sendgrid
+/** The platform's own mailer (sign-up codes, alerts to the platform), or null when the server has none set up.
+ * `brand`: an institute's, when its mail goes out through the platform's mailbox. */
+export const platformMailer = (brand: MailBrand = PLATFORM_BRAND): Provider | null => platformSmtp(brand) ?? sendgrid(brand)
 
 /** The channels an org's fee reminders go out on (Settings → Reminders). */
 export async function reminderChannels(orgId: string): Promise<Channel[]> {

@@ -13,6 +13,7 @@ import { createRegistration } from '../modules/registrations/service'
 import { dispatchQueued } from '../modules/notifications/service'
 import { announceCertificate } from '../modules/notifications/whatsapp-events'
 import { SAMPLE_ORG_ID as ORG } from '../lib/db/schema/tenancy'
+import { brandIn } from '../lib/brand'
 
 class Rollback extends Error {}
 let failed = 0
@@ -37,7 +38,7 @@ async function main() {
     await setWhatsApp({ enabled: true, provider: 'aisensy', off: [] })
     await db.transaction(async (tx) => {
       await tx.execute(sql`select set_config('app.org_id', ${ORG}, true)`) // the Sample Institute owns what the test makes
-      const [b] = await tx.insert(branches).values({ code: 'WA1', name: 'techcadd Wapur' }).returning()
+      const [b] = await tx.insert(branches).values({ code: 'WA1', name: `${(await brandIn(tx)).name} Wapur` }).returning()
       const [u] = await tx.insert(users).values({ branchId: b.id, name: 'wa', email: 'wa@w.test.invalid', passwordHash: 'x' }).returning()
       const [dept] = await tx.select().from(departments).limit(1)
       const actor: Actor = { userId: u.id, orgId: ORG, role: 'branch_manager', branchId: b.id }
@@ -48,11 +49,11 @@ async function main() {
       await createEnquiry(tx, actor, { person: { firstName: 'Aman', lastName: 'Gill', phone: '9811122201' }, departmentId: dept.id })
       const visit = await rows('visit_thanks')
       check('walk-in enquiry: "thank you for visiting" with first name and branch', visit.length === 1 && JSON.stringify(visit[0].params) === JSON.stringify(['Aman', 'Wapur']) && visit[0].toAddress === '9811122201' && visit[0].channel === 'whatsapp', JSON.stringify(visit[0]?.params))
-      check('the log keeps the message as the student reads it', visit[0].body === waText('visit_thanks', ['Aman', 'Wapur']) && visit[0].body.includes('Thank you for visiting techcadd Wapur'))
+      check('the log keeps the message as the student reads it', visit[0].body === waText('visit_thanks', ['Aman', 'Wapur'], (await brandIn(tx)).name) && visit[0].body.includes(`Thank you for visiting ${(await brandIn(tx)).name} Wapur`))
 
       // a lead that has not come in: "thank you for choosing", then a visit when it is marked visited
       const lead = await createEnquiry(tx, actor, { person: { firstName: 'Bina', phone: '9811122202' }, departmentId: dept.id, lead: { visited: false, callDone: true } })
-      check('new lead: "thank you for choosing techcadd"', (await rows('enquiry_thanks')).some((n) => n.personId === lead.person.id && n.params?.[0] === 'Bina'))
+      check('new lead: "thank you for choosing <institute>"', (await rows('enquiry_thanks')).some((n) => n.personId === lead.person.id && n.params?.[0] === 'Bina'))
       await updateLead(tx, actor, { enquiryId: lead.enquiry.id, lead: { visited: true, callDone: true } })
       check('lead marked visited: "thank you for visiting"', (await rows('visit_thanks')).some((n) => n.personId === lead.person.id))
       await updateLead(tx, actor, { enquiryId: lead.enquiry.id, lead: { visited: true, callDone: true, interested: true, interestPct: 60 } })
@@ -60,7 +61,7 @@ async function main() {
 
       // a random call, then the call made into an enquiry the same day
       const { call, person } = await logCall(tx, actor, { person: { firstName: 'Chetan', phone: '9811122203' }, departmentId: dept.id })
-      check('random call: "thank you for choosing techcadd"', (await rows('enquiry_thanks')).some((n) => n.personId === person.id))
+      check('random call: "thank you for choosing <institute>"', (await rows('enquiry_thanks')).some((n) => n.personId === person.id))
       await promoteCall(tx, actor, call.id)
       check('call made into an enquiry (a visit): "thank you for visiting"', (await rows('visit_thanks')).some((n) => n.personId === person.id))
       await logCall(tx, actor, { person: { firstName: 'Chetan', phone: '9811122203' }, departmentId: dept.id })

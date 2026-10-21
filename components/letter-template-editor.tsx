@@ -1,6 +1,6 @@
 'use client'
 // Letter Templates (head office): the wording of the internship letters per company, with {{variables}} for the
-// intern's details. Top: the company (techcadd, Syntax Developer…) and its letters. Left: the text, simple formatting
+// intern's details. Top: the company (the institute, or another it places interns with) and its letters. Left: the text, simple formatting
 // buttons and every variable (click to insert). Right: the letter as it will print, on the company's letterhead with
 // sample details. Issued letters keep the wording they had; a change applies to letters issued after it.
 import { useMemo, useRef, useState, useTransition } from 'react'
@@ -111,7 +111,7 @@ export function LetterTemplateEditor({ kind, template, templates, companies, com
         </div>
 
         <div className="te-preview">
-          <p className="section-hint" style={{ margin: '0 0 8px' }}>Preview with sample details on {company.name}&apos;s letterhead — this is how the letter prints.{!company.hasLetterhead && !company.isDefault ? ' A plain letterhead until one is uploaded (Companies).' : ''}</p>
+          <p className="section-hint" style={{ margin: '0 0 8px' }}>Preview with sample details on {company.name}&apos;s letterhead — this is how the letter prints.{!company.hasLetterhead ? ' A plain letterhead until one is uploaded (Companies).' : ''}</p>
           <div className="te-paper"><LetterSheet text={fill(text, { ...SAMPLE, company: company.legalName, company_name: company.name, contact_phone: company.contactPhone || SAMPLE.contact_phone, contact_email: company.contactEmail || SAMPLE.contact_email })} refNo={SAMPLE.ref_no} date={SAMPLE.date} letterhead={art.letterhead} sign={art.stamp} /></div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { SitePage } from '@/components/site/shell'
 import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `Contact | ${PRODUCT.name}` }
+export const metadata = { title: 'Contact' }
 
 export default function Contact() {
   return (

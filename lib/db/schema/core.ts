@@ -53,7 +53,7 @@ export const branches = pgTable(
     gstin: text('gstin'),
     address: text('address'),
     phone: text('phone'),
-    websiteUrl: text('website_url'), // the branch's own website (e.g. a techcadd-<city> site): its form leads come to this branch
+    websiteUrl: text('website_url'), // the branch's own website (e.g. an acme-<city> site): its form leads come to this branch
     websiteHost: text('website_host'), // websiteUrl's host without www., which is what incoming leads are matched on
     isActive: boolean('is_active').notNull().default(true),
     createdAt: createdAt(),

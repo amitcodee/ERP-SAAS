@@ -22,6 +22,8 @@ import { companyTemplateOptions, letterCompaniesOf } from '@/lib/letters/options
 import type { Catalogs } from '@/modules/catalog/service'
 import { formatAadhaar, isValidAadhaar } from '@/modules/people/aadhaar'
 import type { CallForRegistration, EnquiryForRegistration, RegistrationForUpgrade, SourceFilter, StudentPrefill } from '@/modules/registrations/service'
+import { useBrand } from '@/components/brand-context'
+import { BrandMark } from '@/components/brand-mark'
 
 const money = (paise: number) => (paise ? `₹${(paise / 100).toLocaleString('en-IN')}` : '₹0')
 const inr = (paise: number | null) => (paise ? `₹${(paise / 100).toLocaleString('en-IN')}` : '—')
@@ -100,6 +102,7 @@ const STEPS = [
 ] as const
 
 export function RegistrationNew({ catalogs, enquiry, regNo, branchName, templates, defaultGst = 0 }: { catalogs: Catalogs; enquiry: EnquiryForRegistration | null; regNo: string | null; branchName: string | null; templates: TemplateRef[]; defaultGst?: number }) {
+  const brand = useBrand()
   const router = useRouter()
   const [done, setDone] = useState<{ id: string; regNo: string; name: string; note: string } | null>(null)
   const [plan, setPlan] = useState<PlanState>(() => newPlanState(today())) // how the fee is paid
@@ -263,7 +266,7 @@ export function RegistrationNew({ catalogs, enquiry, regNo, branchName, template
   const reset = () => { setDone(null); setEnq(null); setCall(null); setPrev(null); setOwnSlot(false); setFilter('all'); setF(blank()); setPhoto(null); setIdCard(null); setPlan(newPlanState(today())); setCustom(NO_CUSTOM); setKind('new'); setError(''); setStep(0); setReached(0); router.refresh() /* the next registration no. */ }
   const bar = (
     <header className="kiosk-bar">
-      <Image src="/tce.webp" alt="techcadd" width={940} height={270} priority />
+      <BrandMark brand={brand} height={40} />
       <div><strong>Student registration</strong><span>{branchName ?? 'Admission form'}</span></div>
       <Link className="button secondary" href="/registrations" prefetch={false}><ArrowLeft size={16} /> Back to panel</Link>
     </header>

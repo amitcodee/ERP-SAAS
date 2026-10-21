@@ -5,15 +5,17 @@ import { appOrigin, qrSvg } from '@/lib/app-url'
 import { requirePage } from '@/lib/panel/base'
 import { withTenant } from '@/lib/db/withTenant'
 import { EVENT_KINDS, getEvent } from '@/modules/events/service'
+import { BrandMark } from '@/components/brand-mark'
+import { orgBrand } from '@/lib/brand'
 
-export const metadata = { title: 'Event poster | techcadd' }
+export const metadata = { title: 'Event poster' }
 
 // An A4 poster of an event with its QR code, to print and put up at the venue: scan, sign up, get the certificate.
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const b = await requirePage('Seminars & Workshops')
   const { id } = await params
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound()
-  const d = await withTenant(b.actor, (tx) => getEvent(tx, b.actor, id))
+  const [d, brand] = await Promise.all([withTenant(b.actor, (tx) => getEvent(tx, b.actor, id)), orgBrand(b.actor.orgId)])
   if (!d) notFound()
   const e = d.event
   const link = `${await appOrigin(b.actor.orgId)}/e/${e.token}`
@@ -29,7 +31,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       `}</style>
       <div className="no-print"><PrintButton label="Print poster" /></div>
       <div className="poster">
-        <img src="/tce-logo.png" alt="techcadd" style={{ width: '70mm' }} />
+        <BrandMark brand={brand} height={90} />
         <div style={{ fontSize: '7mm', fontWeight: 800, letterSpacing: '0.2em', color: '#21a7a3', textTransform: 'uppercase' }}>{EVENT_KINDS[e.kind]}</div>
         <h1 style={{ margin: 0, fontSize: '13mm', lineHeight: 1.1, fontWeight: 800 }}>{e.title}</h1>
         <div style={{ fontSize: '5.5mm', color: '#374151' }}>{when}{e.venue ? <><br />{e.venue}</> : null}{e.speaker ? <><br />by {e.speaker}</> : null}</div>

@@ -7,8 +7,9 @@ import { designOps } from '@/lib/cert-design-ops'
 import { requirePage } from '@/lib/panel/base'
 import { withTenant } from '@/lib/db/withTenant'
 import { getDesign } from '@/modules/events/service'
+import { orgBrand } from '@/lib/brand'
 
-export const metadata = { title: 'Certificate preview | techcadd' }
+export const metadata = { title: 'Certificate preview' }
 
 // A saved design with sample details, exactly as a participant's certificate prints (and its PDF).
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +18,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound()
   const d = await withTenant(b.actor, (tx) => getDesign(tx, b.actor, id))
   if (!d) notFound()
-  const ops = designOps(d.design, SAMPLE_VALUES, `${await appOrigin(b.actor.orgId)}/e/c/sample`)
+  const ops = designOps(d.design, SAMPLE_VALUES, `${await appOrigin(b.actor.orgId)}/e/c/sample`, await orgBrand(b.actor.orgId))
   return <DesignCertificateSheet ops={ops} portrait={d.design.page === 'portrait'} label={d.name} note={<>Preview of “{d.name}” with sample details. Each participant’s certificate prints their own.</>} />
 }

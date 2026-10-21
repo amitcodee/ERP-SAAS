@@ -3,12 +3,14 @@ import { PrintButton } from '@/components/print-button'
 import { inr, rupeesInWords } from '@/lib/money'
 import { paymentChannel } from '@/modules/fees/plan'
 import type { ReceiptView } from '@/modules/fees/service'
+import { BrandMark } from '@/components/brand-mark'
+import type { Brand } from '@/lib/brand'
 
 const NAVY = '#10186a', DEEP = '#0b1050', INDIGO = '#4a4af4', INK = '#0f1437', MUTED = '#6b7394', LINE = '#e3e6f3', RED = '#c81e1e'
 // The watermark: "NON-REFUNDABLE" repeated slantwise over the whole slip, with one large one in the middle.
 const TILE = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='250' height='120'><text x='125' y='66' text-anchor='middle' transform='rotate(-24 125 60)' font-family='Arial, sans-serif' font-size='13' font-weight='700' letter-spacing='3' fill='${RED}' fill-opacity='.075'>NON-REFUNDABLE</text></svg>`)}")`
 
-export function ReceiptSheet({ r, qr, verifyUrl }: { r: ReceiptView; qr: string; verifyUrl: string }) {
+export function ReceiptSheet({ r, qr, verifyUrl , brand }: { r: ReceiptView; qr: string; verifyUrl: string; brand: Brand }) {
   // An online payment gets an e-receipt (made by the system, valid without a signature); cash and cheques a receipt that is signed.
   const channel = paymentChannel(r.mode)
   const online = channel === 'online'
@@ -86,7 +88,7 @@ export function ReceiptSheet({ r, qr, verifyUrl }: { r: ReceiptView; qr: string;
         <header className="rc-head">
           <div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/tce.webp" alt="techcadd" />
+            <BrandMark brand={brand} height={40} />
             <div className="rc-org">
               <strong>{r.branchName}</strong>
               {r.branchAddress}

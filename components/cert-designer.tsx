@@ -13,8 +13,9 @@ import {
 import { fetchDesignImageAction } from '@/app/event-actions'
 import { useNotify } from '@/components/panel-shell'
 import { DESIGN_FONT_CSS, DesignSvg, ElDrawing, measure, useDesignFonts } from '@/components/cert-design-svg'
+import { useBrand } from '@/components/brand-context'
 import {
-  DESIGN_FIELDS, FONT_KEYS, FONT_LABEL, PRESETS, SAMPLE_VALUES, fillDesignText, layoutText, newElId, pageSize, presetDesign,
+  BRAND_LOGO, DESIGN_FIELDS, FONT_KEYS, FONT_LABEL, PRESETS, SAMPLE_VALUES, fillDesignText, layoutText, newElId, pageSize, presetDesign,
   type Align, type Design, type DesignEl, type DesignField,
 } from '@/lib/cert-design'
 
@@ -49,6 +50,7 @@ async function printable(dataUrl: string): Promise<{ src: string; ratio: number 
 const readFile = (f: File) => new Promise<string>((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => fail(r.error); r.readAsDataURL(f) })
 
 export function CertDesigner({ id, initialName, initial, readOnly }: { id: string | null; initialName: string; initial: Design; readOnly?: boolean }) {
+  const brand = useBrand()
   const router = useRouter()
   const notify = useNotify()
   const fonts = useDesignFonts()
@@ -309,7 +311,7 @@ export function CertDesigner({ id, initialName, initial, readOnly }: { id: strin
           <div className="cd-tools">
             <button type="button" onClick={() => { setPick('image'); fileRef.current?.click() }} disabled={readOnly || busy}><Upload size={14} /> Upload</button>
             <button type="button" onClick={() => setLinkFor(linkFor === 'image' ? null : 'image')} disabled={readOnly || busy}><Link2 size={14} /> From a link</button>
-            <button type="button" onClick={() => add({ t: 'image', x: centreX(70), y: 14, w: 70, h: r1(70 / (952 / 262)), src: '/tce-logo.png' } as Omit<El, 'id'>)} disabled={readOnly}><ImageIcon size={14} /> techcadd logo</button>
+            <button type="button" onClick={() => add({ t: 'image', x: centreX(70), y: 14, w: 70, h: r1(70 / (952 / 262)), src: BRAND_LOGO } as Omit<El, 'id'>)} disabled={readOnly || !brand.logo} title={brand.logo ? undefined : 'Upload a logo in Set Up first'}><ImageIcon size={14} /> Your logo</button>
             <button type="button" onClick={() => add({ t: 'qr', x: W - 30, y: H - 30, w: 18, h: 18, color: '#111827' } as Omit<El, 'id'>)} disabled={readOnly}><QrCode size={14} /> QR code</button>
           </div>
           <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = '' }} />

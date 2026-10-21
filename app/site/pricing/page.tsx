@@ -1,12 +1,11 @@
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { SitePage } from '@/components/site/shell'
-import { PRODUCT } from '@/lib/product'
 import { LIMIT_LABELS, PLAN_MODULES, publicPlans } from '@/modules/plans/service'
 import type { PlanLimits } from '@/lib/db/schema/tenancy'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: `Pricing | ${PRODUCT.name}` }
+export const metadata = { title: 'Pricing' }
 
 const inr = (paise: number) => '₹' + (paise / 100).toLocaleString('en-IN')
 

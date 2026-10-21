@@ -1,6 +1,6 @@
 'use client'
-// A letter on techcadd letterhead, laid out as real A4 pages: each page carries the letterhead (public/letterhead.jpg,
-// from the official letterhead PDF) and the text flows between its header and footer. The same pages show on screen
+// A letter on its company's letterhead, laid out as real A4 pages: each page carries the letterhead (an uploaded full
+// A4 page image, or a plain one with the name) and the text flows between its header and footer. The same pages show on screen
 // and print one per sheet. Used by the print page and by the template editor's live preview.
 import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { toBlocks, type Inline } from '@/lib/letters/render'
@@ -37,7 +37,7 @@ export function LetterBody({ text, sign = null }: { text: string; sign?: string 
 
 /** letterhead: the full-page image the letter is printed on; sign: the stamp / signature under "Regards," (none: no stamp).
  *  Both are the intern's company's (modules/letters/service companyArt). */
-export function LetterSheet({ text, refNo, date, draft, cancelled, letterhead = '/letterhead.jpg', sign = null }: { text: string; refNo: string; date: string; draft?: boolean; cancelled?: boolean; letterhead?: string; sign?: string | null }) {
+export function LetterSheet({ text, refNo, date, draft, cancelled, letterhead, sign = null }: { text: string; refNo: string; date: string; draft?: boolean; cancelled?: boolean; letterhead: string; sign?: string | null }) {
   const all: { node: ReactNode; keepWithNext?: boolean }[] = [{ node: <div className="lt-ref"><span>Ref. {refNo}</span><span>Date: {date}</span></div> }, ...pieces(text, sign)]
   const measure = useRef<HTMLDivElement>(null)
   // page breaks: the index of the first piece on each page after the first (null until measured)

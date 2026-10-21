@@ -6,7 +6,8 @@ import type { Actor, Tx } from '@/lib/db/withTenant'
 import type { Channel, Provider } from '@/lib/notify/providers'
 import type { RemindersConfig } from '@/lib/config/store'
 import { todayIST } from '@/lib/ist'
-import { WA_MESSAGES, waMessageFor } from '@/lib/notify/whatsapp'
+import { branchWord, WA_MESSAGES, waMessageFor } from '@/lib/notify/whatsapp'
+import { brandIn } from '@/lib/brand'
 
 /** The reminder stages from Settings → Reminders: days before the due date, the due date, days overdue. */
 export function reminderStages(c: RemindersConfig) {
@@ -20,9 +21,9 @@ export function reminderStages(c: RemindersConfig) {
 const inr = (paise: number) => '₹' + (paise / 100).toLocaleString('en-IN')
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 
-/** Fills a reminder text: {{name}} {{first_name}} {{amount}} {{due_date}} {{reg_no}} {{branch}}. */
-export function reminderText(text: string, v: { name: string; amount: number; dueDate: string; regNo: string; branch: string }) {
-  const vars: Record<string, string> = { name: v.name, first_name: v.name.split(' ')[0], amount: inr(v.amount), due_date: fmtDate(v.dueDate), reg_no: v.regNo, branch: v.branch.replace(/^techcadd\s*/i, '') }
+/** Fills a reminder text: {{name}} {{first_name}} {{amount}} {{due_date}} {{reg_no}} {{branch}} {{institute}}. */
+export function reminderText(text: string, v: { name: string; amount: number; dueDate: string; regNo: string; branch: string; institute: string }) {
+  const vars: Record<string, string> = { name: v.name, first_name: v.name.split(' ')[0], amount: inr(v.amount), due_date: fmtDate(v.dueDate), reg_no: v.regNo, branch: branchWord(v.branch, v.institute), institute: v.institute }
   return text.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k: string) => vars[k] ?? m)
 }
 
@@ -48,12 +49,13 @@ export async function generateFeeReminders(tx: Tx, cfg: RemindersConfig, today =
     where i.status = 'scheduled' and (${today}::date - i.due_date) = any(${`{${stages.map((s) => s.offset).join(',')}}`}::int[])`)
 
   let queued = 0
+  const { name: institute } = await brandIn(tx)
   for (const r of res.rows) {
     const stage = stages.find((s) => s.offset === Number(r.days))!
     for (const channel of cfg.channels) {
       const to = channel === 'email' ? r.email : r.phone
       if (!to) continue
-      const body = reminderText(cfg.texts[stage.kind], { name: r.name, amount: r.amount, dueDate: r.due_date, regNo: r.reg_no, branch: r.branch })
+      const body = reminderText(cfg.texts[stage.kind], { name: r.name, amount: r.amount, dueDate: r.due_date, regNo: r.reg_no, branch: r.branch, institute })
       const inserted = await tx
         .insert(notifications)
         .values({ branchId: r.branch_id, personId: r.person_id, registrationId: r.registration_id, channel, template: stage.template, toAddress: to, body, dedupeKey: `fee:${r.inst_id}:${stage.key}:${channel}` })

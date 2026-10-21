@@ -63,9 +63,9 @@ export const DEFAULTS: { [K in ConfigKey]: ConfigMap[K]['config'] } = {
     channels: ['email'],
     daysBefore: [2], onDueDay: true, overdueDays: [3, 7, 15],
     texts: {
-      soon: 'Dear {{first_name}}, your {{amount}} installment for {{reg_no}} is due on {{due_date}}. - techcadd {{branch}}',
-      today: 'Dear {{first_name}}, your {{amount}} installment for {{reg_no}} is due today. Please pay at the office. - techcadd {{branch}}',
-      overdue: 'Dear {{first_name}}, your {{amount}} installment for {{reg_no}} was due on {{due_date}} and is overdue. Please pay at the earliest. - techcadd {{branch}}',
+      soon: 'Dear {{first_name}}, your {{amount}} installment for {{reg_no}} is due on {{due_date}}. - {{institute}} {{branch}}',
+      today: 'Dear {{first_name}}, your {{amount}} installment for {{reg_no}} is due today. Please pay at the office. - {{institute}} {{branch}}',
+      overdue: 'Dear {{first_name}}, your {{amount}} installment for {{reg_no}} was due on {{due_date}} and is overdue. Please pay at the earliest. - {{institute}} {{branch}}',
     },
   },
   jobs: { scheduler: 'panel', reminders: { enabled: true, time: '09:00' }, reconcile: { enabled: true, time: '02:00' }, purge: { enabled: true, time: '03:00' }, escalations: { enabled: true, time: '10:00' } },

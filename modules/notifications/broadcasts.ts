@@ -9,6 +9,7 @@ import { audit } from '@/lib/audit'
 import { notifications, waBroadcasts, waCampaigns } from '@/lib/db/schema'
 import type { Actor, Tx } from '@/lib/db/withTenant'
 import { todayIST } from '@/lib/ist'
+import { brandIn } from '@/lib/brand'
 import { branchWord, campaignText, WA_AUDIENCES, WA_FIELD_KEYS, WA_FIELDS, type WaCampaignParam } from '@/lib/notify/whatsapp'
 import { assertWithinLimit } from '@/lib/plan/limits'
 
@@ -156,14 +157,15 @@ async function recipients(tx: Tx, actor: Actor, a: Audience, limit: number): Pro
 }
 
 const inr = (paise: number | null) => (paise == null ? '' : '₹' + Math.max(0, Math.round(paise / 100)).toLocaleString('en-IN'))
-/** The values of a campaign's parameters for one person, cleaned as WhatsApp takes them (one line, never empty). */
-export function paramsFor(c: Pick<CampaignRow, 'params'>, r: Recipient, texts: string[]): string[] {
+/** The values of a campaign's parameters for one person, cleaned as WhatsApp takes them (one line, never empty).
+ * `institute`: the org's name, left off the front of a branch's name. */
+export function paramsFor(c: Pick<CampaignRow, 'params'>, r: Recipient, texts: string[], institute: string): string[] {
   let t = 0
   return c.params.map((p) => {
     const v = p.field === 'text' ? texts[t++]
       : p.field === 'first_name' ? r.first_name
         : p.field === 'full_name' ? [r.first_name, r.last_name].filter(Boolean).join(' ')
-          : p.field === 'branch' ? branchWord(r.branch)
+          : p.field === 'branch' ? branchWord(r.branch, institute)
             : p.field === 'course' ? r.course ?? 'your course'
               : p.field === 'reg_no' ? r.reg_no
                 : inr(r.balance)
@@ -212,11 +214,11 @@ export async function previewBroadcast(tx: Tx, actor: Actor, campaignId: string,
   assertCan(actor, 'create', 'broadcast')
   const a = audienceInput.parse(input)
   const c = await campaignFor(tx, campaignId)
-  const { rows, total } = await recipients(tx, actor, a, 8)
+  const [{ rows, total }, { name: institute }] = await Promise.all([recipients(tx, actor, a, 8), brandIn(tx)])
   const filled = c.params.filter((p) => p.field === 'text').map((_, i) => texts[i]?.trim() || '…')
   return {
     total, summary: summaryOf(a, await names(tx, actor, a)),
-    sample: rows.map((r) => ({ name: [r.first_name, r.last_name].filter(Boolean).join(' '), phone: r.phone, branch: r.branch, course: r.course, text: campaignText(c.body, paramsFor(c, r, filled), c.campaign) })),
+    sample: rows.map((r) => ({ name: [r.first_name, r.last_name].filter(Boolean).join(' '), phone: r.phone, branch: r.branch, course: r.course, text: campaignText(c.body, paramsFor(c, r, filled, institute), c.campaign) })),
   }
 }
 
@@ -235,9 +237,10 @@ export async function sendBroadcast(tx: Tx, actor: Actor, campaignId: string, in
     campaignId: c.id, branchId: branchOf(actor, a), audience: a, summary: summaryOf(a, await names(tx, actor, a)), texts, total, createdBy: actor.userId,
   }).returning({ id: waBroadcasts.id })
   const media = c.mediaUrl ? { url: c.mediaUrl, filename: c.mediaName || c.mediaUrl.split('/').pop()?.split('?')[0] || 'file' } : null
+  const { name: institute } = await brandIn(tx)
   for (let i = 0; i < rows.length; i += 500) {
     await tx.insert(notifications).values(rows.slice(i, i + 500).map((r) => {
-      const params = paramsFor(c, r, texts)
+      const params = paramsFor(c, r, texts, institute)
       return {
         branchId: r.branch_id, personId: r.person_id, registrationId: r.registration_id, channel: 'whatsapp' as const, template: 'broadcast',
         toAddress: r.phone, body: campaignText(c.body, params, c.campaign), params, campaign: c.campaign, media, broadcastId: b.id,

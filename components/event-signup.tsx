@@ -5,10 +5,13 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { joinEventAction, startQuizAction } from '@/app/event-actions'
 import type { JoinResult, PublicEvent } from '@/modules/events/service'
+import { useBrand } from '@/components/brand-context'
+import { BrandMark } from '@/components/brand-mark'
 
 const fmt = (iso: string) => new Date(iso).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
 export function EventSignup({ e }: { e: PublicEvent }) {
+  const brand = useBrand()
   const [step, setStep] = useState<'form' | 'quiz' | 'done'>('form')
   const [f, setF] = useState({ name: '', email: '', mobile: '', organisation: '' })
   const [answers, setAnswers] = useState<number[]>(() => e.quiz.map(() => -1))
@@ -43,7 +46,7 @@ export function EventSignup({ e }: { e: PublicEvent }) {
       <style>{CSS}</style>
       <div className="es-card">
         <header className="es-head">
-          <img src="/tce-logo.png" alt="techcadd" className="es-logo" />
+          <div className="es-logo"><BrandMark brand={brand} height={40} /></div>
           <span className="es-kind">{e.kindLabel}</span>
           <h1>{e.title}</h1>
           <p className="es-when">{fmt(e.startsAt)}{e.endsAt ? ` – ${fmt(e.endsAt)}` : ''}</p>
@@ -101,7 +104,7 @@ export function EventSignup({ e }: { e: PublicEvent }) {
           </div>
         )}
       </div>
-      <p className="es-foot">{/^techcadd$/i.test(e.branch) ? 'techcadd' : `techcadd · ${e.branch}`}</p>
+      <p className="es-foot">{e.branch && e.branch !== brand.name ? `${brand.name} · ${e.branch}` : brand.name}</p>
     </main>
   )
 }

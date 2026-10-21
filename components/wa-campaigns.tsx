@@ -35,7 +35,7 @@ export function WaCampaignsTab({ list, whatsappOn }: { list: CampaignRow[]; what
         </tbody>
       </table></div>
       <details className="set-help"><summary>How to make a campaign in AiSensy</summary><ol>
-        <li>AiSensy → Manage → Template Message → New: write the message with <code>{'{{1}}'}</code>, <code>{'{{2}}'}</code>… where the details go (brand in lowercase: <b>techcadd</b>) and submit it. Offers and announcements are <b>Marketing</b>; updates are <b>Utility</b>. Wait for <b>Approved</b>.</li>
+        <li>AiSensy → Manage → Template Message → New: write the message with <code>{'{{1}}'}</code>, <code>{'{{2}}'}</code>… where the details go (your institute’s name as it is written) and submit it. Offers and announcements are <b>Marketing</b>; updates are <b>Utility</b>. Wait for <b>Approved</b>.</li>
         <li>AiSensy → Campaigns → Launch → <b>API campaign</b>: pick that template and set it <b>Live</b>. A template with an image / video / document header needs the file’s public https:// link.</li>
         <li>Here: <b>Add campaign</b>, type the API campaign’s name exactly, paste the template text, and say what fills each <code>{'{{n}}'}</code>.</li>
         <li>Open <Link href="/whatsapp">Bulk WhatsApp</Link>, send a test to your own number, then send it to the students or leads you pick.</li>
@@ -79,7 +79,7 @@ function CampaignForm({ c, onClose }: { c: CampaignRow | null; onClose: () => vo
         <label>For<select value={audience} onChange={(e) => setAudience(e.target.value as WaAudience)}>{(Object.keys(WA_AUDIENCES) as WaAudience[]).map((k) => <option key={k} value={k}>{WA_AUDIENCES[k]}</option>)}</select></label>
         <label>Status<select value={isActive ? 'on' : 'off'} onChange={(e) => setIsActive(e.target.value === 'on')}><option value="on">On: staff can send it</option><option value="off">Off: hidden from Bulk WhatsApp</option></select></label>
         <label className="wide">Template text <small style={{ fontWeight: 400 }}>(paste it from AiSensy, with {'{{1}}'}…: used for the preview and the message log)</small>
-          <textarea rows={5} value={body} onChange={(e) => syncBody(e.target.value)} placeholder={'Hello {{1}},\n\nThis Diwali get {{2}} off on every course at techcadd {{3}}…'} /></label>
+          <textarea rows={5} value={body} onChange={(e) => syncBody(e.target.value)} placeholder={'Hello {{1}},\n\nThis Diwali get {{2}} off on every course at our {{3}} branch…'} /></label>
       </div>
       <h3 className="set-sub">Parameters</h3>
       {params.map((p, i) => <div key={i} className="wl-form" style={{ marginBottom: 8, alignItems: 'end' }}>

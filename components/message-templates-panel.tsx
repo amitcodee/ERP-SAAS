@@ -6,20 +6,21 @@ import { useRouter } from 'next/navigation'
 import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { deleteAnnouncementTemplateAction, resetTemplateAction, saveAnnouncementTemplateAction, saveTemplateAction } from '@/app/actions'
 import { Modal } from '@/components/modal'
+import { useBrand } from '@/components/brand-context'
 import type { AnnouncementTemplate, TemplateView } from '@/modules/templates/service'
 
 const SAMPLE: Record<string, string> = {
-  first_name: 'Asha', name: 'Asha Gill', branch: 'Techcadd Mohali', age: '21', ticket_no: 'TKT-00042', reply: 'Your certificate is ready — collect it from the front desk.',
-  trainer: 'Ravi Sharma', student: 'Asha Gill, Graphic Design (Techcadd Mohali)', kind: 'Project help', request_no: 'HLP-00012', title: 'Logo for my portfolio',
+  first_name: 'Asha', name: 'Asha Gill', branch: 'Model Town', age: '21', ticket_no: 'TKT-00042', reply: 'Your certificate is ready — collect it from the front desk.',
+  trainer: 'Ravi Sharma', student: 'Asha Gill, Graphic Design (Model Town)', kind: 'Project help', request_no: 'HLP-00012', title: 'Logo for my portfolio',
   details: 'I need help choosing colours and fonts for my logo project.', course: 'Graphic Design', cert_no: 'TC/MOH/2026/0042',
 }
 /** Placeholders that go out as a button in the e-mail (the label it shows). */
 const BUTTONS: Record<string, string> = { link: 'Open Project Help', certificate_link: 'View / download certificate', project_link: 'Project certificate', verify_link: 'Verify certificate' }
-const fill = (t: string) => t.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k: string) => SAMPLE[k] ?? (BUTTONS[k] ? `[${BUTTONS[k]}]` : m))
+const fill = (t: string, institute: string) => t.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k: string) => (k === 'institute' ? institute : SAMPLE[k]) ?? (BUTTONS[k] ? `[${BUTTONS[k]}]` : m))
 /** The body as the e-mail shows it: text, with the link placeholders drawn as buttons. */
-const preview = (t: string) => t.split(/(\{\{\s*\w+\s*\}\})/).map((part, i) => {
+const preview = (t: string, institute: string) => t.split(/(\{\{\s*\w+\s*\}\})/).map((part, i) => {
   const k = /^\{\{\s*(\w+)\s*\}\}$/.exec(part)?.[1]
-  return k && BUTTONS[k] ? <span key={i} style={{ display: 'inline-block', margin: '4px 6px 4px 0', padding: '7px 16px', background: '#1a1f71', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 13 }}>{BUTTONS[k]}</span> : fill(part)
+  return k && BUTTONS[k] ? <span key={i} style={{ display: 'inline-block', margin: '4px 6px 4px 0', padding: '7px 16px', background: 'var(--navy)', color: '#fff', borderRadius: 8, fontWeight: 600, fontSize: 13 }}>{BUTTONS[k]}</span> : fill(part, institute)
 })
 const fmt = (d: string) => new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 const SOURCE = { branch: ['This branch’s own', 'status-blue'], default: ['Head office default', 'status-slate'], 'built-in': ['Built-in', 'status-slate'] } as const
@@ -51,6 +52,7 @@ export function MessageTemplatesPanel({ data, branchName, isSuper }: {
 }
 
 function TemplateCard({ t, scope, onDone }: { t: TemplateView; scope: 'branch' | 'default'; onDone: (m: string) => void }) {
+  const brand = useBrand()
   const [subject, setSubject] = useState(t.subject)
   const [body, setBody] = useState(t.body)
   const [error, setError] = useState('')
@@ -93,8 +95,8 @@ function TemplateCard({ t, scope, onDone }: { t: TemplateView; scope: 'branch' |
         <div>
           <p className="eyebrow" style={{ margin: '0 0 6px' }}>Preview (sample details)</p>
           <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: 16, background: 'var(--tint)', minHeight: 160 }}>
-            <strong style={{ display: 'block', marginBottom: 10 }}>{fill(subject)}</strong>
-            <div style={{ whiteSpace: 'pre-line', fontSize: 14, lineHeight: 1.55 }}>{preview(body)}</div>
+            <strong style={{ display: 'block', marginBottom: 10 }}>{fill(subject, brand.name)}</strong>
+            <div style={{ whiteSpace: 'pre-line', fontSize: 14, lineHeight: 1.55 }}>{preview(body, brand.name)}</div>
           </div>
         </div>
       </div>

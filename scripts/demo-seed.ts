@@ -71,14 +71,14 @@ async function main() {
   await withOrgSystem(ORG, async (tx) => {
     const branch = (await tx.select().from(branches).where(eq(branches.code, DEMO_BRANCH)))[0]
       ?? await one(tx, tx.insert(branches).values({
-        code: DEMO_BRANCH, certCode: 'DEMO', name: 'Techcadd Demo Branch', city: 'Ludhiana',
+        code: DEMO_BRANCH, certCode: 'DEMO', name: 'Demo Branch', city: 'Ludhiana',
         state: 'Punjab', pincode: '141001', status: 'active', activatedAt: new Date(),
       }).returning())
 
-    const manager = await ensureUser(tx, branch.id, 'Demo Branch Manager', 'demo.manager@techcadd.test', 'branch_manager')
-    const accountant = await ensureUser(tx, branch.id, 'Demo Accountant', 'demo.accountant@techcadd.test', 'accountant')
-    const trainer = await ensureUser(tx, branch.id, 'Demo Trainer', 'demo.trainer@techcadd.test', 'trainer')
-    const counselor = await ensureUser(tx, branch.id, 'Demo Counselor', 'demo.counselor@techcadd.test', 'counselor')
+    const manager = await ensureUser(tx, branch.id, 'Demo Branch Manager', 'demo.manager@demo.test', 'branch_manager')
+    const accountant = await ensureUser(tx, branch.id, 'Demo Accountant', 'demo.accountant@demo.test', 'accountant')
+    const trainer = await ensureUser(tx, branch.id, 'Demo Trainer', 'demo.trainer@demo.test', 'trainer')
+    const counselor = await ensureUser(tx, branch.id, 'Demo Counselor', 'demo.counselor@demo.test', 'counselor')
     const actor: Actor = { userId: manager.id, orgId: ORG, role: 'branch_manager', branchId: branch.id }
     const accountantActor: Actor = { userId: accountant.id, orgId: ORG, role: 'accountant', branchId: branch.id }
 
@@ -104,7 +104,7 @@ async function main() {
     const enquiry = existingEnquiry
       ? { enquiry: existingEnquiry }
       : await createEnquiry(tx, actor, {
-        person: { firstName: 'Riya', lastName: 'Sharma', phone: '9800000001', email: 'riya.demo@techcadd.test' },
+        person: { firstName: 'Riya', lastName: 'Sharma', phone: '9800000001', email: 'riya.demo@demo.test' },
         sourceId: source.id, departmentId: department.id, courseId: course.id, courseFee: 3000000,
         proposedFee: 2800000, actualFee: 2800000,
         lead: { visited: true, interested: true, interestPct: 90, callDone: true, callRemark: 'Demo enquiry for admission and follow-up testing' },
@@ -116,12 +116,12 @@ async function main() {
     })
 
     const due = await ensureRegistration(tx, actor, '9800000002', {
-      person: { firstName: 'Arjun', lastName: 'Kumar', phone: '9800000002', email: 'arjun.demo@techcadd.test' },
+      person: { firstName: 'Arjun', lastName: 'Kumar', phone: '9800000002', email: 'arjun.demo@demo.test' },
       departmentId: department.id, courseId: course.id, totalFee: 3000000, listFee: 3000000,
       enrollmentDate: '2026-09-01', joiningDate: '2026-09-05',
     })
     const lowAttendance = await ensureRegistration(tx, actor, '9800000003', {
-      person: { firstName: 'Simran', lastName: 'Kaur', phone: '9800000003', email: 'simran.demo@techcadd.test' },
+      person: { firstName: 'Simran', lastName: 'Kaur', phone: '9800000003', email: 'simran.demo@demo.test' },
       departmentId: department.id, courseId: course.id, totalFee: 2400000, enrollmentDate: '2026-09-01',
     })
 
@@ -164,7 +164,7 @@ async function main() {
     if (!(await tx.select().from(certificateRequests).where(eq(certificateRequests.registrationId, lowAttendance.id))).length) await requestCertificate(tx, actor, lowAttendance.id)
 
     console.log('Demo data ready')
-    console.log('Logins: demo.manager@techcadd.test, demo.accountant@techcadd.test, demo.trainer@techcadd.test, demo.counselor@techcadd.test')
+    console.log('Logins: demo.manager@demo.test, demo.accountant@demo.test, demo.trainer@demo.test, demo.counselor@demo.test')
     console.log(`Password: ${DEMO_PASSWORD}`)
     console.log(`Branch: ${branch.name} (${branch.code})`)
     console.log(`Students: ${eligible.regNo} eligible/certificate issued, ${due.regNo} fee due, ${lowAttendance.regNo} attendance blocker`)

@@ -1,7 +1,6 @@
 import { SitePage } from '@/components/site/shell'
-import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `FAQ | ${PRODUCT.name}` }
+export const metadata = { title: 'FAQ' }
 
 const FAQ = [
   { q: 'How does the free trial work?', a: 'Sign up with your institute’s name and e-mail. You get every feature for 14 days. At the end, pick a plan; if you do not, your institute becomes read-only (nothing is deleted) until you do.' },

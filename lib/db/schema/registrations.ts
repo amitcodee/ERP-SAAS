@@ -47,7 +47,7 @@ export const registrations = pgTable(
     internshipCompletion: boolean('internship_completion').notNull().default(false),
     offerTemplateId: uuid('offer_template_id').references(() => letterTemplates.id, { onDelete: 'set null' }),
     completionTemplateId: uuid('completion_template_id').references(() => letterTemplates.id, { onDelete: 'set null' }), // a project certificate is given with the course certificate
-    letterCompanyId: uuid('letter_company_id').references(() => letterCompanies.id), // the company the letters come from; null: techcadd
+    letterCompanyId: uuid('letter_company_id').references(() => letterCompanies.id), // the company the letters come from; null: the main one
     status: registrationStatusEnum('status').notNull().default('active'),
     // carried over from the branch a transferred student came from: classes held / attended there, capstone approved there
     priorSessions: integer('prior_sessions').notNull().default(0),

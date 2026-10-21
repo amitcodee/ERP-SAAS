@@ -33,7 +33,7 @@ async function main() {
       check('a new institute starts with every step to do', s0.settled === 0 && !s0.complete && !s0.dismissed && s0.steps.length === 7, JSON.stringify(s0.steps.map((s) => [s.key, s.done])))
 
       // branding
-      await throws(tx, 'a logo must be a small image', () => saveBranding(tx, head, { legalName: 'Onboarding Test Academy Pvt Ltd', logo: 'data:text/html;base64,PHNjcmlwdD4=' }), /PNG, JPEG/)
+      await throws(tx, 'a logo must be a small image', () => saveBranding(tx, head, { legalName: 'Onboarding Test Academy Pvt Ltd', logo: 'data:text/html;base64,PHNjcmlwdD4=' }), /PNG or JPEG/)
       await saveBranding(tx, head, { legalName: 'Onboarding Test Academy Pvt Ltd', tagline: 'Learn by doing', color: '#123456', logo: LOGO })
       const [o] = (await tx.execute<{ legal_name: string; branding: { logo: string; color: string; tagline: string } }>(sql`select legal_name, branding from organisations where id = app_org()`)).rows
       check('branding is kept on the institute and ticks the step', o.legal_name === 'Onboarding Test Academy Pvt Ltd' && o.branding.logo === LOGO && o.branding.color === '#123456' && (await done('branding')).done)

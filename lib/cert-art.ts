@@ -38,7 +38,6 @@ export function arcLetters(text: string, cx: number, cy: number, r: number, from
   })
 }
 
-export const SEAL_TOP = 'techcadd · YOUR SKILL & TECHNOLOGY PARTNER ·'
 export const fmtCertDate = (iso: string | null) => (iso ? new Date(iso.length > 10 ? iso : `${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '')
 export const durationText = (weeks: number | null, hours: number | null) => {
   const w = weeks ? (weeks % 4 === 0 && weeks >= 8 ? `${weeks / 4} months` : `${weeks} weeks`) : null

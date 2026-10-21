@@ -1,11 +1,10 @@
 import { sql } from 'drizzle-orm'
 import { SitePage } from '@/components/site/shell'
-import { PRODUCT } from '@/lib/product'
 import { withPlatform } from '@/lib/db/withTenant'
 import { redis } from '@/lib/redis'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: `Status | ${PRODUCT.name}` }
+export const metadata = { title: 'Status' }
 
 // Live checks of what the service needs, at the moment the page is opened.
 export default async function Status() {

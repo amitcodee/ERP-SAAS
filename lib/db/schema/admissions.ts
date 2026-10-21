@@ -192,7 +192,7 @@ export type EnquiryStatus = (typeof enquiryStatusEnum.enumValues)[number]
 export const webLeads = pgTable('web_leads', {
   orgId: orgId(),
   id: id(),
-  siteHost: text('site_host').notNull(), // e.g. techcaddludhiana.com (no www.)
+  siteHost: text('site_host').notNull(), // e.g. acmeludhiana.com (no www.)
   sourceUrl: text('source_url'), // the page the form was on
   externalId: text('external_id'), // the website's own id for the lead: sending it twice does not add it twice
   name: text('name').notNull(),

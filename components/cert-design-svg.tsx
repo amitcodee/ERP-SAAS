@@ -3,8 +3,9 @@
 // the design list. Text is set with the same rules the server uses (layoutText), measured here on a <canvas> in the
 // same fonts, so what is on the canvas is what prints.
 import { useEffect, useState } from 'react'
+import { useBrand } from '@/components/brand-context'
 import QRCode from 'qrcode'
-import { fillDesignText, layoutText, lineX, pageSize, shapePath, type Design, type DesignEl, type DesignFont } from '@/lib/cert-design'
+import { BRAND_LOGO, fillDesignText, layoutText, lineX, pageSize, shapePath, type Design, type DesignEl, type DesignFont } from '@/lib/cert-design'
 
 const FILES: Record<DesignFont, string> = {
   light: 'Poppins-Light', regular: 'Poppins-Regular', medium: 'Poppins-Medium', semibold: 'Poppins-SemiBold', bold: 'Poppins-Bold', extrabold: 'Poppins-ExtraBold',
@@ -60,6 +61,7 @@ export function qrD(text: string, x: number, y: number, size: number) {
 
 /** One element's drawing (no selection, no events). */
 export function ElDrawing({ e, values }: { e: DesignEl; values: Record<string, string> | null }) {
+  const brand = useBrand()
   const op = e.opacity !== undefined && e.opacity < 1 ? e.opacity : undefined
   switch (e.t) {
     case 'rect': case 'ellipse': case 'poly': {
@@ -67,8 +69,8 @@ export function ElDrawing({ e, values }: { e: DesignEl; values: Record<string, s
       return <path d={d} fill={e.fill ?? 'none'} stroke={e.stroke ?? undefined} strokeWidth={e.stroke ? e.sw : undefined} opacity={op} />
     }
     case 'line': return <line x1={e.x} y1={e.y} x2={e.x + e.w} y2={e.y + e.h} stroke={e.stroke} strokeWidth={e.sw} strokeLinecap="round" strokeDasharray={e.dash ? `${Math.max(1, e.sw * 4)} ${Math.max(1, e.sw * 4) * 0.8}` : undefined} opacity={op} />
-    case 'image': return <image href={e.src} x={e.x} y={e.y} width={Math.max(0.1, e.w)} height={Math.max(0.1, e.h)} preserveAspectRatio={e.stretch ? 'none' : 'xMidYMax meet'} opacity={op} />
-    case 'qr': { const s = Math.min(e.w, e.h); return <path d={qrD('https://techcadd.com/e/c/sample-certificate', e.x, e.y, s)} fill={e.color} /> }
+    case 'image': return <image href={e.src === BRAND_LOGO ? brand.logo ?? '' : e.src} x={e.x} y={e.y} width={Math.max(0.1, e.w)} height={Math.max(0.1, e.h)} preserveAspectRatio={e.stretch ? 'none' : 'xMidYMax meet'} opacity={op} />
+    case 'qr': { const s = Math.min(e.w, e.h); return <path d={qrD('https://example.com/e/c/sample-certificate', e.x, e.y, s)} fill={e.color} /> }
     case 'text': {
       const content = values ? fillDesignText(e.text, values).trim() : e.text
       if (!content) return null

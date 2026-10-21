@@ -9,6 +9,7 @@ import { txOrg, type Tx } from '@/lib/db/withTenant'
 import { log } from '@/lib/log'
 import { todayIST } from '@/lib/ist'
 import { branchWord, waParams, waText, WA_MESSAGES, type WaEventKey } from '@/lib/notify/whatsapp'
+import { brandIn } from '@/lib/brand'
 
 export type WaEvent = {
   branchId: string
@@ -32,10 +33,11 @@ export async function queueWhatsApp(tx: Tx, key: WaEventKey, e: WaEvent): Promis
     if (!e.phone?.replace(/\D/g, '')) return false
     if (!(await waOn(tx, key))) return false
     const params = waParams(key, e.vars)
+    const body = waText(key, params, (await brandIn(tx)).name)
     // a savepoint: a refused insert must not spoil the event's own transaction
     const rows = await tx.transaction((sp) => sp.insert(notifications).values({
       branchId: e.branchId, personId: e.personId ?? null, registrationId: e.registrationId ?? null,
-      channel: 'whatsapp', template: WA_MESSAGES[key].covers[0], toAddress: e.phone!, body: waText(key, params), params,
+      channel: 'whatsapp', template: WA_MESSAGES[key].covers[0], toAddress: e.phone!, body, params,
       dedupeKey: `wa:${key}:${e.once}`,
     }).onConflictDoNothing({ target: notifications.dedupeKey }).returning({ id: notifications.id }))
     return rows.length > 0
@@ -48,13 +50,15 @@ export async function queueWhatsApp(tx: Tx, key: WaEventKey, e: WaEvent): Promis
 type PersonRow = { first_name: string; phone: string | null; branch: string }
 const personOf = async (tx: Tx, personId: string, branchId: string) => (await tx.execute<PersonRow>(sql`
   select p.first_name, p.phone, b.name as branch from persons p, branches b where p.id = ${personId} and b.id = ${branchId}`)).rows[0] as PersonRow | undefined
+/** The branch as the message names it ("Mohali", not "<institute> Mohali"). */
+const branchOf = async (tx: Tx, branch: string) => branchWord(branch, (await brandIn(tx)).name)
 
-/** "Thank you for choosing techcadd": a new lead or a random call. One a day per person, whichever came first. */
+/** "Thank you for choosing <institute>": a new lead or a random call. One a day per person, whichever came first. */
 export async function thankForEnquiry(tx: Tx, branchId: string, personId: string) {
   if (!(await waOn(tx, 'enquiry_thanks'))) return false
   const p = await personOf(tx, personId, branchId)
   if (!p) return false
-  return queueWhatsApp(tx, 'enquiry_thanks', { branchId, personId, phone: p.phone, vars: { first_name: p.first_name, branch: branchWord(p.branch) }, once: `${personId}:${todayIST()}` })
+  return queueWhatsApp(tx, 'enquiry_thanks', { branchId, personId, phone: p.phone, vars: { first_name: p.first_name, branch: await branchOf(tx, p.branch) }, once: `${personId}:${todayIST()}` })
 }
 
 /** "Thank you for visiting": once a day per person. */
@@ -62,7 +66,7 @@ export async function thankForVisit(tx: Tx, branchId: string, personId: string) 
   if (!(await waOn(tx, 'visit_thanks'))) return false
   const p = await personOf(tx, personId, branchId)
   if (!p) return false
-  return queueWhatsApp(tx, 'visit_thanks', { branchId, personId, phone: p.phone, vars: { first_name: p.first_name, branch: branchWord(p.branch) }, once: `${personId}:${todayIST()}` })
+  return queueWhatsApp(tx, 'visit_thanks', { branchId, personId, phone: p.phone, vars: { first_name: p.first_name, branch: await branchOf(tx, p.branch) }, once: `${personId}:${todayIST()}` })
 }
 
 /** "You have successfully registered": once per registration. */
@@ -76,7 +80,7 @@ export async function confirmRegistration(tx: Tx, registrationId: string) {
   if (!r) return false
   return queueWhatsApp(tx, 'registration', {
     branchId: r.branch_id, personId: r.person_id, registrationId, phone: r.phone,
-    vars: { first_name: r.first_name, branch: branchWord(r.branch), reg_no: r.reg_no, course: r.course ?? 'your course' }, once: registrationId,
+    vars: { first_name: r.first_name, branch: await branchOf(tx, r.branch), reg_no: r.reg_no, course: r.course ?? 'your course' }, once: registrationId,
   })
 }
 

@@ -1,13 +1,12 @@
 // The 404 page: a page that does not exist, or a record that is not there (or not yours to open). `inPanel` when it
-// shows inside the panel's frame (sidebar and top bar around it); otherwise it stands alone, with the logo.
-import Image from 'next/image'
+// shows inside the panel's frame (sidebar and top bar around it); otherwise it stands alone.
 import Link from 'next/link'
 import { BackButton } from '@/components/back-button'
 
 export function NotFoundView({ inPanel = false }: { inPanel?: boolean }) {
   return (
     <main className={`nf-page${inPanel ? ' in-panel' : ''}`}>
-      <title>Page not found · techcadd</title>
+      <title>Page not found</title>
       <style>{`
         .nf-page { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; background: radial-gradient(circle at 20% 10%, #e9ebff 0, transparent 45%), radial-gradient(circle at 85% 90%, #fde7f0 0, transparent 40%), var(--page, #f3f4fc); }
         .nf-page.in-panel { min-height: calc(100vh - 140px); background: none; }
@@ -26,7 +25,6 @@ export function NotFoundView({ inPanel = false }: { inPanel?: boolean }) {
         @media (prefers-reduced-motion: reduce) { .nf-float, .nf-spin { animation: none; } }
       `}</style>
       <div className="nf-card">
-        {!inPanel && <Link href="/" className="nf-logo" aria-label="techcadd home"><Image src="/tce-logo.png" alt="techcadd" width={170} height={48} style={{ height: 'auto' }} priority /></Link>}
         {/* a lost compass over a page with a question mark */}
         <svg className="nf-art" viewBox="0 0 320 200" role="img" aria-label="A compass that has lost its way">
           <ellipse cx="160" cy="186" rx="110" ry="9" fill="#10186a" opacity=".08" />

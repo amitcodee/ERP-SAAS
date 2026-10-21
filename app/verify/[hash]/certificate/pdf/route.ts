@@ -1,6 +1,7 @@
 import { clientIpFrom } from '@/lib/client-ip'
 import { underLimit } from '@/lib/redis'
 import { appOrigin } from '@/lib/app-url'
+import { orgBrand } from '@/lib/brand'
 import { courseCertOps } from '@/lib/cert-course'
 import { projectCertOps } from '@/lib/cert-project'
 import { courseCertInput, projectCertInput } from '@/lib/cert-course-input'
@@ -22,7 +23,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ hash: st
   // ?kind=project: the project certificate, for a registration that includes one
   const kind = new URL(req.url).searchParams.get('kind') === 'project' && v.projectCertificate ? 'project' : 'course'
   const verifyUrl = `${await appOrigin(org.id)}/verify/${hash}`
-  const pdf = await certificatePdf(v, hash, verifyUrl, kind, kind === 'course' ? courseCertOps(courseCertInput(v, verifyUrl)) : projectCertOps(projectCertInput(v)))
+  const brand = await orgBrand(org.id)
+  const pdf = await certificatePdf(v, hash, verifyUrl, kind, kind === 'course' ? courseCertOps(courseCertInput(v, verifyUrl, brand)) : projectCertOps(projectCertInput(v, brand)), brand.name)
   return new Response(new Uint8Array(pdf), {
     headers: {
       'Content-Type': 'application/pdf',

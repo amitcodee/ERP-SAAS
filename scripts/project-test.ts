@@ -32,7 +32,7 @@ async function main() {
   try {
     await db.transaction(async (tx) => {
       await tx.execute(sql`select set_config('app.org_id', ${ORG}, true)`) // the Sample Institute owns what the test makes
-      const [b] = await tx.insert(branches).values({ code: 'PJ1', name: 'Techcadd Projects' }).returning()
+      const [b] = await tx.insert(branches).values({ code: 'PJ1', name: 'Acme Projects' }).returning()
       const mk = async (name: string) => (await tx.insert(users).values({ branchId: b.id, name, email: `${name}@pj.test.invalid`, passwordHash: 'x' }).returning())[0]
       const [uc, um] = [await mk('c'), await mk('m')]
       const [dept] = await tx.select().from(departments).limit(1)
@@ -83,12 +83,12 @@ async function main() {
       const v = await verifyCertificateIn(tx, certHash(ORG, certNo, r1.id, issuedAt))
       check('the verification carries the approved project', v.found && v.project?.title === 'Student Management System' && v.project.tools.join('|') === 'React|Node.js|Express.js|MySQL|Tailwind CSS')
       if (v.found) {
-        const input = projectCertInput(v)
+        const input = projectCertInput(v, { name: 'Acme', legalName: 'Acme', tagline: '', color: '#10186a', logo: null, accreditations: null })
         const texts = projectCertOps(input).flatMap((o) => (o.k === 'text' ? [o.s] : []))
         check('the certificate prints the student, father, project, tools, registration and branch',
           texts.includes('Chirag Garg') && texts.includes('Mr. Deepak Kumar') && texts.includes('Student Management System') && texts.some((t) => t.startsWith('React, Node.js, Express.js'))
           && texts.includes(r1.regNo) && texts.includes('projects branch') && texts.includes('PROJECT COMPLETION'), texts.join(' / ').slice(0, 300))
-        const noProject = projectCertInput({ ...v, project: null })
+        const noProject = projectCertInput({ ...v, project: null }, { name: 'Acme', legalName: 'Acme', tagline: '', color: '#10186a', logo: null, accreditations: null })
         check('an older certificate without a named project prints the course', noProject.project === v.course && noProject.tools === v.modules)
       }
       throw new Rollback()

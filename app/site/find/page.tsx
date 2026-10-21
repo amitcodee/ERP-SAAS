@@ -1,8 +1,7 @@
 import { FindForm } from '@/components/site/forms'
 import { SitePage } from '@/components/site/shell'
-import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `Find your institute | ${PRODUCT.name}` }
+export const metadata = { title: 'Find your institute' }
 
 // Institutes sign in at their own address. Someone who does not remember it gets it by e-mail.
 export default function Find() {

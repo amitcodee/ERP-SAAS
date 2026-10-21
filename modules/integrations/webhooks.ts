@@ -1,6 +1,6 @@
 // Outgoing webhooks for n8n, Zapier, Make or any tool that takes an HTTPS POST. An event is queued in the same
 // transaction as the change that caused it (emit_event), then delivered by the scheduler every minute, signed:
-//   X-Techcadd-Signature: sha256=<hex HMAC-SHA256 of the raw body with the webhook's secret>
+//   X-Signature: sha256=<hex HMAC-SHA256 of the raw body with the webhook's secret>
 // Failed deliveries are retried (1 min, 5 min, 30 min, 2 h, 6 h) and then marked failed.
 import { createHmac, randomBytes } from 'crypto'
 import { sql } from 'drizzle-orm'
@@ -100,7 +100,7 @@ async function post(url: string, secret: string, event: string, deliveryId: stri
     await checkUrl(url) // again at send time: the name may point somewhere else since it was saved
     const res = await fetch(url, {
       method: 'POST', body, signal: AbortSignal.timeout(10000), redirect: 'manual', // a redirect could lead to an internal address
-      headers: { 'Content-Type': 'application/json', 'User-Agent': 'techcadd-webhooks/1', 'X-Techcadd-Event': event, 'X-Techcadd-Delivery': deliveryId, 'X-Techcadd-Signature': `sha256=${sig}` },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'institute-webhooks/1', 'X-Event': event, 'X-Delivery': deliveryId, 'X-Signature': `sha256=${sig}` },
     })
     const text = (await res.text().catch(() => '')).slice(0, 500)
     return { status: res.status, ok: res.status >= 200 && res.status < 300, body: text, error: res.ok ? null : `HTTP ${res.status}` }
@@ -115,7 +115,7 @@ export async function testWebhook(tx: Tx, id: string) {
   if (!w) throw new Error('Webhook not found')
   const secret = unseal<string>(w.secret, 'settings-secrets', await txOrg(tx))
   if (!secret) throw new Error('The secret cannot be read (AUTH_SECRET changed?): delete and add this webhook again')
-  const payload = { event: 'ping', id: randomBytes(9).toString('base64url'), occurredAt: new Date().toISOString(), data: { message: 'Test from techcadd panel', webhookId: w.id } }
+  const payload = { event: 'ping', id: randomBytes(9).toString('base64url'), occurredAt: new Date().toISOString(), data: { message: 'Test from the panel', webhookId: w.id } }
   const [d] = (await tx.execute<{ id: string }>(sql`insert into webhook_deliveries (webhook_id, event, payload, status) values (${w.id}, 'ping', ${JSON.stringify(payload)}::jsonb, 'pending') returning id`)).rows
   const r = await post(w.url, secret, 'ping', d.id, payload)
   await tx.execute(sql`update webhook_deliveries set status = ${r.ok ? 'sent' : 'failed'}, attempts = 1, response_status = ${r.status}, response_body = ${r.body}, error = ${r.error}, sent_at = ${r.ok ? sql`now()` : null} where id = ${d.id}`)

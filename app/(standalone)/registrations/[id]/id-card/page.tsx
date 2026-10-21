@@ -9,6 +9,8 @@ import { requirePage } from '@/lib/panel/base'
 import { addMonths } from '@/modules/fees/plan'
 import { ownsRegistration } from '@/modules/portal/study'
 import { registrationDetails } from '@/modules/registrations/service'
+import { orgBrand } from '@/lib/brand'
+import { sql } from 'drizzle-orm'
 
 // The student membership (ID) card of one registration, made from what was entered at registration: front and back,
 // ready to print on a card printer. Opened from the registrations table and right after a registration is saved,
@@ -29,9 +31,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   }
   if (!r) notFound()
   const origin = await appOrigin(me.orgId)
-  const [verifyQr, followQr] = await Promise.all([qrSvg(`${origin}${CARD.verifyPath}`, '#16246e'), qrSvg(CARD.followUrl, '#16246e')])
+  const brand = await orgBrand(me.orgId)
+  const social = /^https?:\/\//i.test(brand.contact.social) ? brand.contact.social : null
+  const [verifyQr, followQr, campuses] = await Promise.all([
+    qrSvg(`${origin}${CARD.verifyPath}`, '#16246e'), social ? qrSvg(social, '#16246e') : null,
+    // the campuses: each active branch's town (or its name), once
+    withOrgSystem(me.orgId, async (tx) => (await tx.execute<{ place: string }>(sql`
+      select distinct coalesce(nullif(trim(city), ''), name) as place from branches where is_active order by 1`)).rows.map((x) => x.place)),
+  ])
   return (
     <IdCard
+      brand={brand} campuses={campuses}
       backHref={student ? '/?tab=documents' : '/registrations'} verifyQr={verifyQr} followQr={followQr}
       v={{
         name: r.name, course: r.course ?? r.department ?? '—', regNo: r.regNo, enrolledOn: r.enrollmentDate,

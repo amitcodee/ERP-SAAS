@@ -2,7 +2,8 @@
 // The panel frame: sidebar (one link per page the person may open), top bar, and the shared toast.
 // Each page is its own URL and loads its own data; this frame stays the same between them.
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
+import type { Brand } from '@/lib/brand'
+import { BrandMark } from './brand-mark'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -32,9 +33,9 @@ const ToastContext = createContext<(m: string) => void>(() => {})
 /** Show a short confirmation at the bottom of the screen (any page). */
 export const useNotify = () => useContext(ToastContext)
 
-export function PanelShell({ user, modules, branches, isSuper, actingBranchId, children }: {
+export function PanelShell({ user, modules, branches, isSuper, actingBranchId, brand, children }: {
   user: ShellUser; modules: ModuleKey[]; branches: { id: string; code: string; name: string }[]
-  isSuper: boolean; actingBranchId: string | null; children: React.ReactNode
+  isSuper: boolean; actingBranchId: string | null; brand: Brand; children: React.ReactNode
 }) {
   const pathname = usePathname()
   const onAccount = pathname.startsWith('/account') // My account is reached from the profile menu, not the sidebar
@@ -77,7 +78,8 @@ export function PanelShell({ user, modules, branches, isSuper, actingBranchId, c
         {sidebarOpen && <button type="button" className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Close navigation" tabIndex={-1} />}
         <aside id="panel-sidebar" className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
           <div className="brand">
-            <Image className="brand-logo" src="/tce.webp" alt="techcadd" width={940} height={270} priority />
+            {/* the institute's logo, in white on the dark sidebar; or its mark */}
+            {brand.logo ? <img className="brand-logo" src={brand.logo} alt={brand.name} /> : <BrandMark brand={brand} height={34} light />}
             <button type="button" className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close navigation"><X size={18} /></button>
           </div>
           <div className="branch-select">
@@ -135,13 +137,13 @@ export function PanelShell({ user, modules, branches, isSuper, actingBranchId, c
           {goingTo && <PageSkeleton />}
           <div className="page-slot" hidden={!!goingTo}>{children}</div>
           <footer className="panel-footer">
-            <div className="pf-brand"><strong>techcadd</strong><span>Institute ERP · {user.branchName}</span></div>
+            <div className="pf-brand"><strong>{brand.name}</strong><span>{user.branchName}</span></div>
             <nav aria-label="Footer">
               <Link href="/support" target="_blank">Help &amp; support</Link>
               <Link href="/account">My account</Link>
               {modules.includes('My Tickets') && <Link href="/my-tickets">Raise a ticket</Link>}
             </nav>
-            <span className="pf-copy">© {new Date().getFullYear()} techcadd Computer Education. All rights reserved.</span>
+            <span className="pf-copy">© {new Date().getFullYear()} {brand.legalName}. All rights reserved.</span>
           </footer>
         </main>
         {toast && <div className="toast"><div className="toast-check"><Check size={15} /></div>{toast}</div>}

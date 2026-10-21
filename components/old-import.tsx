@@ -1,5 +1,5 @@
 'use client'
-// Old System Import: bring a branch's records from the old techcadd system (phpMyAdmin CSV exports) into the panel.
+// Old System Import: bring a branch's records from the institute's old system (phpMyAdmin CSV exports) into the panel.
 // 1. the branch (its number format must be set), 2. the files, 3. a dry run that saves nothing, 4. the import.
 // Running it again later brings over only what is new, so it keeps the panel in step until the old system is switched off.
 import { useState } from 'react'
@@ -53,7 +53,7 @@ export function OldImport({ branches }: { branches: Branch[] }) {
         <div>
           <p className="eyebrow">Administration / Old System Import</p>
           <h1>Old System Import</h1>
-          <p className="subheading">Bring a branch’s students and payments over from the old techcadd system. Every student keeps their old registration number, new admissions carry on after the highest one, and running it again later brings over only what is new — so it keeps the panel in step until the old system is switched off.</p>
+          <p className="subheading">Bring a branch’s students and payments over from your old system. Every student keeps their old registration number, new admissions carry on after the highest one, and running it again later brings over only what is new — so it keeps the panel in step until the old system is switched off.</p>
         </div>
       </div>
 

@@ -1,9 +1,8 @@
 import { Check } from 'lucide-react'
 import { FEATURES } from '@/components/site/content'
 import { SitePage } from '@/components/site/shell'
-import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `Features | ${PRODUCT.name}` }
+export const metadata = { title: 'Features' }
 
 const AREAS = [
   { title: 'Admissions', items: ['Random calls, walk-ins and website forms in one lead list', 'Lead distribution to telecallers, follow-up dates, overdue escalation', 'Enquiry to registration in one step, with the fee plan', 'Registration numbers and ID cards in your own format'] },

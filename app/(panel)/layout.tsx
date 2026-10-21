@@ -13,6 +13,7 @@ import { SupportBanner } from '@/components/support-banner'
 import { openSupport } from '@/modules/platform/service'
 import { onboardingState } from '@/modules/onboarding/service'
 import { liveAnnouncementsIn } from '@/modules/platform/console'
+import { orgBrand } from '@/lib/brand'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -23,7 +24,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (b.mustChange) return <ForcedChangeScreen name={b.session.name} />
   if (b.session.role === 'student') redirect('/') // students have their own portal
   const a = b.actor, today = todayIST()
-  const [askEmail, birthdays, support, setup, notices] = await Promise.all([
+  const [askEmail, birthdays, support, setup, notices, brand] = await Promise.all([
     // a branch with no mail server of its own works only once it is set up: its staff are told on every page
     needsBranchEmail(a),
     // students whose birthday it is today, shown bottom-right to the staff who look after them (who sees whom depends
@@ -37,9 +38,10 @@ export default async function PanelLayout({ children }: { children: React.ReactN
     b.isSuper && b.modules.includes('Set Up') ? cached(a.orgId, 'onboarding', () => withTenant(a, onboardingState)).catch(() => null) : null,
     // the platform's notices to institutes (a maintenance window, a new feature), while they run
     cached(a.orgId, 'notices', () => withTenant(a, liveAnnouncementsIn), 5 * 60_000).catch(() => []),
+    orgBrand(a.orgId),
   ])
   return (
-    <PanelShell user={b.user} modules={b.modules} branches={b.switchBranches} isSuper={b.isSuper} actingBranchId={b.actor.branchId}>
+    <PanelShell user={b.user} modules={b.modules} branches={b.switchBranches} isSuper={b.isSuper} actingBranchId={b.actor.branchId} brand={brand}>
       {notices.map((n) => (
         <div key={n.id} role="status" style={{ margin: '0 28px 12px', padding: '10px 16px', borderRadius: 12, fontSize: 13, background: n.tone === 'warning' ? '#fff7e6' : '#eef0ff', border: `1px solid ${n.tone === 'warning' ? '#f5c26b' : '#c9ccf5'}` }}>
           <strong>{n.title}</strong> {n.body}

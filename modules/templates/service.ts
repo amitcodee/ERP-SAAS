@@ -8,14 +8,15 @@ import { audit } from '@/lib/audit'
 import type { Actor, Tx } from '@/lib/db/withTenant'
 import { can } from '@/lib/auth/permissions'
 import { plainText } from '@/lib/notify/layout'
+import { brandIn } from '@/lib/brand'
 
 export type TemplateKey = 'birthday_email' | 'birthday_card' | 'certificate_email' | 'ticket_reply_email' | 'help_request_email' | 'help_chosen_email' | 'event_certificate_email'
 type Def = { label: string; about: string; subjectLabel: string; bodyLabel: string; vars: Record<string, string>; subject: string; body: string }
 
 export const TEMPLATES: Record<TemplateKey, Def> = {
   birthday_email: {
-    label: 'Birthday e-mail', about: 'Sent to each active student on their birthday (with the morning fee reminders). It goes out in a festive layout with balloons and the techcadd logo.',
-    subjectLabel: 'Subject', bodyLabel: 'Message', vars: { first_name: 'First name', name: 'Full name', branch: 'Branch name', age: 'Age reached today' },
+    label: 'Birthday e-mail', about: 'Sent to each active student on their birthday (with the morning fee reminders). It goes out in a festive layout with balloons and the institute’s logo.',
+    subjectLabel: 'Subject', bodyLabel: 'Message', vars: { institute: 'Institute name', first_name: 'First name', name: 'Full name', branch: 'Branch name', age: 'Age reached today' },
     subject: 'Happy Birthday, {{first_name}}! 🎉',
     body: `Dear {{first_name}},
 
@@ -24,19 +25,19 @@ Everyone at {{branch}} wishes you a very happy birthday! May this year bring you
 Keep shining, keep growing — we are proud to be a part of your journey. 🌟
 
 Warm wishes,
-Team techcadd`,
+Team {{institute}}`,
   },
   birthday_card: {
     label: 'Birthday card (student portal)', about: 'The card in the middle of the balloons when a student opens their portal on their birthday.',
-    subjectLabel: 'Heading', bodyLabel: 'Message', vars: { first_name: 'First name', branch: 'Branch name', age: 'Age reached today' },
+    subjectLabel: 'Heading', bodyLabel: 'Message', vars: { institute: 'Institute name', first_name: 'First name', branch: 'Branch name', age: 'Age reached today' },
     subject: 'Happy Birthday, {{first_name}}!',
     body: 'Wishing you a fantastic day and a year full of learning, success and happiness. Keep shining — we are proud to be part of your journey!',
   },
   certificate_email: {
     label: 'Certificate issued e-mail', about: 'Sent to the student as soon as their course certificate is issued, with the links to view, download and verify it.',
     subjectLabel: 'Subject', bodyLabel: 'Message',
-    vars: { first_name: 'First name', course: 'Course', cert_no: 'Certificate number', branch: 'Branch name', certificate_link: 'Button to view / download the certificate', project_link: 'Button for the project certificate (empty when there is none)', verify_link: 'Button to the public verification page' },
-    subject: 'Congratulations {{first_name}}! Your techcadd certificate is ready 🎓',
+    vars: { institute: 'Institute name', first_name: 'First name', course: 'Course', cert_no: 'Certificate number', branch: 'Branch name', certificate_link: 'Button to view / download the certificate', project_link: 'Button for the project certificate (empty when there is none)', verify_link: 'Button to the public verification page' },
+    subject: 'Congratulations {{first_name}}! Your {{institute}} certificate is ready 🎓',
     body: `Dear {{first_name}},
 
 Congratulations on completing {{course}}! 🎉
@@ -52,12 +53,12 @@ You can also find it any time in your student portal (Documents).
 
 We wish you every success ahead!
 
-Team techcadd`,
+Team {{institute}}`,
   },
   ticket_reply_email: {
     label: 'Help desk reply e-mail', about: 'Sent to a student when the branch answers their help desk ticket.',
-    subjectLabel: 'Subject', bodyLabel: 'Message', vars: { first_name: 'First name', ticket_no: 'Ticket number', reply: 'The reply written', branch: 'Branch name' },
-    subject: 'techcadd — reply to your ticket {{ticket_no}}',
+    subjectLabel: 'Subject', bodyLabel: 'Message', vars: { institute: 'Institute name', first_name: 'First name', ticket_no: 'Ticket number', reply: 'The reply written', branch: 'Branch name' },
+    subject: '{{institute}} — reply to your ticket {{ticket_no}}',
     body: `Dear {{first_name}},
 
 Your ticket {{ticket_no}} has a reply:
@@ -66,13 +67,13 @@ Your ticket {{ticket_no}} has a reply:
 
 Sign in to your student portal (Help) to read it or answer.
 
-- techcadd`,
+- {{institute}}`,
   },
   help_request_email: {
     label: 'Trainer e-mail: a student asks for help', about: 'Sent to the trainers when a student asks for project or study help.',
     subjectLabel: 'Subject', bodyLabel: 'Message',
-    vars: { trainer: 'Trainer name', student: 'Student, course and branch', kind: 'Kind of help', request_no: 'Request number', title: 'Request title', details: 'What the student wrote', link: 'Button to Project Help' },
-    subject: 'techcadd — a student asks for help: {{title}}',
+    vars: { institute: 'Institute name', trainer: 'Trainer name', student: 'Student, course and branch', kind: 'Kind of help', request_no: 'Request number', title: 'Request title', details: 'What the student wrote', link: 'Button to Project Help' },
+    subject: '{{institute}} — a student asks for help: {{title}}',
     body: `Dear {{trainer}},
 
 {{student}} asks for help ({{kind}}), {{request_no}}:
@@ -85,12 +86,12 @@ If you can help, offer it in Project Help:
 {{link}}
 The student chooses one of the trainers who offered.
 
-- techcadd`,
+- {{institute}}`,
   },
   help_chosen_email: {
     label: 'Trainer e-mail: chosen by the student', about: 'Sent to the trainer a student picks for their help request.',
-    subjectLabel: 'Subject', bodyLabel: 'Message', vars: { trainer: 'Trainer name', student: 'Student, course and branch', request_no: 'Request number', title: 'Request title', link: 'Button to Project Help' },
-    subject: 'techcadd — you were chosen for {{request_no}}',
+    subjectLabel: 'Subject', bodyLabel: 'Message', vars: { institute: 'Institute name', trainer: 'Trainer name', student: 'Student, course and branch', request_no: 'Request number', title: 'Request title', link: 'Button to Project Help' },
+    subject: '{{institute}} — you were chosen for {{request_no}}',
     body: `Dear {{trainer}},
 
 {{student}} chose you to help with {{request_no}}: {{title}}
@@ -100,12 +101,12 @@ Their e-mail is in Project Help:
 
 Mark it done there once you have helped.
 
-- techcadd`,
+- {{institute}}`,
   },
   event_certificate_email: {
     label: 'Seminar / workshop certificate e-mail', about: 'Sent to each participant of a seminar, workshop or other event as soon as their certificate is ready (after the quiz, when the event has one).',
     subjectLabel: 'Subject', bodyLabel: 'Message',
-    vars: { first_name: 'First name', name: 'Full name', event: 'Event title', kind: 'Seminar, Workshop…', date: 'Event date', cert_no: 'Certificate number', score_line: 'The quiz score sentence (empty when there was no quiz)', branch: 'Branch name', certificate_link: 'Button to view / download the certificate' },
+    vars: { institute: 'Institute name', first_name: 'First name', name: 'Full name', event: 'Event title', kind: 'Seminar, Workshop…', date: 'Event date', cert_no: 'Certificate number', score_line: 'The quiz score sentence (empty when there was no quiz)', branch: 'Branch name', certificate_link: 'Button to view / download the certificate' },
     subject: 'Your certificate for {{event}} 🎓',
     body: `Dear {{first_name}},
 
@@ -119,7 +120,7 @@ Anyone can check it is genuine by scanning the QR code on it.
 
 We hope to see you again soon!
 
-Team techcadd`,
+Team {{institute}}`,
   },
 }
 export const TEMPLATE_KEYS = Object.keys(TEMPLATES) as TemplateKey[]
@@ -146,7 +147,9 @@ export async function resolveTemplate(tx: Tx, key: TemplateKey, branchId: string
     select branch_id, subject, body from message_templates where key = ${key} and (branch_id is null ${branchId ? sql`or branch_id = ${branchId}::uuid` : sql``})`)).rows
   const own = rows.find((r) => r.branch_id && r.branch_id === branchId), def = rows.find((r) => !r.branch_id)
   const r = own ?? def
-  return { subject: r?.subject ?? TEMPLATES[key].subject, body: r?.body ?? TEMPLATES[key].body }
+  // {{institute}} is the org's own name, in every template
+  const { name } = await brandIn(tx), named = (t: string) => fillTemplate(t, { institute: name })
+  return { subject: named(r?.subject ?? TEMPLATES[key].subject), body: named(r?.body ?? TEMPLATES[key].body) }
 }
 
 export type TemplateView = {

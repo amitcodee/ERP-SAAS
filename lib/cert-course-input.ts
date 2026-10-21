@@ -2,7 +2,7 @@ import 'server-only'
 // A verified certificate (modules/certificates/service verifyCertificate) as what the course completion and project
 // completion designs print.
 import { durationText } from '@/lib/cert-art'
-import type { CourseCertInput } from '@/lib/cert-course'
+import type { CertBrand, CourseCertInput } from '@/lib/cert-course'
 import type { ProjectCertInput } from '@/lib/cert-project'
 import type { Verification } from '@/modules/certificates/service'
 
@@ -17,20 +17,20 @@ function duration(v: Extract<Verification, { found: true }>) {
   return v.hours ? `${v.hours} hours` : null
 }
 
-export function courseCertInput(v: Extract<Verification, { found: true }>, verifyUrl: string): CourseCertInput {
+export function courseCertInput(v: Extract<Verification, { found: true }>, verifyUrl: string, brand: CertBrand): CourseCertInput {
   return {
     name: v.name, father: v.sheet.father, gender: v.sheet.gender, course: v.course, tools: v.modules, toolsLabel: v.toolsLabel,
     duration: duration(v), joined: v.joined, ended: v.ended, mode: v.sheet.mode, regNo: v.sheet.regNo, branch: v.branch,
     certNo: v.certNo, serial: v.sheet.serial, issuedAt: v.issuedAt, verifyUrl,
-    signers: { authorised: v.sheet.authorised, head: v.sheet.head },
+    signers: { authorised: v.sheet.authorised, head: v.sheet.head }, brand,
   }
 }
 
 /** The project certificate: the project as the trainer approved it (an older one without a named project: the course). */
-export function projectCertInput(v: Extract<Verification, { found: true }>): ProjectCertInput {
+export function projectCertInput(v: Extract<Verification, { found: true }>, brand: CertBrand): ProjectCertInput {
   return {
     name: v.name, father: v.sheet.father, gender: v.sheet.gender, project: v.project?.title ?? v.course,
     tools: v.project?.tools.length ? v.project.tools : v.modules, joined: v.joined, ended: v.ended, issuedAt: v.issuedAt,
-    regNo: v.sheet.regNo, branch: v.branch, head: v.sheet.head,
+    regNo: v.sheet.regNo, branch: v.branch, head: v.sheet.head, brand,
   }
 }

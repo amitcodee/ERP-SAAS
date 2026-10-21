@@ -13,7 +13,8 @@ import { z } from 'zod'
 import { assertCan, can } from '@/lib/auth/permissions'
 import { audit } from '@/lib/audit'
 import { fmtCertDate } from '@/lib/cert-art'
-import { FONT_KEYS, type Design, type DesignField } from '@/lib/cert-design'
+import { BRAND_LOGO, FONT_KEYS, type Design, type DesignField } from '@/lib/cert-design'
+import { brandIn } from '@/lib/brand'
 import { certificateDesigns, eventParticipants, events, type EventKind, type QuizQuestion } from '@/lib/db/schema'
 import { withOrgSystem, type Actor, type Tx } from '@/lib/db/withTenant'
 import { publicGet } from '@/lib/net-guard'
@@ -32,7 +33,7 @@ export const MAX_IMPORT_BYTES = 6 * 1024 * 1024
 const num = z.number().finite().min(-1000).max(1000)
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Colours are #rrggbb')
 // a picture inside the design, or one of the panel's own files (never a path that climbs out of public/)
-const src = z.string().max(MAX_DESIGN_BYTES).refine((s) => /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(s) || (/^\/[\w-]+(\/[\w-]+(\.[\w-]+)*)*\.(png|jpe?g)$/.test(s) && !s.includes('..')), 'A picture must be PNG or JPEG')
+const src = z.string().max(MAX_DESIGN_BYTES).refine((s) => s === BRAND_LOGO || /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(s) || (/^\/[\w-]+(\/[\w-]+(\.[\w-]+)*)*\.(png|jpe?g)$/.test(s) && !s.includes('..')), 'A picture must be PNG or JPEG')
 const box = { id: z.string().min(1).max(40), x: num, y: num, w: num, h: num, opacity: z.number().min(0).max(1).optional(), locked: z.boolean().optional() }
 const paint = { fill: color.nullish(), stroke: color.nullish(), sw: z.number().min(0).max(30).optional() }
 const elInput = z.discriminatedUnion('t', [
@@ -283,7 +284,7 @@ export async function publicEventIn(tx: Tx, token: string): Promise<PublicEvent 
   const closed = !e.is_open ? 'Sign-ups for this event are closed.' : e.closes_at && new Date(e.closes_at) < new Date() ? 'Sign-ups for this event have closed.' : null
   return {
     token: e.token, kind: e.kind, kindLabel: EVENT_KINDS[e.kind], title: e.title, description: e.description, startsAt: iso(e.starts_at)!, endsAt: iso(e.ends_at), mode: e.mode,
-    venue: e.venue, speaker: e.speaker, branch: e.branch ?? 'techcadd', askMobile: e.ask_mobile, askOrg: e.ask_org,
+    venue: e.venue, speaker: e.speaker, branch: e.branch ?? (await brandIn(tx)).name, askMobile: e.ask_mobile, askOrg: e.ask_org,
     quiz: e.has_quiz ? e.quiz.map((x) => ({ q: x.q, options: x.options })) : [], passPercent: e.pass_percent, quizMinutes: e.quiz_minutes,
     certificate: e.certificate && !!e.design_id, certFor: e.cert_for, open: !closed, why: closed,
   }
@@ -367,7 +368,7 @@ export async function eventCertificateIn(tx: Tx, hash: string): Promise<EventCer
     values: {
       name: r.name, event: r.title, kind: EVENT_KINDS[r.kind], date: fmtCertDate(new Date(r.starts_at).toISOString()), venue: r.venue ?? '', speaker: r.speaker ?? '',
       organisation: r.organisation ?? '', score: r.total ? `${r.score} / ${r.total}` : '', percent: pct, cert_no: r.cert_no,
-      issued: fmtCertDate(new Date(r.created_at).toISOString()), branch: r.branch ?? 'techcadd',
+      issued: fmtCertDate(new Date(r.created_at).toISOString()), branch: r.branch ?? '', institute: (await brandIn(tx)).name,
     },
   }
 }
@@ -382,7 +383,7 @@ export async function eventCertificateMail(orgId: string, participantId: string,
     const t = await resolveTemplate(tx, 'event_certificate_email', r.branch_id)
     const vars = {
       first_name: r.name.split(/\s+/)[0], name: r.name, event: r.title, kind: EVENT_KINDS[r.kind].toLowerCase(), date: fmtCertDate(new Date(r.starts_at).toISOString()), cert_no: r.cert_no,
-      score_line: r.total ? `You scored ${r.score} out of ${r.total} in the quiz.` : '', branch: r.branch ?? 'techcadd',
+      score_line: r.total ? `You scored ${r.score} out of ${r.total} in the quiz.` : '', branch: r.branch ?? (await brandIn(tx)).name,
       certificate_link: mailButton('View / download certificate', `${origin}/e/c/${r.hash}`),
     }
     return { to: r.email, branchId: r.branch_id, subject: fillTemplate(t.subject, vars), body: fillTemplate(t.body, vars).replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n') }

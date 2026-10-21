@@ -9,7 +9,24 @@ import { setupBrandingAction, setupCatalogueAction, setupFeesAction, setupStepAc
 import { useNotify } from '@/components/panel-shell'
 import type { Onboarding, StepKey } from '@/modules/onboarding/service'
 
-type Branding = { legalName: string; tagline: string; color: string; hasLogo: boolean }
+type Contact = { address: string; phone: string; website: string; social: string }
+type Branding = { legalName: string; tagline: string; color: string; hasLogo: boolean; hasAccreditations: boolean; contact: Contact }
+type BrandingSave = { legalName: string; tagline: string; color: string; logo: string; accreditations: string; removeAccreditations: boolean; contact: Contact }
+
+/** A picked image as a PNG data URL, at most `max` px wide (certificates and receipts print PNG or JPEG only). */
+function asPng(file: File, max = 1200): Promise<string> {
+  return new Promise((ok, fail) => {
+    const url = URL.createObjectURL(file), img = new Image()
+    img.onload = () => {
+      const w = Math.min(max, img.naturalWidth || max), h = Math.round(((img.naturalHeight || w) * w) / (img.naturalWidth || w))
+      const c = document.createElement('canvas'); c.width = w; c.height = h
+      c.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      URL.revokeObjectURL(url); ok(c.toDataURL('image/png'))
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); fail(new Error('That file is not an image')) }
+    img.src = url
+  })
+}
 type CatalogueRef = { key: string; label: string; about: string; courses: number }
 
 const LINKS: Partial<Record<StepKey, { href: string; label: string }>> = {
@@ -72,21 +89,32 @@ export function SetupWizard({ state, branding, catalogues, gst, modes }: { state
   )
 }
 
-function BrandingStep({ b, pending, save }: { b: Branding; pending: boolean; save: (v: { legalName: string; tagline: string; color: string; logo: string }) => void }) {
-  const [v, setV] = useState({ legalName: b.legalName, tagline: b.tagline, color: b.color, logo: '' })
+function BrandingStep({ b, pending, save }: { b: Branding; pending: boolean; save: (v: BrandingSave) => void }) {
+  const [v, setV] = useState<BrandingSave>({ legalName: b.legalName, tagline: b.tagline, color: b.color, logo: '', accreditations: '', removeAccreditations: false, contact: b.contact })
+  const contact = (k: keyof Contact, value: string) => setV((x) => ({ ...x, contact: { ...x.contact, [k]: value } }))
   const [err, setErr] = useState('')
-  const pick = (file: File | undefined) => {
+  const pick = (key: 'logo' | 'accreditations', file: File | undefined) => {
     setErr('')
     if (!file) return
-    if (file.size > 200_000) return setErr('Use a logo under 200 KB')
-    const r = new FileReader(); r.onload = () => setV((x) => ({ ...x, logo: String(r.result) })); r.readAsDataURL(file)
+    if (file.size > 2_000_000) return setErr('Use an image under 2 MB')
+    asPng(file, key === 'logo' ? 1000 : 1600).then((png) => {
+      if (png.length > 450_000) return setErr('That image is too detailed: use a smaller one')
+      setV((x) => ({ ...x, [key]: png, ...(key === 'accreditations' ? { removeAccreditations: false } : {}) }))
+    }, (e: Error) => setErr(e.message))
   }
   return (
     <form className="wl-form" onSubmit={(e) => { e.preventDefault(); save(v) }}>
       <label className="wide">Name as printed (receipts, certificates)<input value={v.legalName} onChange={(e) => setV({ ...v, legalName: e.target.value })} required minLength={2} maxLength={160} /></label>
       <label className="wide">Tagline<input value={v.tagline} onChange={(e) => setV({ ...v, tagline: e.target.value })} maxLength={120} placeholder="e.g. Skills for a better career" /></label>
       <label>Colour<input type="color" value={v.color} onChange={(e) => setV({ ...v, color: e.target.value })} /></label>
-      <label>Logo{b.hasLogo ? ' (one is saved; pick another to change it)' : ''}<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => pick(e.target.files?.[0])} /></label>
+      <label>Logo{b.hasLogo ? ' (one is saved; pick another to change it)' : ''}<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => pick('logo', e.target.files?.[0])} /></label>
+      <label>Affiliations / accreditations (optional, printed on course certificates){b.hasAccreditations && !v.removeAccreditations ? ' (one is saved)' : ''}<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" onChange={(e) => pick('accreditations', e.target.files?.[0])} /></label>
+      {b.hasAccreditations && !v.accreditations && <label className="wide" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={v.removeAccreditations} onChange={(e) => setV({ ...v, removeAccreditations: e.target.checked })} /> Remove the saved accreditations image</label>}
+      <p className="wide section-hint" style={{ margin: 0 }}>Printed on the student ID card (each is optional):</p>
+      <label className="wide">Address<input value={v.contact.address} onChange={(e) => contact('address', e.target.value)} maxLength={200} placeholder="e.g. Main office, 2nd floor, Mall Road, Ludhiana" /></label>
+      <label>Phone<input value={v.contact.phone} onChange={(e) => contact('phone', e.target.value)} maxLength={40} placeholder="e.g. +91 98xxxxxxxx" /></label>
+      <label>Website<input value={v.contact.website} onChange={(e) => contact('website', e.target.value)} maxLength={120} placeholder="e.g. www.yourinstitute.com" /></label>
+      <label className="wide">Social page (the card's “Follow us” code)<input value={v.contact.social} onChange={(e) => contact('social', e.target.value)} maxLength={200} placeholder="https://www.instagram.com/…" /></label>
       {err && <p className="login-error" style={{ margin: 0 }}>{err}</p>}
       <div className="wide"><button className="button primary" disabled={pending}>Save</button></div>
     </form>

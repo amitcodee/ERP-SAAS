@@ -10,6 +10,7 @@ import { withOrgSystem, type Tx } from '@/lib/db/withTenant'
 import { log } from '@/lib/log'
 import { mailButton, plainText } from '@/lib/notify/layout'
 import { providerFor } from '@/lib/notify/providers'
+import { orgBrand } from '@/lib/brand'
 import { underLimit } from '@/lib/redis'
 
 const INVALID = 'This reset link is no longer valid. Request a new one.'
@@ -41,7 +42,8 @@ export async function sendResetLink(orgId: string, email: string, origin: string
     if (process.env.NODE_ENV !== 'production') console.log(`Password reset link for ${u.email}: ${link}`)
     return
   }
-  const body = `Hello ${plainText(u.name)},\n\nUse the button below to choose a new password for your techcadd account:\n\n${mailButton('Reset password', link)}\n\nThe button works for ${RESET_MINUTES} minutes and only once. If you did not ask for this, ignore this email - your password stays the same.\n\n- techcadd`
+  const { name } = await orgBrand(orgId)
+  const body = `Hello ${plainText(u.name)},\n\nUse the button below to choose a new password for your ${name} account:\n\n${mailButton('Reset password', link)}\n\nThe button works for ${RESET_MINUTES} minutes and only once. If you did not ask for this, ignore this email - your password stays the same.\n\n- ${name}`
   const res = await provider.send({ channel: 'email', to: u.email, body, template: 'password_reset' })
   if (!res.ok) log.error('password_reset_email_failed', { userId: u.id, error: res.error })
 }

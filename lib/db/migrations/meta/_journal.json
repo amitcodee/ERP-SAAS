@@ -750,6 +750,27 @@
       "when": 1793340800000,
       "tag": "0106_platform_console",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1793427200000,
+      "tag": "0107_sample_branding",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1793513600000,
+      "tag": "0108_neutral_names",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1793600000000,
+      "tag": "0109_sample_logo_png",
+      "breakpoints": true
     }
   ]
 }

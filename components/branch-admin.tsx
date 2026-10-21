@@ -82,14 +82,14 @@ function DetailsFields({ b, cityLocked, preview, certCode, setCertCode }: { b?: 
   return (
     <>
       <div className="form-grid">
-        <label>Branch name<span className="required-mark">*</span><input name="name" required defaultValue={b?.name} placeholder="e.g. techcadd Ludhiana Model Town" /></label>
+        <label>Branch name<span className="required-mark">*</span><input name="name" required defaultValue={b?.name} placeholder="e.g. Ludhiana Model Town" /></label>
         {cityLocked ? <label>City<input value={b?.city ?? ''} readOnly aria-label="City (fixed)" /></label> : null}
         <label>Certificate code<input value={certCode} onChange={(e) => setCertCode(e.target.value.toUpperCase())} maxLength={10} placeholder={preview || b?.code || 'Same as branch code'} aria-label="Certificate code" /></label>
         <label>State<span className="required-mark">*</span><input name="state" required list="branch-states" defaultValue={b?.state ?? 'Punjab'} /></label>
         <datalist id="branch-states">{STATES.map((s) => <option key={s} value={s} />)}</datalist>
         <label>PIN code<span className="required-mark">*</span><input name="pincode" required inputMode="numeric" maxLength={6} pattern="[1-9][0-9]{5}" defaultValue={b?.pincode ?? ''} placeholder="141001" /></label>
         <label>Phone<span className="required-mark">*</span><input name="phone" type="tel" required defaultValue={b?.phone ?? ''} placeholder="10-digit mobile" /></label>
-        <label>Branch e-mail (branch admin login)<span className="required-mark">*</span><input name="email" type="email" required defaultValue={b?.email ?? ''} placeholder="ludhiana@techcadd.com" /></label>
+        <label>Branch e-mail (branch admin login)<span className="required-mark">*</span><input name="email" type="email" required defaultValue={b?.email ?? ''} placeholder="ludhiana@yourinstitute.com" /></label>
         <label>Branch website<input name="websiteUrl" inputMode="url" autoComplete="off" defaultValue={b?.websiteUrl ?? ''} placeholder="https://…" />
           <small className="reg-note">Leads sent from this website&apos;s forms come to this branch (Web Leads).</small></label>
       </div>

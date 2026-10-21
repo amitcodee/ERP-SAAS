@@ -21,7 +21,8 @@ import { branchEmailBlock, canManageBranchEmail, dropConfigCache, getConfig, sav
 import { assertPublicHost } from '@/lib/net-guard'
 import { providerFor } from '@/lib/notify/providers'
 import { WA_EVENT_KEYS, WA_FIELDS, WA_KEYS, type WaEventKey, type WaMessageKey } from '@/lib/notify/whatsapp'
-import { plainText } from '@/lib/notify/layout'
+import { escapeHtml, plainText } from '@/lib/notify/layout'
+import { orgBrand } from '@/lib/brand'
 import { runNamedJob } from '@/lib/job-registry'
 import { createWebhook, deleteWebhook, listDeliveries, testWebhook, updateWebhook, webhookSecret } from '@/modules/integrations/webhooks'
 import { createApiKey, revokeApiKey } from '@/modules/integrations/api'
@@ -1308,7 +1309,8 @@ export async function testEmailAction(to: string) {
     const addr = z.string().trim().email('Enter the e-mail to send the test to').parse(to)
     const p = await providerFor(a.orgId, 'email')
     if (!p) throw new Error('E-mail is not set up or is switched off: save the settings first')
-    const r = await p.send({ channel: 'email', to: addr, template: 'settings_test', body: 'This is a test from the techcadd panel. E-mail is working.', html: '<p>This is a test from the <b>techcadd</b> panel.</p><p>E-mail is working.</p>' })
+    const { name } = await orgBrand(a.orgId)
+    const r = await p.send({ channel: 'email', to: addr, template: 'settings_test', body: `This is a test from the ${name} panel. E-mail is working.`, html: `<p>This is a test from the <b>${escapeHtml(name)}</b> panel.</p><p>E-mail is working.</p>` })
     if (!r.ok) throw new Error(r.error)
     return `Sent through ${p.name}`
   })
@@ -1340,7 +1342,8 @@ export async function testBranchEmailAction(to: string) {
     const addr = z.string().trim().email('Enter the e-mail to send the test to').parse(to)
     const p = await providerFor(a.orgId, 'email', a.branchId)
     if (p?.name !== 'branch-smtp') throw new Error('The branch e-mail is not set up or is switched off: save the settings first')
-    const r = await p.send({ channel: 'email', to: addr, template: 'settings_test', body: 'This is a test from the techcadd panel. Your branch e-mail is working.', html: '<p>This is a test from the <b>techcadd</b> panel.</p><p>Your branch e-mail is working.</p>' })
+    const { name } = await orgBrand(a.orgId)
+    const r = await p.send({ channel: 'email', to: addr, template: 'settings_test', body: `This is a test from the ${name} panel. Your branch e-mail is working.`, html: `<p>This is a test from the <b>${escapeHtml(name)}</b> panel.</p><p>Your branch e-mail is working.</p>` })
     if (!r.ok) throw new Error(r.error)
     return 'Sent from the branch mailbox'
   })
@@ -1390,7 +1393,8 @@ export async function testMessageAction(channel: 'whatsapp' | 'sms', to: string)
     const phone = z.string().trim().regex(/^\+?[\d\s-]{10,16}$/, 'Enter a mobile number').parse(to)
     const p = await providerFor(a.orgId, channel)
     if (!p) throw new Error(`${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} is not set up or is switched off: save the settings first`)
-    const r = await p.send({ channel, to: phone, template: 'settings_test', body: channel === 'whatsapp' ? 'This is a test message from the techcadd panel: WhatsApp is working.' : 'Test from techcadd panel' })
+    const { name } = await orgBrand(a.orgId)
+    const r = await p.send({ channel, to: phone, template: 'settings_test', body: channel === 'whatsapp' ? `This is a test message from the ${name} panel: WhatsApp is working.` : `Test from ${name} panel` })
     if (!r.ok) throw new Error(r.error)
     return `Sent through ${p.name}`
   })
@@ -1587,7 +1591,7 @@ export async function replyTicketAction(ticketId: string, body: string) {
       const { p, t, branch } = await withOrgSystem(actor.orgId, async (tx) => ({
         p: (await tx.execute<{ email: string | null; first_name: string }>(sql`select email, first_name from persons where id = ${r.personId}`)).rows[0],
         t: await resolveTemplate(tx, 'ticket_reply_email', r.branchId),
-        branch: (await tx.execute<{ name: string }>(sql`select name from branches where id = ${r.branchId}`)).rows[0]?.name ?? 'techcadd',
+        branch: (await tx.execute<{ name: string }>(sql`select name from branches where id = ${r.branchId}`)).rows[0]?.name ?? (await orgBrand(actor.orgId)).name,
       }))
       const mail = p?.email ? await providerFor(actor.orgId, 'email', r.branchId) : null
       const vars = { first_name: p?.first_name, ticket_no: r.ticketNo, reply: body.trim(), branch }
@@ -1595,7 +1599,7 @@ export async function replyTicketAction(ticketId: string, body: string) {
     } catch (e) { log.warn('ticket.reply_mail_failed', { error: e instanceof Error ? e.message : String(e) }) }
   }
   // an internal ticket answered: its raiser hears too
-  if (r.requesterId) await mailStaff(actor.orgId, r.requesterId, r.branchId, `techcadd — reply to your ticket ${r.ticketNo}`, `Your ticket ${r.ticketNo} has a reply:\n\n${body.trim()}\n\nOpen it in the panel: My Tickets.`)
+  if (r.requesterId) await mailStaff(actor.orgId, r.requesterId, r.branchId, `${(await orgBrand(actor.orgId)).name} — reply to your ticket ${r.ticketNo}`, `Your ticket ${r.ticketNo} has a reply:\n\n${body.trim()}\n\nOpen it in the panel: My Tickets.`)
   return { ok: true as const }
 }
 /** A short e-mail to a staff member (best effort: the panel shows everything anyway). */
@@ -1603,7 +1607,7 @@ async function mailStaff(orgId: string, userId: string, branchId: string | null,
   try {
     const [u] = (await withOrgSystem(orgId, (tx) => tx.execute<{ email: string; name: string }>(sql`select email, name from users where id = ${userId} and is_active`))).rows
     const mail = u?.email ? await providerFor(orgId, 'email', branchId) : null
-    if (mail) await mail.send({ channel: 'email', to: u.email, template: 'ticket_staff', subject, body: plainText(`Dear ${u.name},\n\n${text}\n\n- techcadd`) })
+    if (mail) await mail.send({ channel: 'email', to: u.email, template: 'ticket_staff', subject, body: plainText(`Dear ${u.name},\n\n${text}\n\n- ${(await orgBrand(orgId)).name}`) })
   } catch (e) { log.warn('ticket.staff_mail_failed', { error: e instanceof Error ? e.message : String(e) }) }
 }
 /** Staff raise an internal ticket (to their branch manager, or to head office). */
@@ -1622,7 +1626,7 @@ export async function assignTicketAction(ticketId: string, userId: string | null
   const res = await run(() => withTenant(actor, (tx) => assignTicket(tx, actor, ticketId, userId)))
   if (res.ok) {
     revalidatePath('/', 'layout')
-    if (res.data!.assignee && res.data!.assignee !== actor.userId) await mailStaff(actor.orgId, res.data!.assignee, actor.branchId, `techcadd — ticket ${res.data!.ticketNo} is yours`, `Ticket ${res.data!.ticketNo} has been given to you. Open it in the panel: My Tickets.`)
+    if (res.data!.assignee && res.data!.assignee !== actor.userId) await mailStaff(actor.orgId, res.data!.assignee, actor.branchId, `${(await orgBrand(actor.orgId)).name} — ticket ${res.data!.ticketNo} is yours`, `Ticket ${res.data!.ticketNo} has been given to you. Open it in the panel: My Tickets.`)
   }
   return res
 }
@@ -1806,8 +1810,8 @@ export async function testWaCampaignAction(id: string, to: string, texts: string
     if (!c) throw new Error('That campaign no longer exists')
     const p = await providerFor(actor.orgId, 'whatsapp')
     if (!p) throw new Error('WhatsApp is not set up or is switched off: Settings → WhatsApp & SMS')
-    const sample = { person_id: '', branch_id: '', registration_id: null, phone, first_name: WA_FIELDS.first_name.sample, last_name: 'Gill', branch: `techcadd ${WA_FIELDS.branch.sample}`, course: WA_FIELDS.course.sample, reg_no: WA_FIELDS.reg_no.sample, balance: 1200000 }
-    const params = paramsFor(c, sample, c.params.filter((x) => x.field === 'text').map((x, i) => texts[i]?.trim() || x.label || 'test'))
+    const sample = { person_id: '', branch_id: '', registration_id: null, phone, first_name: WA_FIELDS.first_name.sample, last_name: 'Gill', branch: WA_FIELDS.branch.sample, course: WA_FIELDS.course.sample, reg_no: WA_FIELDS.reg_no.sample, balance: 1200000 }
+    const params = paramsFor(c, sample, c.params.filter((x) => x.field === 'text').map((x, i) => texts[i]?.trim() || x.label || 'test'), (await orgBrand(actor.orgId)).name)
     const r = await p.send({ channel: 'whatsapp', to: phone, template: 'broadcast', body: '', name: 'Aman Gill', params, campaign: c.campaign, media: c.mediaUrl ? { url: c.mediaUrl, filename: c.mediaName || 'file' } : null })
     if (!r.ok) throw new Error(r.error)
     return `Sent through ${p.name}`

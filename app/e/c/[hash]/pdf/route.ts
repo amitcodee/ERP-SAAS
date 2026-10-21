@@ -3,6 +3,7 @@ import { underLimit } from '@/lib/redis'
 import { appOrigin } from '@/lib/app-url'
 import { designOps } from '@/lib/cert-design-ops'
 import { layoutPdf } from '@/lib/pdf'
+import { orgBrand } from '@/lib/brand'
 import { eventCertificate } from '@/modules/events/service'
 import { requestOrg } from '@/lib/tenant/request'
 
@@ -17,7 +18,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ hash: st
   if (!org) return new Response('Not found', { status: 404 })
   const c = await eventCertificate(org.id, hash)
   if (!c) return new Response('Not found', { status: 404 })
-  const pdf = await layoutPdf(`Certificate ${c.certNo}`, designOps(c.design, c.values, `${await appOrigin(org.id)}/e/c/${hash}`), c.design.page === 'portrait')
+  const brand = await orgBrand(org.id)
+  const pdf = await layoutPdf(`Certificate ${c.certNo}`, designOps(c.design, c.values, `${await appOrigin(org.id)}/e/c/${hash}`, brand), c.design.page === 'portrait', brand.name)
   return new Response(new Uint8Array(pdf), {
     headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="${c.certNo}.pdf"`, 'Cache-Control': 'no-store' },
   })

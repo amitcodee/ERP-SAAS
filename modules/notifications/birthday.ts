@@ -25,7 +25,7 @@ export function ageOn(dob: string, today = todayIST()) {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 
-/** The festive mail body around the template's message (it goes inside the usual techcadd frame: logo on top, the do-not-reply note below). */
+/** The festive mail body around the template's message (it goes inside the usual frame: the institute's logo on top, the do-not-reply note below). */
 export function birthdayHtml(firstName: string, message: string) {
   const name = esc(firstName)
   const dot = (c: string) => `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin:0 4px"></span>`

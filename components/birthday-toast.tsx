@@ -4,8 +4,10 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, MessageCircle, X } from 'lucide-react'
 import type { TodaysBirthday } from '@/modules/notifications/birthday'
+import { useBrand } from '@/components/brand-context'
 
 export function BirthdayToast({ people, today, showBranch }: { people: TodaysBirthday[]; today: string; showBranch: boolean }) {
+  const brand = useBrand()
   const key = `tc-staff-bday-${today}`
   const [open, setOpen] = useState(false)
   const [mini, setMini] = useState(false)
@@ -15,7 +17,7 @@ export function BirthdayToast({ people, today, showBranch }: { people: TodaysBir
     setOpen(!closed)
   }, [key])
   const close = () => { setOpen(false); try { localStorage.setItem(key, '1') } catch { /* ignore */ } }
-  const wa = (p: TodaysBirthday) => `https://wa.me/91${p.phone.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(`Happy Birthday, ${p.firstName}! 🎉🎂 Wishing you a wonderful year ahead — from all of us at techcadd.`)}`
+  const wa = (p: TodaysBirthday) => `https://wa.me/91${p.phone.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent(`Happy Birthday, ${p.firstName}! 🎉🎂 Wishing you a wonderful year ahead — from all of us at ${brand.name}.`)}`
 
   return (
     <>

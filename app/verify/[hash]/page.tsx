@@ -3,22 +3,25 @@ import { VerifyShell } from '@/components/verify-shell'
 import { durationText, fmtCertDate } from '@/lib/cert-art'
 import { verifyCertificate } from '@/modules/certificates/service'
 import { requireRequestOrg } from '@/lib/tenant/request'
+import { orgBrand } from '@/lib/brand'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Certificate verification | techcadd' }
+export const metadata = { title: 'Certificate verification' }
 
 // Public page: anyone holding the link / QR code (or who found it on /verify) checks a certificate. It shows only what
 // the certificate itself prints: who, which course and when, the numbers, and whether it stands.
 export default async function VerifyPage({ params }: { params: Promise<{ hash: string }> }) {
   const { hash } = await params
-  const v = await verifyCertificate((await requireRequestOrg()).id, hash.toLowerCase())
+  const org = await requireRequestOrg()
+  const v = await verifyCertificate(org.id, hash.toLowerCase())
+  const brand = await orgBrand(org.id)
   const checked = new Date().toLocaleString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })
 
   if (!v.found) return (
     <VerifyShell again>
       <style>{CSS}</style>
       <section className="vf-card">
-        <div className="vr-band bad"><ShieldX size={30} /><div><strong>Not found</strong><span>No techcadd certificate matches this link. It may be mistyped, cut short, or not genuine.</span></div></div>
+        <div className="vr-band bad"><ShieldX size={30} /><div><strong>Not found</strong><span>No {brand.name} certificate matches this link. It may be mistyped, cut short, or not genuine.</span></div></div>
         <div className="vr-body"><p className="vr-muted">Check the link or scan the QR code on the certificate again, or search by its number on the <a href="/verify">verification page</a>.</p></div>
       </section>
     </VerifyShell>
@@ -42,8 +45,8 @@ export default async function VerifyPage({ params }: { params: Promise<{ hash: s
       <style>{CSS}</style>
       <section className="vf-card">
         {v.revoked
-          ? <div className="vr-band bad"><ShieldAlert size={30} /><div><strong>Certificate revoked</strong><span>This certificate was issued by techcadd but has been withdrawn and is no longer valid.</span></div></div>
-          : <div className="vr-band ok"><BadgeCheck size={30} /><div><strong>Genuine certificate</strong><span>Issued by techcadd and valid · checked {checked}</span></div></div>}
+          ? <div className="vr-band bad"><ShieldAlert size={30} /><div><strong>Certificate revoked</strong><span>This certificate was issued by {brand.name} but has been withdrawn and is no longer valid.</span></div></div>
+          : <div className="vr-band ok"><BadgeCheck size={30} /><div><strong>Genuine certificate</strong><span>Issued by {brand.name} and valid · checked {checked}</span></div></div>}
 
         <div className="vr-person">
           <div className="vr-avatar" aria-hidden="true">{initials}</div>
@@ -70,7 +73,7 @@ export default async function VerifyPage({ params }: { params: Promise<{ hash: s
             <a className="vr-btn" href={`/verify/${hash}/certificate/pdf`}><Download size={16} /> Download PDF</a>
             {v.projectCertificate && <a className="vr-btn" href={`/verify/${hash}/certificate?kind=project`}><Award size={16} /> Project certificate</a>}
           </div>
-          <p className="vr-code">Verification code {hash.slice(0, 12)}…{hash.slice(-6)} · this page is generated live from techcadd’s records.</p>
+          <p className="vr-code">Verification code {hash.slice(0, 12)}…{hash.slice(-6)} · this page is generated live from {brand.name}’s records.</p>
         </div>
       </section>
     </VerifyShell>

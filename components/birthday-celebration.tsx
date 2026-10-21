@@ -3,12 +3,14 @@
 // stays closed for the day (this browser) and a small "Happy birthday" pill brings it back. Calm when the device asks
 // for reduced motion.
 import { useEffect, useMemo, useState } from 'react'
+import { useBrand } from '@/components/brand-context'
 
 const COLORS = ['#f43f5e', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#facc15']
 // a fixed pseudo-random spread, so the server and the browser draw the same picture
 const rnd = (i: number, salt: number) => { const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453; return x - Math.floor(x) }
 
 export function BirthdayCelebration({ birthday }: { birthday: { firstName: string; age: number | null; year: string; heading?: string; message?: string } | null | undefined }) {
+  const brand = useBrand()
   const key = birthday ? `tc-bday-${birthday.year}` : ''
   const [open, setOpen] = useState(false)
   useEffect(() => {
@@ -63,7 +65,7 @@ export function BirthdayCelebration({ birthday }: { birthday: { firstName: strin
             {birthday.age && <div className="bd-age">🎉 {birthday.age} today 🎉</div>}
             <p style={{ whiteSpace: 'pre-line' }}>{birthday.message ?? 'Wishing you a fantastic day and a year full of learning, success and happiness. Keep shining — we are proud to be part of your journey!'}</p>
             <button type="button" onClick={close} autoFocus>Thank you! 🎈</button>
-            <div className="bd-sign">With warm wishes, from everyone at techcadd</div>
+            <div className="bd-sign">With warm wishes, from everyone at {brand.name}</div>
           </div>
         </div>
       ) : (

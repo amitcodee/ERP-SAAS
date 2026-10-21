@@ -8,6 +8,7 @@ import type { Session } from '@/lib/auth/session'
 import { log } from '@/lib/log'
 import { providerFor } from '@/lib/notify/providers'
 import { plainText } from '@/lib/notify/layout'
+import { orgBrand } from '@/lib/brand'
 import { serverSecret } from '@/lib/auth/secret'
 
 export const TWO_FACTOR_COOKIE = 'tc_2fa'
@@ -60,9 +61,10 @@ export async function sendCode(orgId: string, to: { id: string; email: string; n
     if (process.env.NODE_ENV !== 'production') { console.log(`Verification code for ${to.email}: ${code}`); return true }
     return false
   }
-  const why = purpose === 'login' ? 'to finish signing in to your techcadd account' : purpose === 'password' ? 'to change the password of your techcadd account' : 'to turn on two-step sign-in for your techcadd account'
-  const body = `Hello ${plainText(to.name)},\n\nYour verification code is:\n\n${code}\n\nEnter it ${why}. The code works for ${CODE_MINUTES} minutes.\n\nIf this was not you, someone knows your password: change it now.\n\n- techcadd`
-  const res = await provider.send({ channel: 'email', to: to.email, body, template: 'two_factor', subject: `techcadd — your verification code is ${code}` })
+  const { name } = await orgBrand(orgId)
+  const why = purpose === 'login' ? `to finish signing in to your ${name} account` : purpose === 'password' ? `to change the password of your ${name} account` : `to turn on two-step sign-in for your ${name} account`
+  const body = `Hello ${plainText(to.name)},\n\nYour verification code is:\n\n${code}\n\nEnter it ${why}. The code works for ${CODE_MINUTES} minutes.\n\nIf this was not you, someone knows your password: change it now.\n\n- ${name}`
+  const res = await provider.send({ channel: 'email', to: to.email, body, template: 'two_factor', subject: `${name} — your verification code is ${code}` })
   if (!res.ok) log.error('two_factor_email_failed', { userId: to.id, error: res.error })
   return res.ok
 }

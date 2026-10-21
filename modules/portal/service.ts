@@ -13,6 +13,7 @@ import { cleanAadhaar, isValidAadhaar } from '../people/aadhaar'
 import { certificateOverview, type CertOverviewRow } from '../certificates/service'
 import { listFees, listReceipts, type FeeRow } from '../fees/service'
 import { aadhaarColumns, openAadhaar } from '../people/aadhaar-store'
+import { brandIn } from '@/lib/brand'
 
 export type PortalItem = {
   fee: FeeRow
@@ -66,7 +67,7 @@ export async function myProfile(tx: Tx, actor: Actor): Promise<MyProfile | null>
     // the branch's words for the card (templates are staff-only rows: read on the server's own connection)
     const { t, branch } = await withOrgSystem(actor.orgId, async (sys) => ({
       t: await resolveTemplate(sys, 'birthday_card', p.branchId),
-      branch: (await sys.execute<{ name: string }>(sql`select name from branches where id = ${p.branchId}`)).rows[0]?.name ?? 'techcadd',
+      branch: (await sys.execute<{ name: string }>(sql`select name from branches where id = ${p.branchId}`)).rows[0]?.name ?? (await brandIn(sys)).name,
     }))
     const age = ageOn(String(p.dob), today)
     const vars = { first_name: p.firstName, branch, age }

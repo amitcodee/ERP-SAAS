@@ -13,16 +13,15 @@ import { durationWords, fill, longDate, monthYear } from '@/lib/letters/render'
 import { plainLetterhead } from '@/lib/letters/letterhead'
 import { STANDARD, type LetterKind } from '@/lib/letters/standard'
 import { todayIST, yearIST } from '@/lib/ist'
+import { brandIn } from '@/lib/brand'
+import { branchWord } from '@/lib/notify/whatsapp'
 
-/** What letters say when a company has no contact of its own (techcadd's HR). */
-export const HR_PHONE = '98881-22291'
-export const HR_EMAIL = 'hrmtechcadd@gmail.com'
 
 const KINDS = ['internship_offer', 'internship_completion'] as const
 const kindOf = (k: string): LetterKind => { if (!KINDS.includes(k as LetterKind)) throw new Error('Unknown letter'); return k as LetterKind }
 
 // ---- companies
-// The companies interns are taken on by (techcadd, Syntax Developer, Zabi Technologies…). Each has its own letter
+// The companies interns are taken on by: the institute itself (the main one) and others it places interns with. Each has its own letter
 // templates, letterhead and stamp; head office keeps them (Letter Templates → Companies).
 
 export type LetterCompany = {
@@ -35,18 +34,27 @@ const companyCols = {
   hasLetterhead: sql<boolean>`${letterCompanies.letterhead} is not null`, hasStamp: sql<boolean>`${letterCompanies.stamp} is not null`,
 }
 
-/** Every company (techcadd first), or only the active ones (for the intern form). */
+/** Every company (the main one first), or only the active ones (for the intern form). */
 export async function listCompanies(tx: Tx, opts: { active?: boolean } = {}): Promise<LetterCompany[]> {
   const rows = await tx.select(companyCols).from(letterCompanies).where(opts.active ? eq(letterCompanies.isActive, true) : undefined)
     .orderBy(sql`${letterCompanies.isDefault} desc`, letterCompanies.sortOrder, letterCompanies.name)
   return rows.map((r) => ({ ...r, hasLetterhead: !!r.hasLetterhead, hasStamp: !!r.hasStamp }))
 }
 
-/** techcadd: what an intern or template without a company belongs to. */
+/** The main company (the institute itself): what an intern or template without a company belongs to. An institute
+ * that has none yet gets one, named as it is, the first time it is needed. */
 export async function defaultCompanyId(tx: Tx): Promise<string> {
   const [c] = await tx.select({ id: letterCompanies.id }).from(letterCompanies).where(eq(letterCompanies.isDefault, true))
-  if (!c) throw new Error('No default letter company')
-  return c.id
+  if (c) return c.id
+  const b = await brandIn(tx)
+  const [row] = await tx.insert(letterCompanies).values({ name: b.name, legalName: b.legalName, contactPhone: b.contact.phone || null, isDefault: true, sortOrder: 0 })
+    .onConflictDoNothing().returning({ id: letterCompanies.id })
+  if (row) return row.id
+  // another request made it meanwhile (or a company already has the institute's name: that one becomes the main one)
+  const [again] = await tx.select({ id: letterCompanies.id }).from(letterCompanies).where(sql`${letterCompanies.isDefault} or lower(${letterCompanies.name}) = lower(${b.name})`).orderBy(sql`${letterCompanies.isDefault} desc`)
+  if (!again) throw new Error('No default letter company')
+  await tx.update(letterCompanies).set({ isDefault: true }).where(eq(letterCompanies.id, again.id))
+  return again.id
 }
 const companyOr = async (tx: Tx, id: string | null | undefined) => id || defaultCompanyId(tx)
 
@@ -59,7 +67,7 @@ export const companyInput = z.object({
 })
 export type CompanyInput = z.input<typeof companyInput>
 
-/** Adds (id null) or changes a company. Head office. The default company (techcadd) cannot be switched off. */
+/** Adds (id null) or changes a company. Head office. The main company cannot be switched off. */
 export async function saveCompany(tx: Tx, actor: Actor, id: string | null, raw: CompanyInput) {
   assertCan(actor, 'update', 'setting')
   const v = companyInput.parse(raw)
@@ -69,7 +77,7 @@ export async function saveCompany(tx: Tx, actor: Actor, id: string | null, raw: 
   if (id) {
     const [cur] = await tx.select({ isDefault: letterCompanies.isDefault }).from(letterCompanies).where(eq(letterCompanies.id, id))
     if (!cur) throw new Error('Company not found')
-    if (cur.isDefault && !v.isActive) throw new Error('techcadd is the main company and stays on')
+    if (cur.isDefault && !v.isActive) throw new Error('The main company (the institute itself) stays on')
     await tx.update(letterCompanies).set({ ...v, legalName, updatedBy: actor.userId, updatedAt: new Date() }).where(eq(letterCompanies.id, id))
     await audit(tx, actor, { action: 'update', entity: 'letter_company', entityId: id, after: { name: v.name } })
     return id
@@ -96,16 +104,16 @@ export async function setCompanyImage(tx: Tx, actor: Actor, id: string, which: '
   await audit(tx, actor, { action: bytes ? 'upload' : 'remove', entity: `letter_company_${which}`, entityId: id })
 }
 
-/** What a company's letters print on and are signed with: its uploaded images, else techcadd's own (for techcadd),
- *  else a plain letterhead with the name and no stamp. */
+/** What a company's letters print on and are signed with: its uploaded images, else a plain letterhead with the name
+ *  and no stamp. */
 export async function companyArt(tx: Tx, id: string): Promise<{ letterhead: string; stamp: string | null; name: string }> {
   const [c] = await tx.select().from(letterCompanies).where(eq(letterCompanies.id, id))
   if (!c) throw new Error('Company not found')
   const data = (mime: string | null, b: Buffer | null) => (mime && b ? `data:${mime};base64,${Buffer.from(b).toString('base64')}` : null)
   return {
     name: c.name,
-    letterhead: data(c.letterheadMime, c.letterhead) ?? (c.isDefault ? '/letterhead.jpg' : plainLetterhead(c)),
-    stamp: data(c.stampMime, c.stamp) ?? (c.isDefault ? '/letters/stamp-signature.png' : null),
+    letterhead: data(c.letterheadMime, c.letterhead) ?? plainLetterhead(c),
+    stamp: data(c.stampMime, c.stamp),
   }
 }
 
@@ -240,7 +248,7 @@ export const internInput = z.object({
   registrationId: z.preprocess((v) => (v === '' ? null : v), z.string().uuid().nullable().optional()),
   offerTemplateId: z.preprocess((v) => (v === '' ? null : v), z.string().uuid().nullable().optional()),
   completionTemplateId: z.preprocess((v) => (v === '' ? null : v), z.string().uuid().nullable().optional()),
-  companyId: z.preprocess((v) => (v === '' ? null : v), z.string().uuid().nullable().optional()), // null: techcadd
+  companyId: z.preprocess((v) => (v === '' ? null : v), z.string().uuid().nullable().optional()), // null: the main company
   wantsOffer: z.boolean().optional(), // false: only the completion certificate
 }).refine((v) => v.toDate >= v.fromDate, { message: 'The internship cannot end before it starts' })
   .refine((v) => !v.trainingFrom || !v.trainingTo || v.trainingTo >= v.trainingFrom, { message: 'The training cannot end before it starts' })
@@ -266,7 +274,8 @@ const listText = (s: string) => {
 }
 
 type CompanyVars = { name: string; legalName: string; contactPhone: string | null; contactEmail: string | null }
-export function variablesFor(i: InternRow, branchName: string, letterDate: string, course?: { title: string | null; skills: string | null }, company?: CompanyVars): Record<string, string> {
+/** `org`: the institute, for a letter without a company of its own (its name and phone). */
+export function variablesFor(i: InternRow, branchName: string, letterDate: string, course: { title: string | null; skills: string | null } | undefined, company: CompanyVars | undefined, org: { name: string; legalName: string; phone: string }): Record<string, string> {
   const [he, his, him] = pronouns(i.gender)
   return {
     name: i.name, first_name: i.name.split(/\s+/)[0], salutation: i.gender === 'male' ? 'Mr.' : i.gender === 'female' ? 'Ms.' : '',
@@ -275,8 +284,8 @@ export function variablesFor(i: InternRow, branchName: string, letterDate: strin
     from_date: longDate(i.fromDate), to_date: longDate(i.toDate), from_month: monthYear(i.fromDate), to_month: monthYear(i.toDate),
     duration: durationWords(i.fromDate, i.toDate), Duration: cap(durationWords(i.fromDate, i.toDate)), stipend: rupees(i.stipend), work_location: i.workLocation ?? '', working_hours: i.workingHours ?? '',
     work_mode: i.workMode ?? '', responsibilities: i.responsibilities ?? '', skills: listText(i.skills || course?.skills || ''), project: i.project ?? '', course: course?.title ?? '',
-    company: company?.legalName ?? 'techcadd Computer Education (OPC) Private Ltd.', company_name: company?.name ?? 'techcadd', branch: branchName,
-    contact_phone: company?.contactPhone || HR_PHONE, contact_email: company?.contactEmail || HR_EMAIL, ref_no: i.refNo, date: longDate(letterDate),
+    company: company?.legalName ?? org.legalName, company_name: company?.name ?? org.name, branch: branchName,
+    contact_phone: company?.contactPhone || org.phone, contact_email: company?.contactEmail || '', ref_no: i.refNo, date: longDate(letterDate),
     he, He: cap(he), his, His: cap(his), him,
   }
 }
@@ -343,7 +352,9 @@ async function render(tx: Tx, i: InternRow, kind: LetterKind) {
   // training and working location not set on the intern follow the branch
   const place = b ? branchPlace(b) : null
   const withDates = place ? { ...dated, trainingLocation: dated.trainingLocation || place.training || null, workLocation: dated.workLocation || place.work || null } : dated
-  return fill(body, variablesFor(withDates as InternRow, `techcadd ${(b?.name ?? '').replace(/^techcadd\s*/i, '')}`.trim(), todayIST(), c, co))
+  // the branch as the letters name it: "<institute> <place>"
+  const org = await brandIn(tx)
+  return fill(body, variablesFor(withDates as InternRow, `${org.name} ${branchWord(b?.name ?? '', org.name)}`.trim(), todayIST(), c, co, { name: org.name, legalName: org.legalName, phone: org.contact.phone }))
 }
 
 const lock = async (tx: Tx, id: string) => {

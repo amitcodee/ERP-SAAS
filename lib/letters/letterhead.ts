@@ -1,5 +1,5 @@
 // A plain letterhead for a company that has none uploaded yet: the name at the top, the contact at the foot, as a
-// full A4 page (SVG) the letter is printed on, like public/letterhead.jpg. The text box sits between 34 mm and 263 mm
+// full A4 page (SVG) the letter is printed on, like an uploaded one. The text box sits between 34 mm and 263 mm
 // from the top (app/globals.css .lt-text), so the header and footer stay outside it.
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
 

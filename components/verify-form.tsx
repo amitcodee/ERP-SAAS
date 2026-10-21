@@ -7,7 +7,7 @@ import { RefreshCw, Search, ShieldCheck } from 'lucide-react'
 import { findCertificateAction, newPuzzleAction } from '@/app/verify/actions'
 import type { Puzzle } from '@/lib/verify-puzzle'
 
-export function VerifyForm({ first }: { first: Puzzle }) {
+export function VerifyForm({ first, institute }: { first: Puzzle; institute: string }) {
   const router = useRouter()
   const [puzzle, setPuzzle] = useState(first)
   const [number, setNumber] = useState('')
@@ -27,7 +27,7 @@ export function VerifyForm({ first }: { first: Puzzle }) {
       <style>{CSS}</style>
       <div className="vq-head">
         <span className="vq-icon"><ShieldCheck size={26} /></span>
-        <div><h1>Verify a certificate</h1><p>Check that a techcadd certificate is genuine. Enter the number printed on it — the certificate number or the student’s registration number. Dashes and slashes are optional.</p></div>
+        <div><h1>Verify a certificate</h1><p>Check that a {institute} certificate is genuine. Enter the number printed on it — the certificate number or the student’s registration number. Dashes and slashes are optional.</p></div>
       </div>
       <label className="vq-field">Certificate or registration number
         <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="e.g. CERT-MOH-2026-0002 or TCD/4002/123" autoComplete="off" spellCheck={false} maxLength={60} required />

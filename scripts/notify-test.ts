@@ -55,7 +55,7 @@ async function main() {
       const q = await tx.select().from(notifications).where(eq(notifications.branchId, a.id))
       check('message text carries name, amount, date, reg no', q.some((n) => /Dear Ravi/.test(n.body) && n.body.includes('6,000') && n.body.includes(s1.regNo) && /10 Nov 2026/.test(n.body)), q[0]?.body)
       check('overdue text says overdue', q.some((n) => /overdue/.test(n.body)))
-      check('reminderText: due-today wording', /due today/.test(reminderText(DEFAULTS.reminders.texts.today, { name: 'A B', amount: 100, dueDate: due, regNo: 'R', branch: 'X' })))
+      check('reminderText: due-today wording', /due today/.test(reminderText(DEFAULTS.reminders.texts.today, { name: 'A B', amount: 100, dueDate: due, regNo: 'R', branch: 'X', institute: 'Sample Institute' })))
 
       const sentLog: string[] = [], nameLog: (string | null | undefined)[] = []
       const ok: Provider = { name: 'fake-ok', async send(m) { sentLog.push(m.to); nameLog.push(m.name); return { ok: true, ref: 'ref-1' } } }

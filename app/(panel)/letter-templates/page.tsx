@@ -5,7 +5,7 @@ import { withTenant } from '@/lib/db/withTenant'
 import type { LetterKind } from '@/lib/letters/standard'
 import { companyArt, getTemplate, listCompanies, listTemplates } from '@/modules/letters/service'
 
-// Documents / Letter Templates (head office): the internship letters' wording per company (techcadd, Syntax Developer…),
+// Documents / Letter Templates (head office): the internship letters' wording per company (the institute, and others it places interns with),
 // several named templates per letter (?company=<company>&kind=internship_offer|internship_completion&id=<template>;
 // no id = that company's Standard), and the companies themselves (name, contact, letterhead, stamp).
 export default async function Page({ searchParams }: { searchParams: Promise<{ company?: string; kind?: string; id?: string }> }) {

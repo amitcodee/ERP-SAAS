@@ -2,6 +2,8 @@ import { Dancing_Script } from 'next/font/google'
 import { BadgeCheck, BookOpen, Briefcase, CalendarDays, GraduationCap, Hash, Lightbulb, MapPin, UserRound, Users } from 'lucide-react'
 import { PrintButton } from '@/components/print-button'
 import { CARD } from '@/lib/id-card'
+import { BrandMark } from '@/components/brand-mark'
+import type { Brand } from '@/lib/brand'
 
 export type IdCardData = { name: string; course: string; regNo: string; enrolledOn: string; validUntil: string; campus: string; photoUrl: string | null }
 
@@ -13,7 +15,9 @@ const day = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-
 const PROMISE_ICONS = [GraduationCap, Lightbulb, Users, Briefcase]
 
 /** The student membership card, front and back, at its real size (85.6 × 54 mm, a bank-card blank). */
-export function IdCard({ v, verifyQr, followQr, backHref }: { v: IdCardData; verifyQr: string; followQr: string; backHref: string }) {
+/** `followQr`: the code of the institute's social page (none: left out); `campuses`: its branches' places. */
+export function IdCard({ v, verifyQr, followQr, backHref, brand, campuses }: { v: IdCardData; verifyQr: string; followQr: string | null; backHref: string; brand: Brand; campuses: string[] }) {
+  const c = brand.contact
   const rows: [typeof UserRound, string, string][] = [
     [UserRound, 'Student Name', v.name], [BookOpen, 'Course', v.course], [Hash, 'Enrollment No.', v.regNo],
     [CalendarDays, 'Date of Enrollment', day(v.enrolledOn)], [BadgeCheck, 'Valid Until', day(v.validUntil)],
@@ -101,7 +105,7 @@ export function IdCard({ v, verifyQr, followQr, backHref }: { v: IdCardData; ver
           <section className="idc idc-front" aria-label="Front of the card">
             <header className="idc-head">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="idc-logo" src="/tce.webp" alt="techcadd" />
+              <span className="idc-logo"><BrandMark brand={brand} height={28} /></span>
               <div className="idc-tag">{CARD.tagline.map((t, i) => <span key={t}>{i > 0 && <i>|</i>}{t}</span>)}</div>
             </header>
             <div className="idc-body">
@@ -130,26 +134,26 @@ export function IdCard({ v, verifyQr, followQr, backHref }: { v: IdCardData; ver
           <section className="idc idc-rear" aria-label="Back of the card">
             <header className="idc-head">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="idc-logo" src="/tce.webp" alt="techcadd" />
+              <span className="idc-logo"><BrandMark brand={brand} height={28} /></span>
               <div className="num"><small>STUDENT MEMBERSHIP CARD</small><strong>{v.regNo}</strong></div>
             </header>
             <div className="idc-body">
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h2 className="idc-h bar">TERMS &amp; CONDITIONS</h2>
                 <ul className="idc-terms">{CARD.terms.map((t) => <li key={t}>{t}</li>)}</ul>
-                <div className="idc-contact">
+                {(c.address || c.phone || c.website) && <div className="idc-contact">
                   <h2 className="idc-h">CONTACT US</h2>
-                  {CARD.office}<br />Call : {CARD.phone}<br />Website : {CARD.website}
-                </div>
+                  {[c.address, c.phone && `Call : ${c.phone}`, c.website && `Website : ${c.website}`].filter(Boolean).map((l, i) => <span key={i}>{i > 0 && <br />}{l}</span>)}
+                </div>}
               </div>
               <div className="idc-qrs">
                 <div className="idc-qr" dangerouslySetInnerHTML={{ __html: verifyQr }} />
                 <small>SCAN TO VERIFY</small>
-                <div className="idc-qr" dangerouslySetInnerHTML={{ __html: followQr }} />
-                <small>FOLLOW US</small>
+                {followQr && <><div className="idc-qr" dangerouslySetInnerHTML={{ __html: followQr }} />
+                <small>FOLLOW US</small></>}
               </div>
             </div>
-            <footer className="idc-camp"><b>CAMPUSES :</b>{CARD.campuses.join('  |  ')}</footer>
+            {campuses.length > 1 && <footer className="idc-camp"><b>CAMPUSES :</b>{campuses.join('  |  ')}</footer>}
           </section>
         </div>
       </div>

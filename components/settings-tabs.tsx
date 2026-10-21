@@ -14,8 +14,9 @@ import { WaCampaignsTab } from '@/components/wa-campaigns'
 import type { CampaignRow } from '@/modules/notifications/broadcasts'
 import { Err, Modal } from '@/components/modal'
 import { useNotify } from '@/components/panel-shell'
+import { useBrand } from '@/components/brand-context'
 import type { EmailConfig, JobsConfig, RemindersConfig, SmsConfig, WhatsAppConfig } from '@/lib/config/store'
-import { WA_EVENT_KEYS, WA_KEYS, WA_MESSAGES } from '@/lib/notify/whatsapp'
+import { waBody, WA_EVENT_KEYS, WA_KEYS, WA_MESSAGES } from '@/lib/notify/whatsapp'
 import { DIAL_CODES } from '@/lib/countries'
 import type { ApiKeyRow } from '@/modules/integrations/api'
 import type { DeliveryRow, WebhookRow } from '@/modules/integrations/webhooks'
@@ -208,6 +209,7 @@ const PRESETS: { name: string; host: string; port: number; security: EmailConfig
 
 /** The central mail server, or (with `branch`) that branch's own: then its students' and staff's mail goes out from it. */
 function EmailTab({ d, branch }: { d: NonNullable<SettingsData['admin']>['email']; branch?: string }) {
+  const brand = useBrand()
   const notify = useNotify()
   const router = useRouter()
   const [c, setC] = useState<EmailConfig>(d.config)
@@ -233,11 +235,11 @@ function EmailTab({ d, branch }: { d: NonNullable<SettingsData['admin']>['email'
           <label>Mail server (SMTP host)<input value={c.host} onChange={(e) => set({ host: e.target.value })} placeholder="smtp.gmail.com" /></label>
           <label>Port<input type="number" value={c.port} onChange={(e) => set({ port: Number(e.target.value) })} /></label>
           <label>Security<select value={c.security} onChange={(e) => set({ security: e.target.value as EmailConfig['security'] })}><option value="ssl">SSL/TLS (usually port 465)</option><option value="starttls">STARTTLS (usually port 587)</option><option value="none">None (not recommended)</option></select></label>
-          <label>Login (username)<input value={c.user} onChange={(e) => set({ user: e.target.value })} placeholder="office@techcadd.com" autoComplete="off" /></label>
+          <label>Login (username)<input value={c.user} onChange={(e) => set({ user: e.target.value })} placeholder="office@yourinstitute.com" autoComplete="off" /></label>
           <label className="wide">Password{d.hasPassword && <span className="set-saved"> · saved — leave empty to keep it</span>}<PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} placeholder={d.hasPassword ? '••••••••••' : 'The mailbox or app password'} autoComplete="new-password" /></label>
-          <label>Sender name<input value={c.fromName} onChange={(e) => set({ fromName: e.target.value })} placeholder={branch ? `techcadd ${branch}` : 'techcadd'} /></label>
+          <label>Sender name<input value={c.fromName} onChange={(e) => set({ fromName: e.target.value })} placeholder={branch ? `${brand.name} ${branch}` : brand.name} /></label>
           <label>Sender address<input value={c.fromAddress} onChange={(e) => set({ fromAddress: e.target.value })} placeholder="Same as the login if empty" /></label>
-          <label>Reply-to (optional)<input value={c.replyTo} onChange={(e) => set({ replyTo: e.target.value })} placeholder="admissions@techcadd.com" /></label>
+          <label>Reply-to (optional)<input value={c.replyTo} onChange={(e) => set({ replyTo: e.target.value })} placeholder="admissions@yourinstitute.com" /></label>
           {!branch && <label>Alert e-mail (optional)<input value={c.alertEmail} onChange={(e) => set({ alertEmail: e.target.value })} placeholder="Gets an e-mail when a daily job fails" /></label>}
         </div>
         <Err msg={error} />
@@ -253,6 +255,7 @@ function EmailTab({ d, branch }: { d: NonNullable<SettingsData['admin']>['email'
 // ---- WhatsApp & SMS
 
 function MessagingTab({ wa, sms }: { wa: NonNullable<SettingsData['admin']>['whatsapp']; sms: NonNullable<SettingsData['admin']>['sms'] }) {
+  const brand = useBrand()
   const notify = useNotify()
   const router = useRouter()
   const [w, setW] = useState<WhatsAppConfig>(wa.config)
@@ -305,7 +308,7 @@ function MessagingTab({ wa, sms }: { wa: NonNullable<SettingsData['admin']>['wha
           <li>In <b>Campaigns → Launch → API campaign</b>, create a campaign with the name shown, choose its template and set it <b>Live</b>. The name must match the box above (empty = the name shown).</li>
           <li>In <b>Developer → API Campaign Key</b>, copy the key and paste it above. One key serves the whole AiSensy project: regenerating it stops every other system that uses the old one.</li>
           <li>Save, switch on, and send a test to your own number. The fee reminder wording is set in Settings → Reminders and fills its {'{{1}}'}.</li>
-          {WA_KEYS.map((k) => { const m = WA_MESSAGES[k]; return <li key={k}><b>{m.label}</b> — campaign <code>{m.campaign}</code>, template <code>{m.template.name}</code> ({m.template.category}, English):<pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{m.template.body}</pre></li> })}
+          {WA_KEYS.map((k) => { const m = WA_MESSAGES[k]; return <li key={k}><b>{m.label}</b> — campaign <code>{m.campaign}</code>, template <code>{m.template.name}</code> ({m.template.category}, English):<pre style={{ whiteSpace: 'pre-wrap', margin: '6px 0 0' }}>{waBody(k, brand.name)}</pre></li> })}
         </ol></details> : <details className="set-help"><summary>How to get these from Meta</summary><ol>
           <li>In <b>Meta Business Suite → WhatsApp Manager</b>, add and verify the institute’s phone number.</li>
           <li>In <b>developers.facebook.com → your app → WhatsApp → API Setup</b>, copy the <b>Phone number ID</b> and the <b>WhatsApp Business account ID</b>.</li>
@@ -332,9 +335,9 @@ function MessagingTab({ wa, sms }: { wa: NonNullable<SettingsData['admin']>['wha
 
 // ---- Reminders
 
-const SAMPLE = { name: 'Aman Gill', first_name: 'Aman', amount: '₹5,000', due_date: '15 Nov 2026', reg_no: 'REG-2026-MOH-0042', branch: 'Mohali' }
+const SAMPLE = { name: 'Aman Gill', first_name: 'Aman', amount: '₹5,000', due_date: '15 Nov 2026', reg_no: 'REG-2026-MOH-0042', branch: 'Mohali', institute: 'Your institute' }
 const fillSample = (t: string) => t.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k: string) => (SAMPLE as Record<string, string>)[k] ?? m)
-const FILLINS = ['first_name', 'name', 'amount', 'due_date', 'reg_no', 'branch']
+const FILLINS = ['first_name', 'name', 'amount', 'due_date', 'reg_no', 'branch', 'institute']
 const CHANNELS = [
   { key: 'sms', label: 'SMS', icon: Smartphone, note: 'MSG91, DLT template' },
   { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, note: 'AiSensy, approved template' },
@@ -561,7 +564,7 @@ function IntegrationsTab({ status, hooks, events, origin, webLeadsOn }: { status
         </ol></details>
         <details className="set-help"><summary>Zapier</summary><ol><li>Make a Zap with trigger <b>Webhooks by Zapier → Catch Hook</b> and copy the hook URL.</li><li>Add it here, press <b>Test</b>, then in Zapier “Test trigger” to pick up the sample.</li></ol></details>
         <details className="set-help"><summary>Make (Integromat)</summary><ol><li>Add the <b>Webhooks → Custom webhook</b> module, copy the address.</li><li>Add it here and press <b>Test</b> so Make learns the data structure.</li></ol></details>
-        <details className="set-help"><summary>Checking it really came from the panel (optional)</summary><p>Each request has <code>X-Techcadd-Signature: sha256=…</code>, an HMAC-SHA256 of the raw body using the webhook’s <b>Secret</b>. Compute the same and compare. Also sent: <code>X-Techcadd-Event</code> and <code>X-Techcadd-Delivery</code>.</p><p>Failed deliveries are retried after 1 min, 5 min, 30 min, 2 h and 6 h.</p></details>
+        <details className="set-help"><summary>Checking it really came from the panel (optional)</summary><p>Each request has <code>X-Signature: sha256=…</code>, an HMAC-SHA256 of the raw body using the webhook’s <b>Secret</b>. Compute the same and compare. Also sent: <code>X-Event</code> and <code>X-Delivery</code>.</p><p>Failed deliveries are retried after 1 min, 5 min, 30 min, 2 h and 6 h.</p></details>
       </Section>
       {status && <Section title="Connection status" about="Each outside service, whether it is working, and how to set it up."><IntegrationsPanel data={status} isSuper embedded /></Section>}
       {editing && <WebhookForm hook={editing === 'new' ? null : editing} events={events} onClose={() => setEditing(null)} onDone={(m, s) => { setEditing(null); notify(m); if (s) setSecret(s); router.refresh() }} />}

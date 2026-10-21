@@ -4,7 +4,7 @@ import { FEATURES, JOURNEY, SECURITY } from '@/components/site/content'
 import { SiteShell } from '@/components/site/shell'
 import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `${PRODUCT.name} | Institute management for coaching and training institutes` }
+export const metadata = { title: { absolute: `${PRODUCT.name} | Institute management for coaching and training institutes` } }
 
 const FOR = [
   { icon: School, title: 'Coaching institutes', items: ['Batches, timetables and attendance', 'Fee plans, instalments and reminders', 'Tests and results'] },

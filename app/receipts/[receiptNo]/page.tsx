@@ -5,9 +5,10 @@ import { appOrigin, qrSvg } from '@/lib/app-url'
 import { getActor } from '@/lib/auth/current'
 import { withTenant } from '@/lib/db/withTenant'
 import { getReceipt } from '@/modules/fees/service'
+import { orgBrand } from '@/lib/brand'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Receipt | techcadd' }
+export const metadata = { title: 'Receipt' }
 
 // Login required (proxy.ts) and branch-scoped by RLS: a receipt of another branch simply is not found.
 export default async function ReceiptPage({ params }: { params: Promise<{ receiptNo: string }> }) {
@@ -17,5 +18,5 @@ export default async function ReceiptPage({ params }: { params: Promise<{ receip
   if (!r) notFound()
   if (r.paperSlip) return <PaperSlip r={r} /> // a paper slip is shown as it was uploaded: no e-receipt is made from it
   const verifyUrl = `${await appOrigin(actor.orgId)}/verify/receipt/${r.token}`
-  return <ReceiptSheet r={r} qr={await qrSvg(verifyUrl)} verifyUrl={verifyUrl} />
+  return <ReceiptSheet r={r} qr={await qrSvg(verifyUrl)} verifyUrl={verifyUrl} brand={await orgBrand(actor.orgId)} />
 }

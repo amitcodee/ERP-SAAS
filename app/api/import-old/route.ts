@@ -15,7 +15,7 @@ export const maxDuration = 300
 const MAX_BYTES = 40 * 1024 * 1024
 class DryRun extends Error {}
 
-// Old System Import (head office): the old techcadd tables exported from phpMyAdmin as CSV, brought into one branch.
+// Old System Import (head office): the old system's tables exported from phpMyAdmin as CSV, brought into one branch.
 // multipart: branchId, registrations (<branch>_registration.csv), fees (fee.csv), map (optional "course_type,department"),
 // commit=1 to keep the data (else a dry run: everything happens and is rolled back, the report says what would happen).
 // The same engine as `pnpm import:legacy` (modules/import/oldsystem.ts): old numbers kept, new admissions carry on after

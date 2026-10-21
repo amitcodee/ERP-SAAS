@@ -274,8 +274,6 @@ export type CertSignatures = {
   /** each signature on its own, for the course completion design (the authorised signatory and the department head) */
   authorisedImage: string | null; authorisedTitle: string | null; headImage: string | null
 }
-/** The brand as the certificate writes it in a sentence: "Techcadd", never "TechCADD" / "TECHCADD". */
-const brandCase = (s: string | null) => (s ?? '').replace(/techcadd/gi, 'Techcadd').trim()
 /** The authorised signatory is the MD: a plain "Authorised Signatory" (or none) prints as "Authorised Signatory (MD)". */
 const mdTitle = (t: string) => (!t || /^authori[sz]ed signatory$/i.test(t) ? 'Authorised Signatory (MD)' : t)
 export type CertSigner = { image: string | null; name: string | null; title: string }
@@ -371,7 +369,7 @@ export async function verifyCertificateIn(tx: Tx, hash: string): Promise<Verific
       signatures,
       sheet: {
         father: row.father, gender: row.gender, regNo: row.regNo, mode: row.mode, serial: `TCD/${n}/${yy}`,
-        authorised: { image: signatures.authorisedImage, title: mdTitle(brandCase(signatures.authorisedTitle)) },
+        authorised: { image: signatures.authorisedImage, title: mdTitle((signatures.authorisedTitle ?? '').trim()) },
         head: { image: signatures.headImage, title: 'Head Department' },
       },
     } as const

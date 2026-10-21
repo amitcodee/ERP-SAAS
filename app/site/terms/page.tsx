@@ -1,7 +1,7 @@
 import { SitePage } from '@/components/site/shell'
 import { PRODUCT } from '@/lib/product'
 
-export const metadata = { title: `Terms of service | ${PRODUCT.name}` }
+export const metadata = { title: 'Terms of service' }
 
 // A starting text that matches how the service works. It must be reviewed by the owner's lawyer before launch.
 export default function Terms() {

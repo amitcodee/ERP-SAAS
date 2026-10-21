@@ -5,7 +5,7 @@ import { maskEmail, readChallenge, TWO_FACTOR_COOKIE } from '@/modules/auth/two-
 import { VerifyForm } from './verify-form'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Verify sign-in | techcadd' }
+export const metadata = { title: 'Verify sign-in' }
 
 // Second step of a two-step sign-in. Reached only with a pending sign-in (password already accepted).
 export default async function VerifyPage() {

@@ -1,7 +1,7 @@
 import 'server-only'
 // The Course Completion Certificate, laid out once and drawn twice: as SVG on the certificate page
 // (components/certificate-sheet.tsx) and into the PDF (lib/pdf.ts), so both are the same to the millimetre.
-// The design follows the techcadd certificate artwork; positions are in mm on A4 landscape (297 x 210),
+// The institute's logo, name, colour and accreditations come from its brand; positions are in mm on A4 landscape (297 x 210),
 // y from the top. Text is Poppins (public/fonts/pdf, Latin), measured here so that long names, course titles and
 // tool lists are shrunk to fit their space instead of running into the next block.
 import fontkit from '@pdf-lib/fontkit'
@@ -9,6 +9,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import QRCode from 'qrcode'
 import { fmtCertDate } from '@/lib/cert-art'
+import type { Brand } from '@/lib/brand'
 
 // Poppins in six weights; serif (Noto Serif) and script (Great Vibes) for the designs made in Certificate Designs.
 export type CertFont = 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold' | 'serif' | 'script'
@@ -25,7 +26,7 @@ export type CertOp =
   | { k: 'text'; x: number; y: number; s: string; font: CertFont; size: number; fill: string; track?: number } // track: extra space per letter, in em
   | { k: 'glyph'; x: number; y: number; ch: string; font: CertFont; size: number; fill: string; rot: number; w: number } // one letter centred on (x, y), turned rot degrees
   | { k: 'path'; d: string; fill?: string; stroke?: string; sw?: number; opacity?: number; round?: boolean }
-  | { k: 'img'; x: number; y: number; w: number; h: number; src: string; stretch?: boolean; opacity?: number } // fitted into the box: centred, resting on its bottom (stretch: filling it)
+  | { k: 'img'; x: number; y: number; w: number; h: number; src: string; stretch?: boolean; opacity?: number; left?: boolean } // fitted into the box: centred (left: at its left), resting on its bottom (stretch: filling it)
   | { k: 'qr'; x: number; y: number; size: number; text: string; fill: string }
 
 export type CourseCertInput = {
@@ -33,7 +34,10 @@ export type CourseCertInput = {
   duration: string | null; joined: string; ended: string | null; mode: string | null; regNo: string; branch: string
   certNo: string; serial: string; issuedAt: string; verifyUrl: string
   signers: { authorised: { image: string | null; title: string }; head: { image: string | null; title: string } }
+  brand: CertBrand
 }
+/** The institute as its certificates print it. */
+export type CertBrand = Pick<Brand, 'name' | 'legalName' | 'tagline' | 'color' | 'logo' | 'accreditations'>
 
 // ---- measuring (Poppins advance widths, no kerning: pdf-lib draws without it and the page switches it off) ----
 type GlyphPath = { scale(x: number, y: number): GlyphPath; translate(x: number, y: number): GlyphPath; rotate(rad: number): GlyphPath; toSVG(): string }
@@ -59,9 +63,9 @@ function fit(s: string, font: CertFont, size: number, max: number, min: number) 
   return { s: t, size: z }
 }
 
-// LOGO is the navy of the techcadd logo (public/tce-logo.png), in place of a bright blue: the course title, the bars,
-// the band and the frame. The dark text and the QR code keep their own colours.
-const LOGO = '#0a1d6b', NAVY = '#16205c', INK = '#1f2a5a', BLUE = LOGO, SOFT = '#c9d6f3'
+// The institute's colour (its brand) is the course title, the bars and the band. The dark text, the frame and the QR
+// code keep their own colours.
+const NAVY = '#16205c', INK = '#1f2a5a', SOFT = '#c9d6f3'
 
 /** A rounded rectangle as a path. */
 const rrect = (x: number, y: number, w: number, h: number, r: number) =>
@@ -72,13 +76,17 @@ const line = (x1: number, y1: number, x2: number, y2: number, stroke: string, sw
 const titleCase = (s: string) => s.replace(/\b([a-z])/g, (m) => m.toUpperCase())
 /** "Mr. Deepak Kumar": the father's name with "Mr." unless it already starts with a title. */
 const withTitle = (n: string) => (/^(mr|mr\.|shri|sh\.?|s\.|sardar|late|dr\.?|sri)\b/i.test(n.trim()) ? n.trim() : `Mr. ${n.trim()}`)
-/** The branch's place: "Techcadd Mohali" -> "Mohali". */
-export const branchPlace = (b: string) => b.replace(/^\s*techcadd\s*/i, '').replace(/\s+branch\s*$/i, '').trim() || b
+/** The branch's place, without the institute's name in front or "branch" after: "Acme Mohali Branch" -> "Mohali". */
+export const branchPlace = (b: string, institute: string) => {
+  const own = institute.trim().toLowerCase(), t = b.trim()
+  return (own && t.toLowerCase().startsWith(own + ' ') ? t.slice(own.length) : t).replace(/\s+branch\s*$/i, '').trim() || b
+}
 /** Course modes as the certificate says them. */
 const modeText = (m: string | null) => (!m ? '—' : /^offline$/i.test(m) ? 'Offline / Classroom' : /^online$/i.test(m) ? 'Online / Live Classes' : m)
 
 export function courseCertOps(v: CourseCertInput): CertOp[] {
   const ops: CertOp[] = []
+  const LOGO = /^#[0-9a-fA-F]{6}$/.test(v.brand.color) ? v.brand.color : '#0a1d6b', BLUE = LOGO
   const T = (x: number, y: number, s: string, font: CertFont, size: number, fill: string, track?: number) => { ops.push({ k: 'text', x, y, s, font, size, fill, ...(track ? { track } : {}) }); return x + certWidth(s, font, size, track) }
   const centred = (cx: number, y: number, s: string, font: CertFont, size: number, fill: string, track?: number) => T(cx - certWidth(s, font, size, track) / 2, y, s, font, size, fill, track)
   /** One line in several weights, from x. */
@@ -102,14 +110,14 @@ export function courseCertOps(v: CourseCertInput): CertOp[] {
   ops.push({ k: 'path', d: circle(bx, by, 14), fill: '#f4f7fe' })
   ops.push({ k: 'path', d: 'M193.6,88.8 L200.6,96 L212.4,81.8', stroke: '#d6e2f8', sw: 3.4, round: true })
 
-  // top left: serial number, the logo
+  // top left: serial number, the logo (under the serial number), or without one the institute's name
   runs(13.2, 11.9, 3.3, [['S. No.: ', 'semibold', NAVY], [v.serial, 'regular', INK]])
-  // the word "techcadd" starts 67 of the image's 952 px in: it lines up with "COURSE COMPLETION" below (x 20.1)
-  ops.push({ k: 'img', x: 20.1 - (67 / 952) * 92, y: 14.2, w: 92, h: 92 / (952 / 262), src: '/tce-logo.png' })
+  if (v.brand.logo) ops.push({ k: 'img', x: 13.6, y: 14.2, w: 92, h: 25.3, src: v.brand.logo, left: true })
+  else { const n = fit(v.brand.name, 'bold', 9, 92, 5); T(13.6, 32, n.s, 'bold', n.size, LOGO) }
 
-  // top: what techcadd does, and the line between the certificate and the side panel
-  {
-    const items = ['TRAINING', 'CERTIFICATION', 'PLACEMENT SUPPORT'], size = 2.7, tr = 0.05, gap = 4.2
+  // top: the institute's tagline, and the line between the certificate and the side panel
+  if (v.brand.tagline) {
+    const items = [fit(v.brand.tagline.toUpperCase(), 'regular', 2.7, 150, 2.2).s], size = 2.7, tr = 0.05, gap = 4.2
     const widths = items.map((s) => certWidth(s, 'regular', size, tr))
     let x = 229.2 - (widths.reduce((a, b) => a + b, 0) + gap * 2 * (items.length - 1))
     items.forEach((s, i) => {
@@ -164,7 +172,7 @@ export function courseCertOps(v: CourseCertInput): CertOp[] {
     T(x, 151.6, f.s, 'medium', f.size, NAVY)
   }
 
-  ops.push({ k: 'img', x: 177.2, y: 182.4, w: 107.5, h: 107.5 / (1112 / 172), src: '/cert/accreditations.png' })
+  if (v.brand.accreditations) ops.push({ k: 'img', x: 177.2, y: 182.4, w: 107.5, h: 107.5 / (1112 / 172), src: v.brand.accreditations })
 
   // signatures: the authorised signatory on the left, the head of the department on the right
   for (const [cx, x1, x2, s] of [[61.2, 31.5, 91, v.signers.authorised], [185.7, 155.7, 215.6, v.signers.head]] as const) {
@@ -174,13 +182,12 @@ export function courseCertOps(v: CourseCertInput): CertOp[] {
     centred(cx, 179.1, t.s, 'semibold', t.size, NAVY)
   }
 
-  // bottom: the branch, the company, the accreditations
-  let fx = T(14.9, 191.8, 'techcadd', 'regular', 3.92, NAVY)
+  // bottom: the institute and the branch, the name it is registered under (when that is another), the accreditations
+  const nm2 = fit(v.brand.name, 'regular', 3.92, 100, 3)
+  const fx = T(14.9, 191.8, nm2.s, 'regular', nm2.size, NAVY)
   ops.push(line(fx + 2.6, 188.8, fx + 2.6, 192.4, NAVY, 0.25))
-  T(fx + 5.2, 191.8, `${branchPlace(v.branch)} Branch`, 'medium', 3.29, NAVY)
-  fx = T(14.9, 196.5, 'A Unit of Techcadd Computer Education Pvt. Ltd.', 'light', 2.94, INK)
-  ops.push(line(fx + 2.6, 194.1, fx + 2.6, 197.1, INK, 0.2))
-  T(fx + 5.2, 196.5, 'An ISO 9001:2015 Certified company', 'light', 2.94, INK)
+  T(fx + 5.2, 191.8, `${branchPlace(v.branch, v.brand.name)} Branch`, 'medium', 3.29, NAVY)
+  if (v.brand.legalName.trim().toLowerCase() !== v.brand.name.trim().toLowerCase()) { const l = fit(v.brand.legalName, 'light', 2.94, 155, 2.4); T(14.9, 196.5, l.s, 'light', l.size, INK) }
 
   // the side panel: the motto, the QR code, the certificate ID and the date of issue
   for (const [i, s] of ['EMPOWERING', 'SKILLS FOR A', 'BETTER', 'TOMORROW'].entries()) centred(262, 33.8 + i * 6.2, s, 'regular', 4.5, INK, 0.147)

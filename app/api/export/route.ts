@@ -2,6 +2,7 @@ import { audit } from '@/lib/audit'
 import { loadPanelBase } from '@/lib/panel/base'
 import { withTenant } from '@/lib/db/withTenant'
 import { toCsv, toPdf, toXlsx, type Sheet } from '@/lib/export/formats'
+import { orgBrand } from '@/lib/brand'
 import { todayIST } from '@/lib/ist'
 import type { ListQuery } from '@/lib/list-query'
 import { EXPORTS, MAX_ROWS } from '@/modules/exports/lists'
@@ -43,6 +44,7 @@ export async function GET(req: Request) {
     })
     const filters = [query.q && `search “${query.q}”`, query.from && `from ${query.from}`, query.to && `to ${query.to}`, ...Object.entries(query.f ?? {}).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`)].filter(Boolean).join(' · ')
     const sheet: Sheet = {
+      by: (await orgBrand(b.actor.orgId)).name,
       title: def.title, columns: def.columns, rows: rows.slice(0, MAX_ROWS),
       subtitle: [b.user.branchName, filters, rows.length >= MAX_ROWS ? `first ${MAX_ROWS.toLocaleString('en-IN')} rows only` : ''].filter(Boolean).join(' · '),
     }

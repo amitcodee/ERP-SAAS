@@ -81,7 +81,7 @@ export function publicGet(url: URL, maxBytes: number, timeoutMs = 15000): Promis
         // the caller asked for all or one: hand back what it expects
         ;(opts as { all?: boolean }).all ? cb(null, list) : cb(null, list[0].address, list[0].family)
       })
-    const req = (url.protocol === 'https:' ? https : http).get(url, { lookup: checkedLookup as never, timeout: timeoutMs, headers: { 'User-Agent': 'techcadd-panel', Accept: 'image/*' } }, (res) => {
+    const req = (url.protocol === 'https:' ? https : http).get(url, { lookup: checkedLookup as never, timeout: timeoutMs, headers: { 'User-Agent': 'institute-panel', Accept: 'image/*' } }, (res) => {
       const status = res.statusCode ?? 0
       const type = String(res.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase()
       if (status >= 300 && status < 400) { res.resume(); return resolve({ status, type, location: res.headers.location ?? null, body: null }) }

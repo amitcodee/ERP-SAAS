@@ -1,4 +1,4 @@
-// Import from the OLD techcadd system, table by table as exported from phpMyAdmin (CSV, first row = column names):
+// Import from an institute's OLD system (the one the Sample Institute ran before this panel), table by table as exported from phpMyAdmin (CSV, first row = column names):
 //   <branch>_registration (jal_registration, hsp_registration, ...): the students, with their old numbers
 //   fee: every payment (shared by all branches; only this branch's students are taken)
 // Nothing is lost: each student keeps their exact old registration number (the branch's number format must be set

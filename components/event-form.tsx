@@ -75,7 +75,7 @@ export function EventForm({ event, designs, canDesign }: { event: EventFull | nu
           <label>Starts<span className="required-mark">*</span><input type="datetime-local" value={f.startsAt} onChange={(e) => set('startsAt', e.target.value)} /></label>
           <label>Ends<input type="datetime-local" value={f.endsAt} onChange={(e) => set('endsAt', e.target.value)} /></label>
           <label>Where<select value={f.mode} onChange={(e) => set('mode', e.target.value as typeof f.mode)}><option value="offline">At the branch / a venue</option><option value="online">Online (live)</option><option value="hybrid">Both</option></select></label>
-          <label>{f.mode === 'online' ? 'Meeting link or platform' : 'Venue'}<input value={f.venue} onChange={(e) => set('venue', e.target.value)} maxLength={300} placeholder={f.mode === 'online' ? 'e.g. Google Meet' : 'e.g. techcadd Jalandhar, Hall 2'} /></label>
+          <label>{f.mode === 'online' ? 'Meeting link or platform' : 'Venue'}<input value={f.venue} onChange={(e) => set('venue', e.target.value)} maxLength={300} placeholder={f.mode === 'online' ? 'e.g. Google Meet' : 'e.g. Jalandhar branch, Hall 2'} /></label>
           <label>Speaker / trainer<input value={f.speaker} onChange={(e) => set('speaker', e.target.value)} maxLength={160} placeholder="Printed on the certificate" /></label>
           <label>Sign-ups close<input type="datetime-local" value={f.closesAt} onChange={(e) => set('closesAt', e.target.value)} /><small className="section-hint">Leave empty to close by hand</small></label>
           <label className="wide">About the event<textarea rows={3} value={f.description} onChange={(e) => set('description', e.target.value)} maxLength={3000} placeholder="Shown on the sign-up page" /></label>

@@ -1,8 +1,8 @@
 'use client'
-// Letter Templates → Companies (head office): the companies interns are taken on by (techcadd, Syntax Developer, Zabi
-// Technologies, Xair Robotics…). Each has the name its letters use, its full legal name, a contact, a letterhead (a full
+// Letter Templates → Companies (head office): the companies interns are taken on by (the institute itself, the main
+// one, and the others it places interns with). Each has the name its letters use, its full legal name, a contact, a letterhead (a full
 // A4 page image the letter is printed on) and a stamp / signature under "Regards,". Without a letterhead a plain one
-// with the name is used; techcadd keeps its own letterhead and stamp until others are uploaded.
+// with the name is used.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pencil, Plus } from 'lucide-react'
@@ -28,11 +28,11 @@ export function LetterCompanies({ companies, onClose }: { companies: LetterCompa
               <td>
                 <strong>{c.name}</strong>{c.isDefault && <span className="status-badge status-blue" style={{ marginLeft: 6 }}>Main</span>}{!c.isActive && <span style={{ marginLeft: 6 }}><On on={false} /></span>}
                 {c.legalName !== c.name && <small style={{ display: 'block' }}>{c.legalName}</small>}
-                <small style={{ display: 'block' }}>{[c.contactPhone, c.contactEmail].filter(Boolean).join(' · ') || 'No contact: the letters use techcadd HR'}</small>
+                <small style={{ display: 'block' }}>{[c.contactPhone, c.contactEmail].filter(Boolean).join(' · ') || (c.isDefault ? 'No contact: the letters use the institute’s phone' : 'No contact')}</small>
               </td>
               <td>
-                <small style={{ display: 'block' }}>Letterhead: {c.hasLetterhead ? 'uploaded' : c.isDefault ? 'techcadd letterhead' : 'plain, with the name'}</small>
-                <small style={{ display: 'block' }}>Stamp: {c.hasStamp ? 'uploaded' : c.isDefault ? 'techcadd stamp' : 'none'}</small>
+                <small style={{ display: 'block' }}>Letterhead: {c.hasLetterhead ? 'uploaded' : 'plain, with the name'}</small>
+                <small style={{ display: 'block' }}>Stamp: {c.hasStamp ? 'uploaded' : 'none'}</small>
               </td>
               <td><button type="button" className="filter-button" onClick={() => setEditing(c)}><Pencil size={13} /> Edit</button></td>
             </tr>

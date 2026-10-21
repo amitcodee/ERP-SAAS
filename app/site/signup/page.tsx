@@ -4,7 +4,7 @@ import { addressSuffix, PRODUCT } from '@/lib/product'
 import { publicPlans } from '@/modules/plans/service'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: `Start your free trial | ${PRODUCT.name}` }
+export const metadata = { title: 'Start your free trial' }
 
 export default async function Signup({ searchParams }: { searchParams: Promise<{ plan?: string }> }) {
   const { plan } = await searchParams

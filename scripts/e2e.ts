@@ -442,7 +442,7 @@ async function main() {
       const m = sp.locator('.modal-card')
       await m.getByLabel('Name staff see').fill(`E2E offer ${RUN}`)
       await m.getByLabel('AiSensy API campaign name').fill(`e2e_offer_${RUN}`)
-      await m.locator('textarea').fill('Hello {{1}}, get {{2}} off at techcadd {{3}}.') // brings a row for each {{n}}
+      await m.locator('textarea').fill('Hello {{1}}, get {{2}} off at our {{3}} branch.') // brings a row for each {{n}}
       await m.getByLabel('{{3}} is').selectOption({ label: 'Branch (e.g. Mohali)' })
       await m.getByLabel('Ask staff for').fill('Offer')
       await m.getByRole('button', { name: 'Save' }).click()
@@ -457,7 +457,7 @@ async function main() {
       // the super admin works inside the new branch (chosen earlier), so the list is that branch's
       await sp.getByRole('button', { name: 'Check who gets it' }).click()
       await expectText(sp, '3. 1 person')
-      await expectText(sp, `Hello ${STUDENT.first}, get 20% off at techcadd`)
+      await expectText(sp, `Hello ${STUDENT.first}, get 20% off at our`)
       // sending waits until WhatsApp is switched on (a dev database may have it on: then the button is ready)
       const off = await sp.getByText('WhatsApp is not switched on yet').count() > 0
       if ((await sp.getByRole('button', { name: /^Send to 1/ }).isEnabled()) === off) throw new Error(off ? 'sending must wait until WhatsApp is switched on' : 'with WhatsApp on, the send button should be ready')

@@ -8,6 +8,8 @@ import { qrPath, type CertFont, type CertOp } from '@/lib/cert-course'
 import { rupeesInWords } from '@/lib/money'
 import { paymentChannel } from '@/modules/fees/plan'
 import type { ReceiptView } from '@/modules/fees/service'
+import type { Brand } from '@/lib/brand'
+import { PRODUCT } from '@/lib/product'
 
 const MM = 72 / 25.4
 const rs = inrPdf
@@ -33,10 +35,17 @@ function text(page: PDFPage, s: string, x: number, y: number, font: Face, size: 
   font.draw(page, str, { x: x + dx, y, size, color: opts.color ?? rgb(0.07, 0.09, 0.15) })
 }
 
-/** A5 landscape fee receipt, same content as the printable page. */
-export async function receiptPdf(r: ReceiptView, verifyUrl: string): Promise<Uint8Array> {
+/** A PNG / JPEG data URL embedded, or null (another format: left out). */
+async function embedDataImage(doc: PDFDocument, src: string | null): Promise<PDFImage | null> {
+  const m = src ? /^data:(image\/(?:png|jpeg));base64,(.+)$/.exec(src) : null
+  if (!m) return null
+  return (m[1] === 'image/png' ? doc.embedPng(Buffer.from(m[2], 'base64')) : doc.embedJpg(Buffer.from(m[2], 'base64'))).catch(() => null)
+}
+
+/** A5 landscape fee receipt, same content as the printable page, under the institute's logo (or its name). */
+export async function receiptPdf(r: ReceiptView, verifyUrl: string, brand: Pick<Brand, 'name' | 'logo'>): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
-  doc.setTitle(`Receipt ${r.receiptNo}`); doc.setAuthor('techcadd'); doc.setCreator('techcadd ERP')
+  doc.setTitle(`Receipt ${r.receiptNo}`); doc.setAuthor(brand.name); doc.setCreator(PRODUCT.name)
   const page = doc.addPage([210 * MM, 148 * MM])
   const { width: W, height: H } = page.getSize()
   const { sans: reg, sansBold: bold, sansItalic: ital } = await embedFaces(doc, ['sans', 'sansBold', 'sansItalic'])
@@ -54,7 +63,11 @@ export async function receiptPdf(r: ReceiptView, verifyUrl: string): Promise<Uin
     text(page, `${word} ${new Date(r.reversal.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}: ${r.reversal.reason}`.slice(0, 140), L, 8 * MM, bold, 8, { color: rgb(0.7, 0.1, 0.2) })
   } else bold.draw(page, 'NON-REFUNDABLE', { x: W / 2 - 150, y: H / 2 - 75, size: 46, color: rgb(0.86, 0.15, 0.15), opacity: 0.09, rotate: 24 })
 
-  text(page, 'techcadd', L, y, bold, 18)
+  const logo = await embedDataImage(doc, brand.logo)
+  if (logo) {
+    const s = Math.min((60 * MM) / logo.width, (11 * MM) / logo.height)
+    page.drawImage(logo, { x: L, y: y - 2, width: logo.width * s, height: logo.height * s })
+  } else text(page, brand.name, L, y, bold, 18, { maxWidth: 110 * MM })
   text(page, online ? 'E-RECEIPT' : 'FEE RECEIPT', R, y, bold, 14, { align: 'right' })
   text(page, online ? 'ONLINE PAYMENT' : channel === 'cheque' ? 'OFFLINE - CHEQUE / DRAFT' : 'OFFLINE - CASH', R, y + 13, bold, 7, { align: 'right', color: online ? rgb(0.11, 0.31, 0.85) : grey })
   y -= 14
@@ -128,8 +141,8 @@ async function drawCertOps(doc: PDFDocument, page: PDFPage, ops: CertOp[]) {
   const images = new Map<string, PDFImage>()
   const image = async (src: string) => {
     if (!images.has(src)) {
-      const m = /^data:(image\/(?:png|jpeg));base64,(.+)$/.exec(src)
-      if (m) images.set(src, m[1] === 'image/png' ? await doc.embedPng(Buffer.from(m[2], 'base64')) : await doc.embedJpg(Buffer.from(m[2], 'base64')))
+      const data = src.startsWith('data:') ? await embedDataImage(doc, src) : null
+      if (data) images.set(src, data)
       else if (/^\/[\w/.-]+\.(png|jpe?g)$/.test(src) && !src.includes('..')) {
         const { readFile } = await import('fs/promises')
         const { join, resolve, sep } = await import('path')
@@ -163,15 +176,15 @@ async function drawCertOps(doc: PDFDocument, page: PDFPage, ops: CertOp[]) {
       const img = await image(o.src)
       if (!img) continue
       const s = Math.min(o.w / img.width, o.h / img.height), w = o.stretch ? o.w : img.width * s, h = o.stretch ? o.h : img.height * s
-      page.drawImage(img, { x: (o.x + (o.w - w) / 2) * MM, y: H - (o.y + o.h) * MM, width: w * MM, height: h * MM, ...(o.opacity !== undefined ? { opacity: o.opacity } : {}) })
+      page.drawImage(img, { x: (o.x + (o.left ? 0 : (o.w - w) / 2)) * MM, y: H - (o.y + o.h) * MM, width: w * MM, height: h * MM, ...(o.opacity !== undefined ? { opacity: o.opacity } : {}) })
     } else if (o.k === 'qr') svg(qrPath(o.text, o.x, o.y, o.size), { color: hex(o.fill) })
   }
 }
 
 /** A layout made in Certificate Designs (lib/cert-design-ops.ts) as a one-page PDF, A4 landscape or portrait. */
-export async function layoutPdf(title: string, ops: CertOp[], portrait = false): Promise<Uint8Array> {
+export async function layoutPdf(title: string, ops: CertOp[], portrait = false, author = ''): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
-  doc.setTitle(title); doc.setAuthor('techcadd'); doc.setCreator('techcadd ERP')
+  doc.setTitle(title); doc.setAuthor(author); doc.setCreator(PRODUCT.name)
   await drawCertOps(doc, doc.addPage(portrait ? [210 * MM, 297 * MM] : [297 * MM, 210 * MM]), ops)
   return doc.save()
 }
@@ -180,9 +193,9 @@ export async function layoutPdf(title: string, ops: CertOp[], portrait = false):
  * The certificate as a PDF, in the same two designs as the printable page: the course completion certificate
  * (kind 'course') or the project completion certificate (kind 'project'). A revoked one carries a REVOKED watermark.
  */
-export async function certificatePdf(v: CertPdfData, _hash: string, _verifyUrl: string, kind: 'course' | 'project' = 'course', ops: CertOp[] = []): Promise<Uint8Array> {
+export async function certificatePdf(v: CertPdfData, _hash: string, _verifyUrl: string, kind: 'course' | 'project' = 'course', ops: CertOp[] = [], author = ''): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
-  doc.setTitle(`${kind === 'project' ? 'Project certificate' : 'Certificate'} ${v.certNo}`); doc.setAuthor('techcadd'); doc.setCreator('techcadd ERP')
+  doc.setTitle(`${kind === 'project' ? 'Project certificate' : 'Certificate'} ${v.certNo}`); doc.setAuthor(author); doc.setCreator(PRODUCT.name)
   const page = doc.addPage([297 * MM, 210 * MM])
   const { width: W, height: H } = page.getSize()
   await drawCertOps(doc, page, ops)
