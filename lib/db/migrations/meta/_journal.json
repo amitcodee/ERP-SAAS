@@ -792,6 +792,13 @@
       "when": 1793859200000,
       "tag": "0112_parent_links",
       "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1793945600000,
+      "tag": "0113_expenses",
+      "breakpoints": true
     }
   ]
 }

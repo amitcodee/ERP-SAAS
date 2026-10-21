@@ -294,7 +294,7 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
    - staff attendance (web and mobile, with a geo-fence);
    - leave;
    - salary sheet export.
-10. Expenses and petty cash, with a P&L-lite report.
+10. [x] Expenses with a P&L-lite report (fees received less expenses, by month and head). [ ] Petty-cash balance.
 11. Inventory lite (kits, books, ID-card stock).
 12. Placement cell (companies, drives, applications, offers, a report).
 13. Alumni and referrals (codes, rewards given as discounts).

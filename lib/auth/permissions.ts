@@ -6,7 +6,7 @@ export const RESOURCES = [
   'branch', 'user', 'role', 'catalog', 'setting',
   'call', 'enquiry', 'lead', 'weblead', 'registration', 'fee', 'receipt',
   'batch', 'attendance', 'assessment', 'teaching', 'certificate', 'internship', 'report', 'audit',
-  'helpdesk', 'template', 'overdue', 'branchmail', 'recycle', 'broadcast', 'event', 'certdesign',
+  'helpdesk', 'template', 'overdue', 'branchmail', 'recycle', 'broadcast', 'event', 'certdesign', 'expense',
 ] as const
 export type Resource = (typeof RESOURCES)[number]
 export const ACTIONS = ['read', 'create', 'update', 'approve', 'delete', 'clear', 'assign'] as const
@@ -43,6 +43,7 @@ export const CATALOG: Record<Resource, { label: string; actions: Partial<Record<
   broadcast: { label: 'Bulk WhatsApp', actions: { read: 'See bulk messages sent', create: 'Send bulk WhatsApp' } },
   event: { label: 'Seminars & workshops', actions: { read: 'See events & who joined', create: 'Create events (quiz, certificate)', update: 'Edit / open / close events, resend certificates' } },
   certdesign: { label: 'Certificate designs', actions: { read: 'See the designs', update: 'Design certificates on the canvas' } },
+  expense: { label: 'Expenses', actions: { read: 'See expenses & profit', create: 'Record expenses', delete: 'Delete expenses' } },
 }
 export const ALL_PERMS: Perm[] = RESOURCES.flatMap((r) => (Object.keys(CATALOG[r].actions) as Action[]).map((a) => `${r}:${a}` as Perm))
 
@@ -51,7 +52,7 @@ export const ALL_PERMS: Perm[] = RESOURCES.flatMap((r) => (Object.keys(CATALOG[r
 // or it could not be ticked.
 export const PERM_GROUPS: { title: string; hint: string; areas: Resource[] }[] = [
   { title: 'Leads & admissions', hint: 'From the first call to an admitted student', areas: ['call', 'enquiry', 'lead', 'weblead', 'registration'] },
-  { title: 'Fees', hint: 'Money coming in', areas: ['fee', 'receipt'] },
+  { title: 'Money', hint: 'Fees coming in, expenses going out', areas: ['fee', 'receipt', 'expense'] },
   { title: 'Academics', hint: 'Classes, teaching, grades and certificates', areas: ['batch', 'attendance', 'assessment', 'teaching', 'certificate', 'internship'] },
   { title: 'Students & messages', hint: 'Help desk, e-mail wording, the branch mailbox and bulk WhatsApp', areas: ['helpdesk', 'template', 'branchmail', 'broadcast'] },
   { title: 'Events', hint: 'Seminars, workshops and webinars: sign-up link, quiz and e-mailed certificates', areas: ['event', 'certdesign'] },
@@ -88,6 +89,7 @@ export const PERM_HELP: Record<Resource, { about: string; actions: Partial<Recor
   event: { about: 'Seminars, workshops, webinars and other events. Each has a public link and QR code where people sign up, take the quiz (when the event has one) and get their certificate by e-mail.', actions: { read: 'Open Seminars & Workshops and see each event’s sign-ups, quiz scores and certificates.', create: 'Create an event: its details, an optional quiz and the certificate design.', update: 'Change an event, open or close its sign-ups, and resend a certificate e-mail.' } },
   certdesign: { about: 'Certificate designs made on the canvas (from a ready-made template, a blank page or a picture), used by events. Head office’s designs are offered to every branch.', actions: { read: 'See the designs and preview them.', update: 'Create and edit designs on the canvas (a branch: its own; head office: every one).' } },
   broadcast: { about: 'WhatsApp campaigns (made in AiSensy, listed by head office in Settings) sent to many students or leads at once.', actions: { read: 'Open Bulk WhatsApp and see what was sent from this branch.', create: 'Send a campaign to students or leads of this branch (head office: of every branch).' } },
+  expense: { about: 'What the branch spends (rent, salaries, bills, marketing…), and the profit after fees received.', actions: { read: 'Open Expenses and see the spending and the profit.', create: 'Record an expense.', delete: 'Delete an expense recorded by mistake (it stays in the log).' } },
 }
 
 /** Rule: nobody can act on an area they cannot see. Any tick in an area brings that area's "See" with it. */
@@ -119,7 +121,7 @@ export const DEFAULT_ROLES: RoleDef[] = [
     ...p('catalog', 'read'), ...p('call', 'read', 'create', 'update'), ...p('enquiry', 'read', 'create', 'update'), ...p('lead', 'read')] },
   { key: 'accountant', name: 'Accountant', kind: 'staff', locked: false, description: 'Checks the fees admissions collects (remarks to fix), approves fee changes and discounts; clears fees and issues course and project certificates.', perms: [
     ...p('catalog', 'read'), ...p('enquiry', 'read'), ...p('registration', 'read'), ...p('fee', 'read', 'update', 'clear'), ...p('receipt', 'read'),
-    ...p('certificate', 'read', 'clear', 'approve'), ...p('report', 'read')] },
+    ...p('certificate', 'read', 'clear', 'approve'), ...p('report', 'read'), ...p('expense', 'read', 'create')] },
   { key: 'hr', name: 'HR', kind: 'staff', locked: false, description: 'Interns: adds them and issues internship selection letters and completion certificates.', perms: [
     ...p('catalog', 'read'), ...p('registration', 'read'), ...p('internship', 'read', 'create', 'approve')] },
   { key: 'trainer', name: 'Trainer', kind: 'staff', locked: false, description: 'Their own batches: attendance, grades and capstone sign-off.', perms: [

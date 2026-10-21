@@ -4,7 +4,7 @@ import type { Action, Resource } from '@/lib/auth/permissions'
 type Ok = (a: Action, r: Resource) => boolean
 export type ModuleKey =
   | 'Dashboard' | 'Overdues' | 'My Tickets' | 'My Classes' | 'Project Help' | 'Random Call' | 'Leads' | 'Web Leads' | 'Lead Categories' | 'Enquiry' | 'Registration' | 'Enquiry Update' | 'My Leads' | 'Lead Distribution' | 'Transfers' | 'Shared Students'
-  | 'Fees' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
+  | 'Fees' | 'Expenses' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
 
 export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (ok: Ok) => boolean; planModule?: string }[] = [
   { key: 'Dashboard', path: '/dashboard', group: 'Overview', allowed: () => true },
@@ -47,6 +47,8 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   { key: 'Leaderboards', path: '/leaderboards', group: 'Reports', allowed: (ok) => ok('read', 'report') || ok('read', 'enquiry') || ok('read', 'lead') || ok('read', 'teaching') },
   { key: 'Calendar', path: '/calendar', group: 'Reports', allowed: (ok) => ok('read', 'call') || ok('read', 'enquiry') || ok('read', 'registration') || ok('read', 'fee') },
   { key: 'Fees', path: '/fees', group: 'Management', allowed: (ok) => ok('read', 'fee') },
+  // what the branch spends, and the profit: fees received less expenses, month by month
+  { key: 'Expenses', path: '/expenses', group: 'Management', allowed: (ok) => ok('read', 'expense') },
   { key: 'Students', path: '/students', group: 'Management', allowed: (ok) => ok('read', 'certificate') || ok('read', 'batch') },
   { key: 'Courses', path: '/courses', group: 'Management', allowed: (ok) => ok('read', 'catalog') },
   { key: 'Course Categories', path: '/course-categories', group: 'Management', allowed: (ok) => ok('read', 'catalog') },
@@ -104,6 +106,7 @@ export const ABOUT: Record<ModuleKey, string> = {
   Leaderboards: 'Who leads: counselors by conversion, trainers and students by score.',
   Calendar: 'Calls, follow-ups, visits and admissions day by day.',
   Fees: 'Each student’s fee plan, payments, receipts and discounts.',
+  Expenses: 'What the branch spends (rent, salaries, bills…) and the profit: fees received less expenses.',
   Students: 'Students’ certificates, documents and portal login; batches and attendance.',
   Courses: 'The course list every enquiry, registration and batch picks from.',
   'Course Categories': 'Course categories and the head whose signature goes on their certificates.',

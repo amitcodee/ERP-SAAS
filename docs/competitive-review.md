@@ -17,7 +17,7 @@ Teachmint, Edmingle, Meritto (admissions CRM), and the Techjockey / SoftwareSugg
 | Communication | WhatsApp / SMS / e-mail alerts | Yes: e-mail, WhatsApp (AiSensy / Meta), SMS (MSG91), bulk WhatsApp |
 | Certificates and ID cards | ID cards; certificates in some | Strong: designed certificates, QR verification, ID cards, letters |
 | Reports | 50+ reports, financial dashboard | Reports, graphs, leaderboards, collections |
-| Accounting | Expenses, P&L, GST reports | GST on fees; no expenses or P&L |
+| Accounting | Expenses, P&L, GST reports | GST on fees; **expenses and profit by month added now** |
 | Multi-branch | Central control of branches / franchises | Strong: branches, transfers, shared students, head office |
 
 Admissions-focused CRMs (Meritto) add lead scoring, automatic routing to the counsellor most likely to convert,
@@ -38,7 +38,7 @@ with webhooks.
    switched on), and a private parent link (attendance, fees with Pay online, marks) the office sends by WhatsApp.
 3. **Exams and report cards** — report cards done (grade rules per institute, overall result, batch rank, print /
    PDF). Still to come: online tests on the quiz engine with a question bank, and an exam schedule.
-4. **Expenses and P&L-lite**: expenses by branch and head, against fee collections.
+4. **Expenses and P&L-lite** — done: expenses by branch and head, and the profit against fees received, by month.
 5. **Online admission form**: a hosted, embeddable form (with UTM capture) that makes a lead, optionally with an
    application fee through the same online payment.
 6. **Lead scoring and routing**, then live-class links and assignments.

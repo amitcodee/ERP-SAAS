@@ -45,6 +45,7 @@ import { branches } from '@/lib/db/schema'
 import { appOrigin } from '@/lib/app-url'
 import { openFeePayment, startFeePayment } from '@/modules/fees/online'
 import { gradesProblem } from '@/lib/grades'
+import { addExpense, deleteExpense, type ExpenseInput } from '@/modules/expenses/service'
 import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
 import type { CreateEnquiryInput, FollowUpCallInput, FollowUpLeadInput, LogCallInput, TransitionInput, UpdateCallInput, UpdateLeadInput } from '@/modules/enquiries/validators'
@@ -1410,6 +1411,14 @@ export async function startFeePaymentAction(registrationId: string) {
     return startFeePayment(actor, id, await appOrigin(actor.orgId))
   })
 }
+// ---- Expenses (modules/expenses/service.ts)
+export async function addExpenseAction(input: ExpenseInput) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => addExpense(tx, actor, input)); revalidatePath('/expenses') })
+}
+export async function deleteExpenseAction(id: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => deleteExpense(tx, actor, id)); revalidatePath('/expenses') })
+}
+
 // ---- Report-card grades (lib/grades.ts)
 const gradesSettings = z.object({
   bands: z.array(z.object({ min: z.number().int().min(0).max(100), grade: z.string().trim().min(1).max(4), label: z.string().trim().max(40) })).min(1).max(12),

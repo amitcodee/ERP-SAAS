@@ -2,6 +2,15 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 4 (part 4): expenses and profit (2026-10-21)
+
+- Management → Expenses: record what a branch spends (date, head, amount, paid to, how, note), and see the profit:
+  fees received (payments that stand) less expenses, this month and the five before, with the month's spending by
+  head. Head office sees every branch or one; a branch only its own (RLS); students never.
+- A new permission area, Expenses (see, record, delete): head office and branch managers everything, accountants see
+  and record. A deleted expense leaves the totals but stays on record with who deleted it.
+- Migration 0113 (expenses; the permission added to the saved roles). `scripts/expenses-test.ts`.
+
 ## Phase 4 (part 3): report cards (2026-10-21)
 
 - A printable A4 report card per registration (/registrations/<id>/report-card): every marked test and assignment
