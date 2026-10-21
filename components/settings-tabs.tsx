@@ -173,13 +173,13 @@ function GradesTab({ cfg }: { cfg: GradesConfig }) {
       <div className="set-rules">
         {g.bands.map((b, i) => (
           <div key={i} className="set-rule">
-            <div className="row-actions" style={{ gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input value={b.grade} maxLength={4} onChange={(e) => band(i, { grade: e.target.value })} aria-label="Grade" style={{ width: 70 }} />
-              <input value={b.label} maxLength={40} onChange={(e) => band(i, { label: e.target.value })} aria-label="Grade wording" placeholder="e.g. Excellent" />
+              <input value={b.label} maxLength={40} onChange={(e) => band(i, { label: e.target.value })} aria-label="Grade wording" placeholder="e.g. Excellent" style={{ width: 220 }} />
             </div>
-            <div className="row-actions" style={{ gap: 8 }}>
-              <span className="section-hint">from</span>
-              <input type="number" min={0} max={100} value={b.min} onChange={(e) => band(i, { min: Number(e.target.value) })} aria-label={`${b.grade} starts at`} style={{ width: 80 }} /><span className="section-hint">%</span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span className="section-hint" style={{ margin: 0 }}>from</span>
+              <input type="number" min={0} max={100} value={b.min} onChange={(e) => band(i, { min: Number(e.target.value) })} aria-label={`${b.grade} starts at`} style={{ width: 80 }} /><span className="section-hint" style={{ margin: 0 }}>%</span>
               <button type="button" className="filter-button icon-only" title="Remove this grade" aria-label={`Remove ${b.grade}`} disabled={g.bands.length < 2} onClick={() => setG({ ...g, bands: g.bands.filter((_, k) => k !== i) })}><Trash2 size={14} /></button>
             </div>
           </div>
@@ -188,7 +188,7 @@ function GradesTab({ cfg }: { cfg: GradesConfig }) {
       <div className="row-actions" style={{ margin: '10px 0', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" className="filter-button" disabled={g.bands.length >= 12} onClick={() => setG({ ...g, bands: [...g.bands, { min: 0, grade: '', label: '' }] })}><Plus size={14} /> Add a grade</button>
         <button type="button" className="filter-button" onClick={() => setG(DEFAULT_GRADES)}>Back to the standard grades</button>
-        <label className="row-actions" style={{ gap: 6 }}>Pass mark <input type="number" min={0} max={100} value={g.passPct} onChange={(e) => setG({ ...g, passPct: Number(e.target.value) })} style={{ width: 80 }} />%</label>
+        <span style={{ display: 'flex', gap: 6, alignItems: 'center', marginLeft: 'auto' }}>Pass mark <input type="number" min={0} max={100} value={g.passPct} onChange={(e) => setG({ ...g, passPct: Number(e.target.value) })} aria-label="Pass mark" style={{ width: 80 }} />%</span>
       </div>
       <Err msg={error || why || ''} />
       <div className="modal-actions"><button type="button" className="button primary" disabled={pending || !!why} onClick={save}>{pending ? 'Saving…' : 'Save grades'}</button></div>
@@ -221,7 +221,7 @@ function PaymentsTab({ d }: { d: NonNullable<SettingsData['admin']>['payments'] 
   return (
     <>
       <Section title="Online fee payments" about="Students pay what is due now (the next installment, or the balance) from their portal: UPI, cards, net banking and wallets, on Razorpay's own payment page. The money goes straight to your Razorpay account; the payment is recorded with a receipt, as at the desk."
-        actions={<>{c.enabled && (ready || !d.saved) ? <Badge tone="green">On</Badge> : <Badge tone="slate">Off</Badge>}</>}>
+        actions={<>{!c.enabled ? <Badge tone="slate">Off</Badge> : ready ? <Badge tone="green">On</Badge> : <Badge tone="amber">Needs keys</Badge>}</>}>
         <Toggle label="Students can pay online" value={c.enabled} set={(v) => setC({ ...c, enabled: v })} hint="Off: the portal says to pay at the branch office." />
         <div className="wl-form">
           <label>Key ID<input value={c.keyId} onChange={(e) => setC({ ...c, keyId: e.target.value.trim() })} placeholder="rzp_live_…" autoComplete="off" /></label>

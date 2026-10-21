@@ -42,7 +42,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         @page { size: A4 portrait; margin: 0 }
         @media print { html, body { background: #fff !important } main { padding: 0 !important; background: #fff !important } .no-print { display: none !important } .sheet { box-shadow: none !important } }
         .sheet { width: 210mm; min-height: 297mm; max-width: 100%; background: #fff; box-shadow: 0 10px 40px #0003; box-sizing: border-box; padding: 14mm 14mm 12mm; color: #0f1437; display: grid; align-content: start; gap: 5mm }
-        .sheet table { width: 100%; border-collapse: collapse }
+        .sheet table { width: 100%; min-width: 0; border-collapse: collapse }
       `}</style>
       <div className="no-print"><PrintButton /></div>
       <div className="sheet">
