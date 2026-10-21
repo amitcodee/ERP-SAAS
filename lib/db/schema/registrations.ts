@@ -1,4 +1,4 @@
-import { boolean, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from 'drizzle-orm/pg-core'
+import { boolean, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { branches, courses, departments, lookups, users } from './core'
 import { enquiries, persons } from './admissions'
 import type { FeePlan } from '@/modules/fees/plan'
@@ -92,3 +92,22 @@ export const registrationEvents = pgTable(
 export type CustomCourse = { durationWeeks: number | null; feeMode: 'modules' | 'total'; modules: { name: string; fee: number | null }[] }
 
 export type RegistrationStatus = (typeof registrationStatusEnum.enumValues)[number]
+
+// A parent's or guardian's link to one registration (modules/portal/parent.ts): a private address the office (or the
+// student) sends them, showing attendance, fees and marks, read-only, with Pay online. Only the token's hash is kept;
+// making a new link for the registration stops the old one, and the office can stop it any time.
+export const parentLinks = pgTable(
+  'parent_links',
+  {
+    orgId: orgId(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    branchId: uuid('branch_id').notNull().references(() => branches.id),
+    registrationId: uuid('registration_id').notNull().references(() => registrations.id),
+    tokenHash: text('token_hash').notNull(),
+    createdBy: uuid('created_by').notNull().references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  },
+  (t) => [uniqueIndex('parent_links_token_uq').on(t.orgId, t.tokenHash), index('parent_links_reg_idx').on(t.registrationId)],
+)

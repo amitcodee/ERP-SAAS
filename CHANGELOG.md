@@ -2,6 +2,14 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 4 (part 2): parents' links (2026-10-21)
+
+- A parent or guardian gets a private link (/p/<token>), made by the office from Students (the people icon) and sent
+  by WhatsApp in one click: the student's attendance, fees with receipts and Pay online, and marks, read-only, with no
+  account. Only a hash of the token is kept; a new link stops the old one; the office can stop it; links last a year;
+  openings are rate-limited and noted (last opened). After paying, a parent comes back to /p/done.
+- Migration 0112 (parent_links; fee_payment_links.via). `scripts/parent-test.ts`.
+
 ## Phase 4 (part 1): online fee payment and absence alerts (2026-10-21)
 
 - Students pay what is due now (the next installment, or the balance) from the portal, into the institute's own

@@ -8,6 +8,7 @@ import { after } from 'next/server'
 import { clientIpFrom } from '@/lib/client-ip'
 import { ACTING_BRANCH_COOKIE, getActor } from '@/lib/auth/current'
 import { withOrgSystem, withTenant, type Actor } from '@/lib/db/withTenant'
+import { requireRequestOrg } from '@/lib/tenant/request'
 import { audit } from '@/lib/audit'
 import { webLeadsSecretFor } from '@/lib/tenant/web-leads-secret'
 import { setNumbering } from '@/modules/settings/numbering'
@@ -42,7 +43,8 @@ import { askForHelp, batchTeaching, chooseHelper, closeHelp, courseSyllabus, cre
 import { assignTicket, closeTicket, escalateTicket, postAnnouncement, raiseInternalTicket, raiseTicket, rateTicket, removeAnnouncement, replyTicket, setAnnouncementPinned, setTicketPriority, ticketAssignees, ticketMessages, type AnnouncementInput, type InternalTicketInput, type RaiseTicketInput } from '@/modules/support/service'
 import { branches } from '@/lib/db/schema'
 import { appOrigin } from '@/lib/app-url'
-import { startFeePayment } from '@/modules/fees/online'
+import { openFeePayment, startFeePayment } from '@/modules/fees/online'
+import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
 import type { CreateEnquiryInput, FollowUpCallInput, FollowUpLeadInput, LogCallInput, TransitionInput, UpdateCallInput, UpdateLeadInput } from '@/modules/enquiries/validators'
 import { applyDiscount, listReceipts, recordPayment, reversePayment, type DiscountInput, type RecordPaymentInput, type ReversalInput } from '@/modules/fees/service'
@@ -1405,6 +1407,30 @@ export async function startFeePaymentAction(registrationId: string) {
     const { actor } = await getActor()
     const id = z.string().uuid().parse(registrationId)
     return startFeePayment(actor, id, await appOrigin(actor.orgId))
+  })
+}
+// ---- Parents' links (modules/portal/parent.ts): made by the office, opened by the parent with no account
+export async function createParentLinkAction(registrationId: string) {
+  return run(async () => {
+    const { actor } = await getActor()
+    const id = z.string().uuid().parse(registrationId)
+    const made = await withTenant(actor, (tx) => createParentLink(tx, actor, id))
+    return { url: `${await appOrigin(actor.orgId)}/p/${made.token}`, guardianPhone: made.guardianPhone, name: made.name }
+  })
+}
+export async function revokeParentLinkAction(registrationId: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => revokeParentLink(tx, actor, z.string().uuid().parse(registrationId))) })
+}
+export async function parentLinkStateAction(registrationId: string) {
+  return run(async () => { const { actor } = await getActor(); return withTenant(actor, (tx) => parentLinkState(tx, z.string().uuid().parse(registrationId))) })
+}
+/** A parent's Pay online, from their link: the link is the permission (the institute is the one of this address). */
+export async function payAsParentAction(token: string) {
+  return run(async () => {
+    const org = await requireRequestOrg()
+    const v = await parentView(org.id, String(token))
+    if (!v) throw new Error('This link no longer works: ask the office for a new one')
+    return openFeePayment(org.id, v.registrationId, v.createdBy, await appOrigin(org.id), 'parent')
   })
 }
 export async function testMessageAction(channel: 'whatsapp' | 'sms', to: string) {

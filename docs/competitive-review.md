@@ -13,7 +13,7 @@ Teachmint, Edmingle, Meritto (admissions CRM), and the Techjockey / SoftwareSugg
 | Attendance | Batch attendance; biometric / RFID; **absence alerts to parents** | Batch attendance; **absence alerts added now** (WhatsApp to the guardian) |
 | Exams | Test series, question bank, auto-grading, result analysis, report cards | Marks, quizzes for events; no test series or report cards |
 | Learning | LMS (videos, PDFs), assignments, live classes (Zoom / Meet) | Syllabus and notes; no live classes or assignments |
-| Apps | Branded student and parent apps | Student web portal (works on phones); no parent access |
+| Apps | Branded student and parent apps | Student web portal (works on phones); **parent link added now** (no app to install) |
 | Communication | WhatsApp / SMS / e-mail alerts | Yes: e-mail, WhatsApp (AiSensy / Meta), SMS (MSG91), bulk WhatsApp |
 | Certificates and ID cards | ID cards; certificates in some | Strong: designed certificates, QR verification, ID cards, letters |
 | Reports | 50+ reports, financial dashboard | Reports, graphs, leaderboards, collections |
@@ -34,8 +34,8 @@ with webhooks.
 
 1. **Online fee payment** — done in this round: students pay what is due now from the portal into the institute's
    own Razorpay account; the payment is recorded once, with a receipt, by the same path as a desk payment.
-2. **Parent access and absence alerts**: the WhatsApp alert when a student misses today's class is done (off until
-   switched on); still to come, a parent login (or a magic link) to see attendance, fees and results.
+2. **Parent access and absence alerts** — done: the WhatsApp alert when a student misses today's class (off until
+   switched on), and a private parent link (attendance, fees with Pay online, marks) the office sends by WhatsApp.
 3. **Exams and report cards**: tests on the existing quiz engine, a question bank, marks entry, grade rules and a
    report-card PDF.
 4. **Expenses and P&L-lite**: expenses by branch and head, against fee collections.

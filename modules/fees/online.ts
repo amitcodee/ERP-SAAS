@@ -53,11 +53,19 @@ export async function startFeePayment(actor: Actor, registrationId: string, orig
   if (actor.role !== 'student') throw new Error('Online payment is made by the student from their portal')
   const [mine] = (await withTenant(actor, (tx) => tx.execute<{ id: string }>(sql`select id from registrations where id = ${registrationId}`))).rows
   if (!mine) throw new Error('Registration not found')
-  const provider = await orgProvider(actor.orgId)
-  const { config } = await getConfig(actor.orgId, 'payments')
+  return openFeePayment(actor.orgId, registrationId, actor.userId, origin)
+}
+
+/**
+ * Opens the payment page of a registration the caller has already been allowed (the student's own, or the one a
+ * parent's link is for). `by`: the user it is recorded for (the student, or whoever made the parent's link).
+ */
+export async function openFeePayment(orgId: string, registrationId: string, by: string, origin: string, via: 'student' | 'parent' = 'student'): Promise<{ url: string; amount: number }> {
+  const provider = await orgProvider(orgId)
+  const { config } = await getConfig(orgId, 'payments')
   if (!config.enabled || !provider) throw new Error('Online payment is not available: please pay at your branch office')
 
-  const made = await withOrgSystem(actor.orgId, async (tx) => {
+  const made = await withOrgSystem(orgId, async (tx) => {
     const [r] = (await tx.execute<{ branch_id: string; status: string; name: string; email: string | null; phone: string | null; course: string | null }>(sql`
       select r.branch_id, r.status, trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name, p.email, p.phone,
         coalesce(c.title, r.custom_course_title) as course
@@ -68,9 +76,9 @@ export async function startFeePayment(actor: Actor, registrationId: string, orig
     if (amount <= 0) throw new Error('Nothing is due on your fees')
     const [open] = (await tx.execute<{ id: string; url: string | null }>(sql`
       select id, url from fee_payment_links where registration_id = ${registrationId} and status = 'pending' and amount = ${amount}
-        and provider = ${provider.name} and url is not null and created_at > now() - make_interval(mins => ${REUSE_MINUTES}) order by created_at desc limit 1`)).rows
+        and provider = ${provider.name} and via = ${via} and url is not null and created_at > now() - make_interval(mins => ${REUSE_MINUTES}) order by created_at desc limit 1`)).rows
     if (open?.url) return { reuse: open.url, amount, r }
-    const [link] = await tx.insert(feePaymentLinks).values({ branchId: r.branch_id, registrationId, amount, provider: provider.name, createdBy: actor.userId }).returning({ id: feePaymentLinks.id })
+    const [link] = await tx.insert(feePaymentLinks).values({ branchId: r.branch_id, registrationId, amount, provider: provider.name, via, createdBy: by }).returning({ id: feePaymentLinks.id })
     return { id: link.id, amount, r }
   })
   if ('reuse' in made && made.reuse) return { url: made.reuse, amount: made.amount }
@@ -80,15 +88,22 @@ export async function startFeePayment(actor: Actor, registrationId: string, orig
       ref: id, amount: made.amount, description: `Fees${made.r.course ? `: ${made.r.course}` : ''}`,
       customer: { name: made.r.name, email: made.r.email ?? '', contact: made.r.phone }, callbackUrl: `${origin}/pay/fees/return`,
     })
-    await withOrgSystem(actor.orgId, (tx) => tx.execute(sql`update fee_payment_links set provider_link_id = ${page.id}, url = ${page.url} where id = ${id}`))
+    await withOrgSystem(orgId, (tx) => tx.execute(sql`update fee_payment_links set provider_link_id = ${page.id}, url = ${page.url} where id = ${id}`))
     return { url: page.url, amount: made.amount }
   } catch (e) {
-    await withOrgSystem(actor.orgId, (tx) => tx.execute(sql`update fee_payment_links set status = 'expired', note = ${e instanceof Error ? e.message.slice(0, 300) : 'failed'} where id = ${id}`))
+    await withOrgSystem(orgId, (tx) => tx.execute(sql`update fee_payment_links set status = 'expired', note = ${e instanceof Error ? e.message.slice(0, 300) : 'failed'} where id = ${id}`))
     throw e
   }
 }
 
 export type FeeCompletion = { ok: boolean; already?: boolean; receiptNo?: string; review?: boolean }
+
+/** Where the browser goes back to after a payment page: the student's portal, or the parents' page. */
+export async function feeReturnPath(orgId: string, ref: string | null): Promise<string> {
+  if (!ref || !/^[0-9a-f-]{36}$/i.test(ref)) return '/'
+  const [l] = (await withOrgSystem(orgId, (tx) => tx.execute<{ via: string }>(sql`select via from fee_payment_links where id = ${ref}`))).rows
+  return l?.via === 'parent' ? '/p/done' : '/'
+}
 
 /**
  * Records a confirmed online payment, once (the browser's return and the webhook may both arrive). A payment that can

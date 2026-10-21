@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { CalendarCheck, CalendarDays, Eye, GraduationCap, HandHelping } from 'lucide-react'
+import { CalendarCheck, CalendarDays, Copy, Eye, GraduationCap, HandHelping, Users } from 'lucide-react'
 import { AttendancePanel } from '@/components/attendance-panel'
 import { AttendanceCalendar } from '@/components/attendance-calendar'
-import { createStudentLoginAction, queryStudentsAction, studentHelpAction } from '@/app/actions'
+import { createParentLinkAction, createStudentLoginAction, parentLinkStateAction, queryStudentsAction, revokeParentLinkAction, studentHelpAction } from '@/app/actions'
 import { DetailsModal, Modal as WideModal } from '@/components/registration-modals'
 import { ListToolbar, opts, SortTh } from '@/components/list-toolbar'
 import { Pager } from '@/components/pager'
@@ -61,6 +61,7 @@ function StudentsList({ rows, total, summary, departments, canCreateLogin, canSe
   const [viewing, setViewing] = useState<CertOverviewRow | null>(null)
   const [attendanceFor, setAttendanceFor] = useState<CertOverviewRow | null>(null)
   const [helpFor, setHelpFor] = useState<CertOverviewRow | null>(null)
+  const [parentFor, setParentFor] = useState<CertOverviewRow | null>(null)
 
   return (
     <section className="page-container table-page">
@@ -98,6 +99,7 @@ function StudentsList({ rows, total, summary, departments, canCreateLogin, canSe
                   <td>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
                       {canCreateLogin && (r.hasLogin ? <span className="status-badge status-slate"><span className="status-dot" />Has login</span> : <button className="filter-button" onClick={() => setLoginFor(r)}>Portal login</button>)}
+                      {canCreateLogin && <button type="button" className="filter-button icon-only" title="Parent link: a private page for the parent with attendance, fees and marks" aria-label={`Parent link of ${r.name}`} onClick={() => setParentFor(r)}><Users size={15} /></button>}
                       {canSeeAttendance && <button type="button" className="filter-button icon-only" title="Attendance: the calendar marked by the trainer" aria-label={`Attendance of ${r.name}`} onClick={() => setAttendanceFor(r)}><CalendarCheck size={15} /></button>}
                       <button type="button" className="filter-button icon-only" title="Project help: what the student asked and the trainer who helped" aria-label={`Help requests of ${r.name}`} onClick={() => setHelpFor(r)}><HandHelping size={15} /></button>
                       <button type="button" className="filter-button icon-only" title="View the full profile" aria-label={`View ${r.name}`} onClick={() => setViewing(r)}><Eye size={15} /></button>
@@ -114,6 +116,7 @@ function StudentsList({ rows, total, summary, departments, canCreateLogin, canSe
       {loginFor && <LoginModal row={loginFor} onClose={() => setLoginFor(null)} onDone={(m) => { setLoginFor(null); notify?.(m) }} />}
       {attendanceFor && <AttendanceCalendar registrationId={attendanceFor.registrationId} title={`${attendanceFor.name} (${attendanceFor.regNo})`} onClose={() => setAttendanceFor(null)} />}
       {helpFor && <HelpModal row={helpFor} onClose={() => setHelpFor(null)} />}
+      {parentFor && <ParentLinkModal row={parentFor} onClose={() => setParentFor(null)} notify={notify} />}
       {viewing && <DetailsModal row={{ id: viewing.registrationId, regNo: viewing.regNo, name: viewing.name }} onClose={() => setViewing(null)} />}
     </section>
   )
@@ -183,5 +186,44 @@ function HelpModal({ row, onClose }: { row: CertOverviewRow; onClose: () => void
       )}
       <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Close</button></div>
     </WideModal>
+  )
+}
+
+/** WhatsApp's own "send a message" address for a number (+91 in front of a 10-digit one), or null. */
+const waTo = (phone: string | null) => { const d = (phone ?? '').replace(/\D/g, '').replace(/^0+/, ''); return d.length === 10 ? `91${d}` : d.length > 10 ? d : null }
+
+/**
+ * The parent's link of a student: a private page with attendance, fees (and Pay online) and marks, no account needed.
+ * Making a new link stops the old one; it can be stopped here at any time.
+ */
+function ParentLinkModal({ row, onClose, notify }: { row: CertOverviewRow; onClose: () => void; notify?: (m: string) => void }) {
+  const [state, setState] = useState<{ live: boolean; createdAt: string | null; lastSeenAt: string | null } | null>(null)
+  const [made, setMade] = useState<{ url: string; guardianPhone: string | null; name: string } | null>(null)
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  useEffect(() => { void parentLinkStateAction(row.registrationId).then((r) => (r.ok ? setState(r.data!) : setError(r.error))) }, [row.registrationId])
+  const make = () => start(async () => { const r = await createParentLinkAction(row.registrationId); if (!r.ok) return setError(r.error); setError(''); setMade(r.data!); setState({ live: true, createdAt: new Date().toISOString(), lastSeenAt: null }) })
+  const stop = () => start(async () => { const r = await revokeParentLinkAction(row.registrationId); if (!r.ok) return setError(r.error); setMade(null); setState({ live: false, createdAt: null, lastSeenAt: null }); notify?.('Parent link stopped') })
+  const to = made ? waTo(made.guardianPhone) : null
+  const text = made ? `Hello, here is ${made.name}'s progress page: attendance, fees and marks. It is private to you: ${made.url}` : ''
+  return (
+    <Modal title={`Parent link: ${row.name}`} onClose={onClose}>
+      <p className="section-hint" style={{ margin: '-8px 0 12px' }}>A private page for the parent or guardian: attendance, fees with receipts (and Pay online, when it is on) and marks. No account or password. Send it to them; making a new link stops the old one.</p>
+      {!state && !error && <p className="section-hint">Loading…</p>}
+      {state && !made && <p className="section-hint" style={{ margin: '0 0 12px' }}>{state.live ? <>A link is live (made {new Date(state.createdAt!).toLocaleDateString('en-IN')}{state.lastSeenAt ? `, last opened ${new Date(state.lastSeenAt).toLocaleString('en-IN')}` : ', not opened yet'}). The link itself is not kept: make a new one to send it again.</> : 'No live link.'}</p>}
+      {made && (
+        <div style={{ display: 'grid', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input readOnly value={made.url} aria-label="Parent link" style={{ flex: 1 }} onFocus={(e) => e.currentTarget.select()} />
+            <button type="button" className="filter-button icon-only" title="Copy" aria-label="Copy the link" onClick={() => { void navigator.clipboard?.writeText(made.url); notify?.('Link copied') }}><Copy size={15} /></button></div>
+          <a className="button primary" href={`https://wa.me/${to ?? ''}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">Send on WhatsApp{to ? '' : ' (pick the contact)'}</a>
+          {!to && <small className="section-hint">No parent or guardian phone is on record: WhatsApp asks whom to send it to.</small>}
+        </div>
+      )}
+      <Err msg={error} />
+      <div className="modal-actions">
+        {state?.live && <button type="button" className="button secondary" disabled={pending} onClick={stop}>Stop the link</button>}
+        <button type="button" className="button primary" disabled={pending || !state} onClick={make}>{pending ? 'Working…' : state?.live ? 'Make a new link' : 'Make the link'}</button>
+      </div>
+    </Modal>
   )
 }

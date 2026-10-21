@@ -60,6 +60,7 @@ export async function proxy(req: NextRequest) {
   if (sitePath) return new NextResponse('Not found', { status: 404 })
   if (pathname === '/verify' || pathname.startsWith('/verify/')) return withCsp(req) // public certificate and receipt checks, and the search
   if (pathname.startsWith('/e/')) return withCsp(req) // public event sign-up (seminars, workshops) and event certificates
+  if (pathname.startsWith('/p/')) return withCsp(req) // a parent's private link (the token is the key) and their after-payment page
   // back from the payment page (signed by the provider: it completes the payment even if the session ran out meanwhile)
   if (pathname === '/billing/return' || pathname === '/billing/fake-pay' || pathname === '/pay/fees/return') return withCsp(req)
   // a session belongs to one organisation: on another org's address it counts as none (getActor checks it again
