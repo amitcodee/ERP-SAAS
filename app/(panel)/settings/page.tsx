@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 import { sql } from 'drizzle-orm'
+import { listOnlinePayments } from '@/modules/fees/online'
 import { CertificateSignatures } from '@/components/certificate-signatures'
 import { SettingsTabs, type SettingsData } from '@/components/settings-tabs'
 import { appOrigin } from '@/lib/app-url'
@@ -42,12 +43,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
 
   let admin: SettingsData['admin'] = null
   if (headOffice) {
-    const [email, whatsapp, sms, reminders, jobs] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs')])
+    const [email, whatsapp, sms, reminders, jobs, pay] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs'), getConfig(b.actor.orgId, 'payments')])
     const data = await withHeadOffice(b.actor, async (tx) => ({
       webhooks: await listWebhooks(tx),
       keys: await listApiKeys(tx),
       campaigns: await listCampaigns(tx),
       numbering: await listNumbering(tx),
+      onlinePayments: await listOnlinePayments(tx, 50),
       billing: await billingOverview(tx), plan: await orgPlan(tx), usage: await orgUsage(tx),
       branches: (await tx.execute<{ id: string; name: string; code: string }>(sql`select id, name, code from branches where is_active order by name`)).rows,
       runs: (await tx.execute<{ id: string; job: string; started_at: string; finished_at: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }>(sql`
@@ -57,6 +59,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       email: { config: email.config, hasPassword: !!email.secrets.password, saved: email.saved, updatedAt: email.updatedAt },
       whatsapp: { config: whatsapp.config, hasToken: !!whatsapp.secrets.token, hasApiKey: !!whatsapp.secrets.apiKey, saved: whatsapp.saved, updatedAt: whatsapp.updatedAt },
       sms: { config: sms.config, hasAuthKey: !!sms.secrets.authKey, saved: sms.saved, updatedAt: sms.updatedAt },
+      payments: { config: pay.config, hasKeySecret: !!pay.secrets.keySecret, hasWebhookSecret: !!pay.secrets.webhookSecret, saved: pay.saved, updatedAt: pay.updatedAt, webhookUrl: `${await appOrigin(b.actor.orgId)}/api/webhooks/fee-payments/${b.actor.orgId}`, recent: data.onlinePayments },
       campaigns: data.campaigns,
       numbering: data.numbering,
       billing: {

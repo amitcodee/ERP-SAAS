@@ -42,6 +42,7 @@ import { askForHelp, batchTeaching, chooseHelper, closeHelp, courseSyllabus, cre
 import { assignTicket, closeTicket, escalateTicket, postAnnouncement, raiseInternalTicket, raiseTicket, rateTicket, removeAnnouncement, replyTicket, setAnnouncementPinned, setTicketPriority, ticketAssignees, ticketMessages, type AnnouncementInput, type InternalTicketInput, type RaiseTicketInput } from '@/modules/support/service'
 import { branches } from '@/lib/db/schema'
 import { appOrigin } from '@/lib/app-url'
+import { startFeePayment } from '@/modules/fees/online'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
 import type { CreateEnquiryInput, FollowUpCallInput, FollowUpLeadInput, LogCallInput, TransitionInput, UpdateCallInput, UpdateLeadInput } from '@/modules/enquiries/validators'
 import { applyDiscount, listReceipts, recordPayment, reversePayment, type DiscountInput, type RecordPaymentInput, type ReversalInput } from '@/modules/fees/service'
@@ -1355,6 +1356,7 @@ const waSettings = z.object({
   enabled: z.boolean(), provider: z.enum(['aisensy', 'meta']), countryCode,
   campaigns: z.partialRecord(z.enum(WA_KEYS as [WaMessageKey, ...WaMessageKey[]]), z.string().trim().max(120)).default({}),
   off: z.array(z.enum(WA_EVENT_KEYS as [WaEventKey, ...WaEventKey[]])).max(20).default([]),
+  on: z.array(z.enum(WA_EVENT_KEYS as [WaEventKey, ...WaEventKey[]])).max(20).default([]),
   phoneNumberId: z.string().trim().max(40).regex(/^\d*$/, 'The phone number ID is digits only'), businessAccountId: z.string().trim().max(40),
   apiVersion: z.string().trim().regex(/^v\d+\.\d+$/, 'The API version looks like v20.0'), reminderTemplate: z.string().trim().max(120),
   language: z.string().trim().min(2).max(10),
@@ -1386,6 +1388,24 @@ export async function saveWhatsappSettingsAction(config: z.input<typeof waSettin
 const smsSettings = z.object({ enabled: z.boolean(), provider: z.literal('msg91'), templateId: z.string().trim().max(80), senderId: z.string().trim().max(12), countryCode })
 export async function saveSmsSettingsAction(config: z.input<typeof smsSettings>, authKey: string | null) {
   return run(async () => { const a = await headOffice(); await saveConfig(a.orgId, 'sms', smsSettings.parse(config), { authKey: authKey ?? '' }, a.userId); await auditSettings(a, 'sms'); settingsSaved() })
+}
+// ---- Online fee payments (modules/fees/online.ts): the institute's own Razorpay account, and the student's Pay online
+const paymentsSettings = z.object({ enabled: z.boolean(), provider: z.literal('razorpay'), keyId: z.string().trim().max(60).refine((v) => !v || /^rzp_(live|test)_\w+$/.test(v), 'The Key ID starts with rzp_live_ or rzp_test_') })
+export async function savePaymentsSettingsAction(config: z.input<typeof paymentsSettings>, keySecret: string | null, webhookSecret: string | null) {
+  return run(async () => {
+    const a = await headOffice()
+    const c = paymentsSettings.parse(config)
+    await saveConfig(a.orgId, 'payments', c, { keySecret: keySecret ?? '', webhookSecret: webhookSecret ?? '' }, a.userId)
+    await auditSettings(a, 'payments'); settingsSaved()
+  })
+}
+/** The student's Pay online: the address of the payment page to open (their own registration only). */
+export async function startFeePaymentAction(registrationId: string) {
+  return run(async () => {
+    const { actor } = await getActor()
+    const id = z.string().uuid().parse(registrationId)
+    return startFeePayment(actor, id, await appOrigin(actor.orgId))
+  })
 }
 export async function testMessageAction(channel: 'whatsapp' | 'sms', to: string) {
   return run(async () => {

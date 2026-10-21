@@ -4,10 +4,10 @@
 // address (?tab=). Head office only, except Business rules and Certificates. Your own password is under My account.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { BadgeCheck, BellRing, Check, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Webhook, X } from 'lucide-react'
+import { BadgeCheck, BellRing, Check, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
 import {
   createApiKeyAction, createWebhookAction, deleteWebhookAction, revokeApiKeyAction, runJobNowAction, saveBranchEmailAction, saveEmailSettingsAction, saveJobsAction, saveNumberingAction, saveRemindersAction,
-  saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
+  savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
 } from '@/app/actions'
 import { IntegrationsPanel } from '@/components/integrations-panel'
 import { WaCampaignsTab } from '@/components/wa-campaigns'
@@ -15,7 +15,8 @@ import type { CampaignRow } from '@/modules/notifications/broadcasts'
 import { Err, Modal } from '@/components/modal'
 import { useNotify } from '@/components/panel-shell'
 import { useBrand } from '@/components/brand-context'
-import type { EmailConfig, JobsConfig, RemindersConfig, SmsConfig, WhatsAppConfig } from '@/lib/config/store'
+import type { EmailConfig, JobsConfig, PaymentsConfig, RemindersConfig, SmsConfig, WhatsAppConfig } from '@/lib/config/store'
+import type { OnlinePaymentRow } from '@/modules/fees/online'
 import { waBody, WA_EVENT_KEYS, WA_KEYS, WA_MESSAGES } from '@/lib/notify/whatsapp'
 import { DIAL_CODES } from '@/lib/countries'
 import type { ApiKeyRow } from '@/modules/integrations/api'
@@ -35,6 +36,7 @@ export type SettingsData = {
     email: { config: EmailConfig; hasPassword: boolean; saved: boolean; updatedAt: string | null }
     whatsapp: { config: WhatsAppConfig; hasToken: boolean; hasApiKey: boolean; saved: boolean; updatedAt: string | null }
     sms: { config: SmsConfig; hasAuthKey: boolean; saved: boolean; updatedAt: string | null }
+    payments: { config: PaymentsConfig; hasKeySecret: boolean; hasWebhookSecret: boolean; saved: boolean; updatedAt: string | null; webhookUrl: string; recent: OnlinePaymentRow[] }
     campaigns: CampaignRow[]
     numbering: NumberingRow[]
     billing: BillingTabData
@@ -61,6 +63,7 @@ const TABS = [
   { key: 'email', label: 'E-mail', icon: Mail, admin: true },
   { key: 'messaging', label: 'WhatsApp & SMS', icon: MessageCircle, admin: true },
   { key: 'campaigns', label: 'WhatsApp campaigns', icon: Megaphone, admin: true },
+  { key: 'payments', label: 'Online payments', icon: Wallet, admin: true },
   { key: 'billing', label: 'Plan & billing', icon: CreditCard, admin: true },
   { key: 'numbering', label: 'Numbering', icon: Hash, admin: true },
   { key: 'reminders', label: 'Reminders', icon: BellRing, admin: true },
@@ -133,6 +136,7 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
         {current === 'email' && data.admin && <EmailTab key="central" d={data.admin.email} />}
         {current === 'messaging' && data.admin && <MessagingTab wa={data.admin.whatsapp} sms={data.admin.sms} />}
         {current === 'campaigns' && data.admin && <WaCampaignsTab list={data.admin.campaigns} whatsappOn={data.admin.whatsapp.config.enabled} />}
+        {current === 'payments' && data.admin && <PaymentsTab d={data.admin.payments} />}
         {current === 'billing' && data.admin && <BillingTab d={data.admin.billing} />}
         {current === 'numbering' && data.admin && <NumberingTab rows={data.admin.numbering} />}
         {current === 'reminders' && data.admin && <RemindersTab cfg={data.admin.reminders} ready={{ email: data.admin.email.config.enabled, whatsapp: data.admin.whatsapp.config.enabled, sms: data.admin.sms.config.enabled }} goJobs={() => go('jobs')} goChannels={() => go('messaging')} />}
@@ -141,6 +145,67 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
         {current === 'api' && data.admin && <ApiTab keys={data.admin.keys} datasets={data.admin.datasets} branches={data.admin.branches} origin={data.admin.origin} />}
       </div>
     </section>
+  )
+}
+
+// ---- Online payments
+
+const rupees = (paise: number) => '₹' + (paise / 100).toLocaleString('en-IN')
+const PAY_STATUS: Record<string, { label: string; tone: 'green' | 'slate' | 'amber' | 'red' | 'blue' }> = {
+  paid: { label: 'Paid', tone: 'green' }, pending: { label: 'Not paid yet', tone: 'slate' }, review: { label: 'Paid: needs the office', tone: 'red' },
+}
+
+/** Students paying their fees online into the institute's own Razorpay account, and the payments made so far. */
+function PaymentsTab({ d }: { d: NonNullable<SettingsData['admin']>['payments'] }) {
+  const notify = useNotify()
+  const router = useRouter()
+  const [c, setC] = useState(d.config)
+  const [keySecret, setKeySecret] = useState('')
+  const [hookSecret, setHookSecret] = useState('')
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  const ready = !!(c.keyId && (d.hasKeySecret || keySecret))
+  const save = () => start(async () => {
+    const r = await savePaymentsSettingsAction(c, keySecret || null, hookSecret || null)
+    if (!r.ok) return setError(r.error)
+    setError(''); setKeySecret(''); setHookSecret(''); notify('Online payment settings saved'); router.refresh()
+  })
+  return (
+    <>
+      <Section title="Online fee payments" about="Students pay what is due now (the next installment, or the balance) from their portal: UPI, cards, net banking and wallets, on Razorpay's own payment page. The money goes straight to your Razorpay account; the payment is recorded with a receipt, as at the desk."
+        actions={<>{c.enabled && (ready || !d.saved) ? <Badge tone="green">On</Badge> : <Badge tone="slate">Off</Badge>}</>}>
+        <Toggle label="Students can pay online" value={c.enabled} set={(v) => setC({ ...c, enabled: v })} hint="Off: the portal says to pay at the branch office." />
+        <div className="wl-form">
+          <label>Key ID<input value={c.keyId} onChange={(e) => setC({ ...c, keyId: e.target.value.trim() })} placeholder="rzp_live_…" autoComplete="off" /></label>
+          <label>Key secret{d.hasKeySecret ? ' (saved; type to change)' : ''}<PasswordInput value={keySecret} onChange={(e) => setKeySecret(e.target.value)} placeholder={d.hasKeySecret ? '••••••••' : ''} autoComplete="off" /></label>
+          <label className="wide">Webhook secret{d.hasWebhookSecret ? ' (saved; type to change)' : ' (recommended)'}<PasswordInput value={hookSecret} onChange={(e) => setHookSecret(e.target.value)} placeholder={d.hasWebhookSecret ? '••••••••' : ''} autoComplete="off" /></label>
+        </div>
+        <p className="section-hint" style={{ margin: '4px 0 8px' }}>Webhook address (Razorpay → Settings → Webhooks, event <code>payment_link.paid</code>): <CopyText text={d.webhookUrl} label="Copy the webhook address" /></p>
+        {c.enabled && !ready && <p className="section-hint" style={{ margin: '0 0 8px', color: '#92400e' }}>Without your Razorpay keys, students cannot pay online{process.env.NODE_ENV !== 'production' ? ' (here, outside production, a test payment page stands in)' : ''}.</p>}
+        <Err msg={error} />
+        <div className="modal-actions"><button type="button" className="button primary" disabled={pending} onClick={save}>{pending ? 'Saving…' : 'Save online payments'}</button></div>
+        <details className="set-help"><summary>How to set it up in Razorpay</summary><ol>
+          <li>Sign in to <b>dashboard.razorpay.com</b> with the institute's account (KYC done, live mode on).</li>
+          <li><b>Account &amp; Settings → API keys</b>: generate a key. Paste the <b>Key ID</b> and the <b>Key secret</b> above.</li>
+          <li><b>Account &amp; Settings → Webhooks → Add new webhook</b>: the address above, a secret of your choice (paste it above too), and the event <i>payment_link.paid</i>.</li>
+          <li>Save and switch on. A student's payment then appears below and as a receipt on their fees.</li>
+        </ol></details>
+      </Section>
+      <Section title="Recent online payments" about="The newest first. “Needs the office”: the money was taken but could not be recorded as it was (e.g. the fee was paid at the desk meanwhile): refund it in Razorpay, or record it on the student's fees.">
+        {!d.recent.length ? <p className="section-hint" style={{ margin: 0 }}>No online payments yet.</p> : (
+          <div className="table-scroll"><table className="data-table">
+            <thead><tr><th>When</th><th>Student</th><th>Branch</th><th>Amount</th><th>Status</th><th>Receipt / note</th></tr></thead>
+            <tbody>{d.recent.map((p) => (
+              <tr key={p.id}>
+                <td>{when(p.createdAt)}</td><td>{p.name}<small style={{ display: 'block', color: 'var(--muted)' }}>{p.regNo}</small></td><td>{p.branch}</td><td>{rupees(p.amount)}</td>
+                <td><Badge tone={PAY_STATUS[p.status]?.tone ?? 'slate'}>{PAY_STATUS[p.status]?.label ?? p.status}</Badge></td>
+                <td>{p.receiptNo ? <a href={`/receipts/${encodeURIComponent(p.receiptNo)}`} target="_blank" rel="noreferrer">{p.receiptNo}</a> : p.note ?? '—'}{p.providerPaymentId && <small style={{ display: 'block', color: 'var(--muted)' }}>{p.providerPaymentId}</small>}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        )}
+      </Section>
+    </>
   )
 }
 
@@ -297,8 +362,12 @@ function MessagingTab({ wa, sms }: { wa: NonNullable<SettingsData['admin']>['wha
         </div>
         <div style={{ marginTop: 12 }}>
           <b>Messages on events</b>
-          {WA_EVENT_KEYS.map((k) => <Toggle key={k} label={WA_MESSAGES[k].label} hint={WA_MESSAGES[k].when} value={!w.off?.includes(k)}
-            set={(v) => setW({ ...w, off: v ? (w.off ?? []).filter((x) => x !== k) : [...(w.off ?? []), k] })} />)}
+          {WA_EVENT_KEYS.map((k) => (WA_MESSAGES[k] as { optIn?: boolean }).optIn
+            // a message that is off until switched on (its template is new): `on` lists it
+            ? <Toggle key={k} label={WA_MESSAGES[k].label} hint={WA_MESSAGES[k].when} value={!!w.on?.includes(k)}
+              set={(v) => setW({ ...w, on: v ? [...(w.on ?? []).filter((x) => x !== k), k] : (w.on ?? []).filter((x) => x !== k) })} />
+            : <Toggle key={k} label={WA_MESSAGES[k].label} hint={WA_MESSAGES[k].when} value={!w.off?.includes(k)}
+              set={(v) => setW({ ...w, off: v ? (w.off ?? []).filter((x) => x !== k) : [...(w.off ?? []), k] })} />)}
         </div>
         <Err msg={error.wa ?? ''} />
         <div className="modal-actions"><button type="button" className="button primary" disabled={pending} onClick={saveWa}>Save WhatsApp settings</button></div>

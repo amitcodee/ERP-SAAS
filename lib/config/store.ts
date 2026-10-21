@@ -23,6 +23,8 @@ export type WhatsAppConfig = {
   campaigns: Partial<Record<WaMessageKey, string>>
   /** Event messages switched off in Settings (fee reminders follow Settings → Reminders). */
   off: WaEventKey[]
+  /** Opt-in event messages (WaMessage.optIn) switched on in Settings. */
+  on?: WaEventKey[]
   phoneNumberId: string; businessAccountId: string; apiVersion: string; reminderTemplate: string; language: string
 }
 export type WhatsAppSecrets = { token?: string; apiKey?: string }
@@ -37,6 +39,9 @@ export type RemindersConfig = {
   overdueDays: number[]
   texts: { soon: string; today: string; overdue: string }
 }
+/** Students paying their fees online (the portal's Pay online), through the institute's own Razorpay account. */
+export type PaymentsConfig = { enabled: boolean; provider: 'razorpay'; keyId: string }
+export type PaymentsSecrets = { keySecret?: string; webhookSecret?: string }
 export type JobKey = 'reminders' | 'reconcile' | 'purge' | 'escalations'
 export type JobsConfig = Record<JobKey, { enabled: boolean; time: string }> & { scheduler: 'panel' | 'external' }
 
@@ -46,6 +51,7 @@ export type ConfigMap = {
   sms: { config: SmsConfig; secrets: SmsSecrets }
   reminders: { config: RemindersConfig; secrets: Record<string, never> }
   jobs: { config: JobsConfig; secrets: Record<string, never> }
+  payments: { config: PaymentsConfig; secrets: PaymentsSecrets }
 }
 export type ConfigKey = keyof ConfigMap
 
@@ -55,7 +61,7 @@ export const DEFAULTS: { [K in ConfigKey]: ConfigMap[K]['config'] } = {
     enabled: false, host: 'smtp.gmail.com', port: 465, security: 'ssl', user: '', fromName: '', fromAddress: '', replyTo: '', alertEmail: '',
   },
   whatsapp: {
-    enabled: false, provider: 'aisensy', countryCode: '91', campaigns: {}, off: [],
+    enabled: false, provider: 'aisensy', countryCode: '91', campaigns: {}, off: [], on: [],
     phoneNumberId: '', businessAccountId: '', apiVersion: 'v20.0', reminderTemplate: 'fee_reminder', language: 'en',
   },
   sms: { enabled: false, provider: 'msg91', templateId: '', senderId: '', countryCode: '91' },
@@ -69,6 +75,7 @@ export const DEFAULTS: { [K in ConfigKey]: ConfigMap[K]['config'] } = {
     },
   },
   jobs: { scheduler: 'panel', reminders: { enabled: true, time: '09:00' }, reconcile: { enabled: true, time: '02:00' }, purge: { enabled: true, time: '03:00' }, escalations: { enabled: true, time: '10:00' } },
+  payments: { enabled: false, provider: 'razorpay', keyId: '' },
 }
 
 export type Loaded<K extends ConfigKey> = ConfigMap[K] & { saved: boolean; updatedAt: string | null }

@@ -14,11 +14,14 @@ import { certificateOverview, type CertOverviewRow } from '../certificates/servi
 import { listFees, listReceipts, type FeeRow } from '../fees/service'
 import { aadhaarColumns, openAadhaar } from '../people/aadhaar-store'
 import { brandIn } from '@/lib/brand'
+import { dueNow } from '../fees/online'
 
 export type PortalItem = {
   fee: FeeRow
   cert: CertOverviewRow | null
   receipts: { receiptNo: string; amount: number; paidAt: string; mode: string; paperSlip: boolean; cancelled: boolean }[]
+  /** What paying online now would pay (modules/fees/online.ts dueNow); 0 when nothing is due. */
+  payNow: number
 }
 
 export async function myPortal(tx: Tx, actor: Actor): Promise<PortalItem[]> {
@@ -32,6 +35,7 @@ export async function myPortal(tx: Tx, actor: Actor): Promise<PortalItem[]> {
       fee,
       cert: certs.find((c) => c.registrationId === fee.registrationId) ?? null,
       receipts: receipts.map((r) => ({ receiptNo: r.receiptNo, amount: r.amount, paidAt: r.paidAt.toISOString(), mode: r.mode, paperSlip: !!r.slipId, cancelled: !!r.cancelled })),
+      payNow: fee.status === 'transferred' ? 0 : await dueNow(tx, fee.registrationId),
     })
   }
   return items

@@ -179,7 +179,7 @@ async function data(tx: Tx, tenant: string[]) {
 const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? files(p) : /\.(ts|tsx)$/.test(f) ? [p] : [] })
 const rel = (p: string) => p.replace(/\\/g, '/')
 /** What signs a caller in, or names how a public route finds its org. */
-const AUTH = /siteOnly\(|getActor\(|requirePage\(|loadPanelBase\(|branchEmailOwner\(|headOffice\(\)|requirePlatform\(|requireRequestOrg\(|requestOrg\(|requestHost\(|webLeadsAuthorized\(|apiKeyFrom|authorizeApiKey|CRON_SECRET|cronAuthorized|readChallenge\(|readSupportLink\(|verifyCallback\(|verifyWebhook\(/
+const AUTH = /siteOnly\(|getActor\(|requirePage\(|loadPanelBase\(|branchEmailOwner\(|headOffice\(\)|requirePlatform\(|requireRequestOrg\(|requestOrg\(|requestHost\(|webLeadsAuthorized\(|apiKeyFrom|authorizeApiKey|CRON_SECRET|cronAuthorized|readChallenge\(|readSupportLink\(|verifyCallback\(|verifyWebhook\(|verifyFeeWebhook\(/
 /** Server actions with nothing to protect: they touch no org's data. */
 const PUBLIC_ACTIONS: Record<string, string> = {
   logoutAction: 'clears this browser’s cookies (and revokes its own session id)',

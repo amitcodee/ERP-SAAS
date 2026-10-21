@@ -1,5 +1,6 @@
 // Batches, sessions, attendance and assessments. Attendance % itself lives only in v_attendance_pct (P6).
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import { alertAbsences } from '@/modules/notifications/whatsapp-events'
 import { z } from 'zod'
 import { audit } from '@/lib/audit'
 import { assertCan, can } from '@/lib/auth/permissions'
@@ -136,6 +137,8 @@ export async function markAttendance(tx: Tx, actor: Actor, sessionId: string, ma
       .onConflictDoUpdate({ target: [attendance.sessionId, attendance.registrationId], set: { present: m.present, markedBy: actor.userId } })
   }
   await audit(tx, actor, { action: 'mark_attendance', entity: 'class_session', entityId: sessionId, after: { count: marks.length } })
+  // the parents of today's absentees hear of it (when switched on: Settings → WhatsApp & SMS)
+  await alertAbsences(tx, sessionId, marks.filter((m) => !m.present).map((m) => m.registrationId))
 }
 
 export async function addAssessment(

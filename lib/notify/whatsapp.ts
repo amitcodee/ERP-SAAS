@@ -19,6 +19,8 @@ export type WaMessage = {
   params: readonly string[]
   /** Sent on an event: not sent at all when it has waited longer than this (WhatsApp off, AiSensy down). */
   maxAgeHours?: number
+  /** Off until switched on in Settings (a message added after institutes set WhatsApp up: its template is not approved yet). */
+  optIn?: boolean
 }
 
 export const WA_MESSAGES = {
@@ -81,6 +83,19 @@ export const WA_MESSAGES = {
     },
     params: ['first_name', 'course', 'cert_no', 'link'],
     maxAgeHours: 168,
+  },
+  absence: {
+    label: 'Absent from class',
+    when: 'A student is marked absent in today’s class: to the parent or guardian’s number (else the student’s). Off until switched on',
+    covers: ['student_absent'],
+    campaign: 'class_absence',
+    template: {
+      name: 'class_absence', category: 'UTILITY', language: 'en',
+      body: 'Hello,\n\n{{1}} was absent from today’s {{2}} class at [Institute] {{3}}.\n\nIf this is unexpected, please call the branch office.',
+    },
+    params: ['first_name', 'batch', 'branch'],
+    maxAgeHours: 12,
+    optIn: true,
   },
 } as const satisfies Record<string, WaMessage>
 

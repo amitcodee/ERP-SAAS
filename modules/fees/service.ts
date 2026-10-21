@@ -80,7 +80,8 @@ export function assertOpenFees(reg: { status: string }) {
   if (reg.status === 'transferred') throw new Error('This student was transferred to another branch: their fees are handled there now')
 }
 
-export async function recordPayment(tx: Tx, actor: Actor, raw: RecordPaymentInput) {
+/** `opts.online`: paid by the student online (modules/fees/online.ts): nobody at the desk received it. */
+export async function recordPayment(tx: Tx, actor: Actor, raw: RecordPaymentInput, opts: { online?: boolean } = {}) {
   assertCan(actor, 'create', 'fee')
   const input = recordPaymentInput.parse(raw)
   const [reg] = await tx.select().from(registrations).where(eq(registrations.id, input.registrationId)).for('update')
@@ -120,7 +121,7 @@ export async function recordPayment(tx: Tx, actor: Actor, raw: RecordPaymentInpu
   const receiptNo = await nextReceiptNo(tx, reg.branchId, branch.code) // also the slip ID of a paper slip
   const [pay] = await tx
     .insert(payments)
-    .values({ branchId: reg.branchId, registrationId: reg.id, amount: input.amount, modeId: input.modeId, txnRef: input.txnRef, manualSlipNo: input.paperSlip ? receiptNo : null, receivedBy: actor.userId, ...(input.paidOn && input.paidOn !== today ? { paidAt: new Date(`${input.paidOn}T12:00:00+05:30`) } : {}) })
+    .values({ branchId: reg.branchId, registrationId: reg.id, amount: input.amount, modeId: input.modeId, txnRef: input.txnRef, manualSlipNo: input.paperSlip ? receiptNo : null, receivedBy: opts.online ? null : actor.userId, ...(input.paidOn && input.paidOn !== today ? { paidAt: new Date(`${input.paidOn}T12:00:00+05:30`) } : {}) })
     .returning()
   await tx.insert(feeLedger).values({ branchId: reg.branchId, registrationId: reg.id, entryType: 'payment', amount: -input.amount, refId: pay.id, note: input.remark ? `${mode.value} · ${input.remark}` : mode.value, createdBy: actor.userId })
   const [receipt] = await tx.insert(receipts).values({ receiptNo, branchId: reg.branchId, paymentId: pay.id }).returning()
@@ -174,7 +175,7 @@ export const feePlanInput = z.object({
 export type FeePlanInput = z.infer<typeof feePlanInput>
 
 /** What the registration's course allows a plan (see planLimits): from the joining (else registration) date to the expected finish. */
-async function courseLimits(tx: Tx, registrationId: string): Promise<PlanLimits | null> {
+export async function courseLimits(tx: Tx, registrationId: string): Promise<PlanLimits | null> {
   const [r] = await tx.select({ start: sql<string | null>`coalesce(${registrations.joiningDate}, ${registrations.enrollmentDate})::text`, end: sql<string | null>`${registrations.expectedEndDate}::text` })
     .from(registrations).where(eq(registrations.id, registrationId))
   return r ? planLimits(r.start, r.end, todayIST()) : null

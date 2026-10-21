@@ -14,7 +14,7 @@ import {
   FileText, GraduationCap, Home, IdCard, LifeBuoy, LogOut, Mail, MapPin, Megaphone, MoreHorizontal, Phone, Pin, Printer, Receipt,
   Send, ShieldCheck, Sparkles, User, Wallet, X,
 } from 'lucide-react'
-import { askHelpAction, chooseHelperAction, closeHelpAction, closeTicketAction, raiseTicketAction, replyTicketAction, requestCertificateAction, submitMyProjectAction, ticketMessagesAction } from '@/app/actions'
+import { askHelpAction, chooseHelperAction, closeHelpAction, closeTicketAction, raiseTicketAction, replyTicketAction, requestCertificateAction, submitMyProjectAction, ticketMessagesAction, startFeePaymentAction } from '@/app/actions'
 import { logoutAction } from '@/app/login/actions'
 import { ChangePasswordForm } from '@/components/change-password'
 import { Err } from '@/components/modal'
@@ -53,6 +53,8 @@ type Props = {
   name: string; email: string; items: PortalItem[]; study: Study[]; profile: MyProfile | null
   announcements: Announcement[]; tickets: TicketRow[]; categories: { key: string; label: string }[]
   notes: NoteRow[]; help: HelpRequest[]; helpKinds: { key: string; label: string }[]
+  /** The institute takes fees online (Settings → Online payments). */
+  payOnline: boolean
 }
 
 export function StudentPortal(p: Props) {
@@ -136,7 +138,7 @@ export function StudentPortal(p: Props) {
               {tab === 'home' && <HomeTab p={p} s={s} item={item} go={go} />}
               {tab === 'course' && <CourseTab s={s} />}
               {tab === 'learn' && <LearnTab s={s} notes={p.notes} />}
-              {tab === 'fees' && <FeesTab s={s} item={item} />}
+              {tab === 'fees' && <FeesTab s={s} item={item} payOnline={p.payOnline} say={say} />}
               {tab === 'attendance' && <AttendanceTab s={s} min={item.cert?.eligibility.minAttendancePct ?? 80} />}
               {tab === 'grades' && <GradesTab s={s} say={say} />}
               {tab === 'documents' && <DocumentsTab p={p} s={s} item={item} say={say} />}
@@ -428,12 +430,35 @@ function BranchCard({ s }: { s: Study }) {
 
 // ---- Fees
 
-function FeesTab({ s, item }: { s: Study; item: PortalItem }) {
+function FeesTab({ s, item, payOnline, say }: { s: Study; item: PortalItem; payOnline: boolean; say: (m: string) => void }) {
   const f = item.fee
   const total = f.charged - f.discounted
   const today = todayIso()
+  const [pending, start] = useTransition()
+  const [error, setError] = useState('')
+  // back from the payment page: how it went (the receipt is on the list below once it is recorded)
+  const back = useSearchParams()
+  useEffect(() => {
+    const r = back.get('payment')
+    if (!r) return
+    say(r === 'paid' ? `Payment received${back.get('receipt') ? `: receipt ${back.get('receipt')}` : ''}. Thank you!` : r === 'review' ? 'Payment received. The office will confirm it and add the receipt.' : 'The payment was not completed. If money was taken, it is confirmed here within a few minutes.')
+    try { const u = new URL(window.location.href); u.searchParams.delete('payment'); u.searchParams.delete('receipt'); window.history.replaceState(null, '', u) } catch { /* ignore */ }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const pay = () => start(async () => {
+    setError('')
+    const r = await startFeePaymentAction(f.registrationId)
+    if (!r.ok) return setError(r.error)
+    window.location.href = r.data!.url
+  })
   return (
     <>
+      {payOnline && item.payNow > 0 && (
+        <section className="pt-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div><strong style={{ display: 'block' }}>Pay {inr(item.payNow)} online</strong><small style={{ color: 'var(--pt-muted, #6b7394)' }}>UPI, card, net banking or wallet. Your receipt appears here at once.</small></div>
+          <button type="button" className="pt-btn" disabled={pending} onClick={pay}><Wallet size={16} /> {pending ? 'Opening…' : 'Pay now'}</button>
+          {error && <div style={{ flexBasis: '100%' }}><Err msg={error} /></div>}
+        </section>
+      )}
       <section className="pt-card pt-fees">
         <Ring pct={pctOf(f.paid, total)} size={128} stroke={12} value={`${pctOf(f.paid, total)}%`} label="paid" tone={f.balance > 0 ? 'indigo' : 'green'} />
         <div className="pt-fees-nums">
@@ -690,7 +715,7 @@ const PROFILE_CARD: React.CSSProperties = { background: '#fff', border: '1px sol
 // ---- Help
 
 const FAQ = [
-  ['How do I pay my fees?', 'Pay at your branch office (cash, card or UPI). Every payment gets a receipt here under Fees, with a QR code anyone can scan to check it.'],
+  ['How do I pay my fees?', 'Pay at your branch office (cash, card or UPI), or online under Fees when your institute takes online payments. Every payment gets a receipt here under Fees, with a QR code anyone can scan to check it.'],
   ['My attendance looks wrong.', 'Your trainer marks attendance after each class. If a day is wrong, raise a question (Attendance) with the date.'],
   ['When do I get my certificate?', 'When your fees are paid, attendance is above what is needed and your capstone project is approved, request it under Documents.'],
   ['I forgot my password.', 'On the sign-in page choose “Forgot password” and enter your e-mail. You get a link to set a new one.'],

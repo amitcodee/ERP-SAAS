@@ -771,6 +771,20 @@
       "when": 1793600000000,
       "tag": "0109_sample_logo_png",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1793686400000,
+      "tag": "0110_fee_payment_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1793772800000,
+      "tag": "0111_fee_payment_links_orgfk",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { getActor } from '@/lib/auth/current'
 import { withTenant } from '@/lib/db/withTenant'
 import { myPortal, myProfile } from '@/modules/portal/service'
 import { myStudy } from '@/modules/portal/study'
+import { onlinePaymentsOn } from '@/modules/fees/online'
 import { HELP_KINDS, listHelp, listNotes } from '@/modules/teaching/service'
 import { listAnnouncements, listTickets, TICKET_CATEGORIES } from '@/modules/support/service'
 
@@ -21,5 +22,5 @@ export default async function Home() {
     announcements: await listAnnouncements(tx, actor), tickets: await listTickets(tx, actor),
     notes: await listNotes(tx, actor), help: await listHelp(tx, actor),
   }))
-  return <StudentPortal name={s.name} email={s.email} {...d} categories={TICKET_CATEGORIES.map((c) => ({ key: c.key, label: c.label }))} helpKinds={HELP_KINDS.map((k) => ({ key: k.key, label: k.label }))} />
+  return <StudentPortal name={s.name} email={s.email} {...d} payOnline={await onlinePaymentsOn(actor.orgId)} categories={TICKET_CATEGORIES.map((c) => ({ key: c.key, label: c.label }))} helpKinds={HELP_KINDS.map((k) => ({ key: k.key, label: k.label }))} />
 }

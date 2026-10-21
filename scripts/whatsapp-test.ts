@@ -3,7 +3,9 @@
 // rolled-back transaction; the WhatsApp setting is switched on for the run and put back as it was afterwards.
 import { and, eq, sql } from 'drizzle-orm'
 import { db, ownerDb, pool } from '../lib/db/client'
-import { branches, departments, notifications, users } from '../lib/db/schema'
+import { batches, batchMembers, branches, departments, notifications, users } from '../lib/db/schema'
+import { createSession, markAttendance } from '../modules/academics/service'
+import { todayIST } from '../lib/ist'
 import { dropConfigCache } from '../lib/config/store'
 import type { Provider } from '../lib/notify/providers'
 import { WA_MESSAGES, waText } from '../lib/notify/whatsapp'
@@ -88,6 +90,24 @@ async function main() {
       check('a "thank you" older than 48 hours is not sent', stale?.status === 'skipped' && !got.some((g) => g.template === 'enquiry_thanks' && g.params?.[0] === 'Bina'), stale?.status)
       const sentReg = got.find((g) => g.template === 'registration_confirmed')
       check('the provider gets the parameters and the name', !!sentReg && sentReg.params?.[2] === reg.regNo && sentReg.name === 'Deep')
+
+      // a student marked absent: their parent or guardian hears of it, once, for today's class, only when switched on
+      await tx.execute(sql`update persons set guardian_phone = '9811199999' where id = (select person_id from registrations where id = ${reg.id})`)
+      const [bt] = await tx.insert(batches).values({ branchId: b.id, name: 'Morning AutoCAD', departmentId: dept.id }).returning()
+      await tx.insert(batchMembers).values({ batchId: bt.id, registrationId: reg.id, branchId: b.id })
+      const today = await createSession(tx, actor, { batchId: bt.id, sessionDate: todayIST() })
+      await markAttendance(tx, actor, today.id, [{ registrationId: reg.id, present: false }])
+      check('absence alerts are off until switched on (their template is new)', !(await rows('student_absent')).length)
+      await setWhatsApp({ enabled: true, provider: 'aisensy', off: [], on: ['absence'] })
+      await markAttendance(tx, actor, today.id, [{ registrationId: reg.id, present: false }])
+      const absent = await rows('student_absent')
+      check('switched on: the guardian gets "absent from today’s class" with name, batch and branch', absent.length === 1 && absent[0].toAddress === '9811199999' && JSON.stringify(absent[0].params) === JSON.stringify(['Deep', 'Morning AutoCAD', 'Wapur']), JSON.stringify(absent.map((a) => [a.toAddress, a.params])))
+      await markAttendance(tx, actor, today.id, [{ registrationId: reg.id, present: false }])
+      check('marking the register again sends nothing new', (await rows('student_absent')).length === 1)
+      const earlier = await createSession(tx, actor, { batchId: bt.id, sessionDate: '2026-10-01' })
+      await markAttendance(tx, actor, earlier.id, [{ registrationId: reg.id, present: false }])
+      check('an old class filled in late tells nobody', (await rows('student_absent')).length === 1)
+      await setWhatsApp({ enabled: true, provider: 'aisensy', off: [] })
 
       // switched off in Settings: nothing is queued for that message
       await setWhatsApp({ enabled: true, provider: 'aisensy', off: ['registration'] })

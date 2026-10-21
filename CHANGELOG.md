@@ -2,6 +2,21 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 4 (part 1): online fee payment and absence alerts (2026-10-21)
+
+- Students pay what is due now (the next installment, or the balance) from the portal, into the institute's own
+  Razorpay account (Settings → Online payments: keys, webhook address, recent payments). The signed return and the
+  signed webhook each record the payment once, through `recordPayment`, as "Online" with a receipt; a payment that no
+  longer fits (paid at the desk meanwhile) is kept for the office to decide, never dropped. `scripts/online-pay-test.ts`.
+- Absence alerts: a student marked absent in today's class sends "absent from today's class" to the guardian's
+  WhatsApp (else the student's). A new kind of message, off until switched on (its template must be approved first).
+- Migrations 0110 (fee_payment_links) and 0111 (its org companion keys).
+- `docs/competitive-review.md`: what other institute platforms offer, and the order of what comes next.
+
+## Phase 3: the rebrand (2026-10-21)
+
+- The code is neutral; an institute's identity is its data (`docs/rebrand-inventory.md`).
+
 ## Phase 0: the clone runs on its own (2026-10-19)
 
 - Cloned from the techcadd panel (263 commits of history kept). No remote, and nothing copied from the original's

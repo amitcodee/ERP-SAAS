@@ -24,7 +24,8 @@ export type WaEvent = {
 /** Whether this message goes out at all: WhatsApp on, and the message not switched off in Settings. */
 export async function waOn(tx: Tx, key: WaEventKey) {
   const { config: c } = await getConfig(await txOrg(tx), 'whatsapp').catch(() => ({ config: null }))
-  return !!c?.enabled && !c.off?.includes(key)
+  const m = WA_MESSAGES[key] as { optIn?: boolean }
+  return !!c?.enabled && (m.optIn ? !!c.on?.includes(key) : !c.off?.includes(key))
 }
 
 /** Queues one event message. Never fails the event: a problem is logged and the save goes on. Returns whether it was queued. */
@@ -98,4 +99,23 @@ export async function announceCertificate(tx: Tx, requestId: string, origin: str
     branchId: c.branch_id, personId: c.person_id, registrationId: c.registration_id, phone: c.phone,
     vars: { first_name: c.first_name, course: c.course ?? 'your course', cert_no: c.cert_no, link: `${origin}/verify/${c.hash}/certificate` }, once: requestId,
   })
+}
+
+/**
+ * "<name> was absent from today's class": to each absent student's parent or guardian (else the student), once per
+ * class and student. Only for today's class (a register filled in late tells nobody of an old absence).
+ */
+export async function alertAbsences(tx: Tx, sessionId: string, registrationIds: string[]) {
+  if (!registrationIds.length || !(await waOn(tx, 'absence'))) return 0
+  const rows = (await tx.execute<{ registration_id: string; person_id: string; branch_id: string; first_name: string; phone: string | null; guardian_phone: string | null; batch: string; branch: string }>(sql`
+    select r.id as registration_id, p.id as person_id, s.branch_id, p.first_name, p.phone, p.guardian_phone, bt.name as batch, b.name as branch
+    from class_sessions s join batches bt on bt.id = s.batch_id join branches b on b.id = s.branch_id
+      join registrations r on r.id = any(${`{${registrationIds.join(',')}}`}::uuid[]) join persons p on p.id = r.person_id
+    where s.id = ${sessionId} and s.session_date = ${todayIST()}::date`)).rows
+  let n = 0
+  for (const r of rows) {
+    const phone = r.guardian_phone?.replace(/\D/g, '').length ? r.guardian_phone : r.phone
+    if (await queueWhatsApp(tx, 'absence', { branchId: r.branch_id, personId: r.person_id, registrationId: r.registration_id, phone, vars: { first_name: r.first_name, batch: r.batch, branch: await branchOf(tx, r.branch) }, once: `${sessionId}:${r.registration_id}` })) n++
+  }
+  return n
 }

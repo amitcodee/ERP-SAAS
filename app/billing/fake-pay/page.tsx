@@ -11,11 +11,12 @@ export default async function FakePay({ searchParams }: { searchParams: Promise<
   const { ref = '', amount = '0', back = '', sig = '' } = await searchParams
   if (sig !== fakeLinkSig(ref, Number(amount))) notFound()
   const back_ = new URL(back, 'http://x')
-  if (back_.pathname !== '/billing/return') notFound()
+  // back to where it was opened from: the institute paying the platform, or a student paying their fees
+  if (!['/billing/return', '/pay/fees/return'].includes(back_.pathname)) notFound()
   const payment = `fakepay_${Date.now().toString(36)}`
   return (
     <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 16, fontFamily: 'system-ui, sans-serif' }}>
-      <form method="get" action="/billing/return" className="panel" style={{ display: 'grid', gap: 12, width: 'min(380px, 100%)', background: '#fff', borderRadius: 16 }}>
+      <form method="get" action={back_.pathname} className="panel" style={{ display: 'grid', gap: 12, width: 'min(380px, 100%)', background: '#fff', borderRadius: 16 }}>
         <p style={{ margin: 0, padding: '6px 10px', borderRadius: 8, background: '#fff7e6', color: '#5c3b00', fontSize: 13 }}>Test payment page: no money moves.</p>
         <h1 style={{ margin: 0, fontSize: 22 }}>Pay ₹{(Number(amount) / 100).toLocaleString('en-IN')}</h1>
         <input type="hidden" name="ref" value={ref} />

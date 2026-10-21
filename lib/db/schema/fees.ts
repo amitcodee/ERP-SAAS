@@ -165,3 +165,34 @@ export const legacyPayments = pgTable(
     check('legacy_payments_amount_ck', sql`amount > 0`),
   ],
 )
+
+// A student paying online (the portal's Pay online): one row per payment page opened, through the institute's own
+// Razorpay account. The provider confirms twice (the browser's signed return and a signed webhook); either one
+// records the payment once (payment_id), by the same path a payment at the desk takes (modules/fees/online.ts).
+export const feePaymentLinks = pgTable(
+  'fee_payment_links',
+  {
+    orgId: orgId(),
+    id: id(),
+    branchId: uuid('branch_id').notNull().references(() => branches.id),
+    registrationId: uuid('registration_id').notNull().references(() => registrations.id),
+    amount: integer('amount').notNull(), // paise
+    provider: text('provider').notNull(), // razorpay | fake
+    providerLinkId: text('provider_link_id'),
+    url: text('url'),
+    // pending -> paid (recorded) | review (paid, but it could not be recorded: the office decides) | expired
+    status: text('status').notNull().default('pending'),
+    providerPaymentId: text('provider_payment_id'),
+    paymentId: uuid('payment_id'),
+    note: text('note'),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('fee_payment_links_reg_idx').on(t.registrationId, t.createdAt),
+    uniqueIndex('fee_payment_links_provider_payment_uq').on(t.orgId, t.providerPaymentId).where(sql`provider_payment_id IS NOT NULL`),
+    check('fee_payment_links_status_ck', sql`status IN ('pending', 'paid', 'review', 'expired')`),
+    check('fee_payment_links_amount_ck', sql`amount > 0`),
+  ],
+)

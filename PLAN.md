@@ -275,9 +275,9 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
    - Exotel / Knowlarity missed calls;
    - duplicate merge across sources.
 3. Online fee payment:
-   - a Razorpay Payment Link or Checkout on each due instalment;
-   - auto-reconciliation into the ledger and receipt;
-   - optional partial payments and a convenience fee.
+   - [x] a Razorpay Payment Link on the amount due now, from the student portal (the institute's own account);
+   - [x] auto-reconciliation into the ledger and receipt (return and webhook, recorded once);
+   - [ ] a payment link the office sends by WhatsApp / e-mail; optional partial payments and a convenience fee.
 4. Parent / guardian portal.
 5. Exams and results:
    - the exam schedule, marks entry, grade rules and report-card PDFs;
