@@ -11,7 +11,7 @@ Teachmint, Edmingle, Meritto (admissions CRM), and the Techjockey / SoftwareSugg
 | Enquiries and CRM | Lead capture from forms and portals, follow-ups, counsellor assignment, source tracking | Yes: leads, web leads, random calls, lead distribution, categories, follow-up calendar |
 | Fees | Instalments, receipts, reminders, **online payment (UPI, cards) with auto receipts** | Instalments, receipts, reminders; **online payment added now** (below) |
 | Attendance | Batch attendance; biometric / RFID; **absence alerts to parents** | Batch attendance; **absence alerts added now** (WhatsApp to the guardian) |
-| Exams | Test series, question bank, auto-grading, result analysis, report cards | Marks, quizzes for events; no test series or report cards |
+| Exams | Test series, question bank, auto-grading, result analysis, report cards | Tests and marks per batch, **report cards with grades and rank added now**; quizzes for events; no online test series yet |
 | Learning | LMS (videos, PDFs), assignments, live classes (Zoom / Meet) | Syllabus and notes; no live classes or assignments |
 | Apps | Branded student and parent apps | Student web portal (works on phones); **parent link added now** (no app to install) |
 | Communication | WhatsApp / SMS / e-mail alerts | Yes: e-mail, WhatsApp (AiSensy / Meta), SMS (MSG91), bulk WhatsApp |
@@ -36,8 +36,8 @@ with webhooks.
    own Razorpay account; the payment is recorded once, with a receipt, by the same path as a desk payment.
 2. **Parent access and absence alerts** — done: the WhatsApp alert when a student misses today's class (off until
    switched on), and a private parent link (attendance, fees with Pay online, marks) the office sends by WhatsApp.
-3. **Exams and report cards**: tests on the existing quiz engine, a question bank, marks entry, grade rules and a
-   report-card PDF.
+3. **Exams and report cards** — report cards done (grade rules per institute, overall result, batch rank, print /
+   PDF). Still to come: online tests on the quiz engine with a question bank, and an exam schedule.
 4. **Expenses and P&L-lite**: expenses by branch and head, against fee collections.
 5. **Online admission form**: a hosted, embeddable form (with UTM capture) that makes a lead, optionally with an
    application fee through the same online payment.

@@ -281,7 +281,8 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
 4. Parent / guardian portal: [x] a private parent link (attendance, fees with Pay online, marks), sent by WhatsApp;
    [ ] the student sharing it from their own portal; a parent with several children on one page.
 5. Exams and results:
-   - the exam schedule, marks entry, grade rules and report-card PDFs;
+   - [x] marks entry (tests per batch), grade rules per institute, report cards to print / save as PDF, batch rank;
+   - [ ] an exam schedule across batches;
    - online MCQ tests using the events quiz engine;
    - rank lists.
 6. LMS:

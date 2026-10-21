@@ -71,7 +71,8 @@ export default async function ParentPage({ params, searchParams }: { params: Pro
         </section>
 
         <section style={card}>
-          <h2 style={{ margin: 0, fontSize: 17 }}>Marks</h2>
+          <h2 style={{ margin: 0, fontSize: 17 }}>Marks{v.result ? ` · overall ${v.result.pct}%, grade ${v.result.grade}` : ''}</h2>
+          {v.result && <p style={{ margin: 0, color: v.result.passed ? '#047857' : '#b45309' }}>{v.result.label}{v.result.passed ? '' : ': below the pass mark so far'}</p>}
           {!v.marks.length ? <p style={{ margin: 0, color: 'var(--muted)' }}>No marks yet.</p> : v.marks.map((m, i) => (
             <div key={i} style={row}><span>{m.title}<small style={{ display: 'block', color: 'var(--muted)' }}>{day(m.date)}</small></span><strong>{m.score != null && m.maxScore ? `${m.score} / ${m.maxScore}` : m.kind === 'capstone' ? 'Project' : '—'}</strong></div>
           ))}

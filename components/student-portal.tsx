@@ -593,6 +593,7 @@ function GradesTab({ s, say }: { s: Study; say: (m: string) => void }) {
         <Kpi icon={BadgeCheck} tone={cap.some((c) => c.approved) ? 'green' : 'violet'} label="Capstone project" value={cap.some((c) => c.approved) ? 'Approved' : cap.length ? 'Submitted' : 'Not yet'} sub="needed for the certificate" />
       </div>
       <ProjectCard s={s} say={say} />
+      {s.grades.some((g) => g.kind !== 'capstone' && g.score != null) && <div className="pt-form-act" style={{ justifyContent: 'flex-end' }}><a className="pt-btn ghost" href={`/registrations/${s.registrationId}/report-card`} target="_blank" rel="noreferrer"><FileText size={15} /> My report card</a></div>}
       <Card title="All grades" icon={Award}>
         {!s.grades.length ? <Empty icon={Award} title="No grades yet" text="Your trainer adds marks after tests and assignments." /> : (
           <div className="pt-grades">

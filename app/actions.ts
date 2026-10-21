@@ -44,6 +44,7 @@ import { assignTicket, closeTicket, escalateTicket, postAnnouncement, raiseInter
 import { branches } from '@/lib/db/schema'
 import { appOrigin } from '@/lib/app-url'
 import { openFeePayment, startFeePayment } from '@/modules/fees/online'
+import { gradesProblem } from '@/lib/grades'
 import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
 import type { CreateEnquiryInput, FollowUpCallInput, FollowUpLeadInput, LogCallInput, TransitionInput, UpdateCallInput, UpdateLeadInput } from '@/modules/enquiries/validators'
@@ -1409,6 +1410,22 @@ export async function startFeePaymentAction(registrationId: string) {
     return startFeePayment(actor, id, await appOrigin(actor.orgId))
   })
 }
+// ---- Report-card grades (lib/grades.ts)
+const gradesSettings = z.object({
+  bands: z.array(z.object({ min: z.number().int().min(0).max(100), grade: z.string().trim().min(1).max(4), label: z.string().trim().max(40) })).min(1).max(12),
+  passPct: z.number().int().min(0).max(100),
+})
+export async function saveGradesAction(config: z.input<typeof gradesSettings>) {
+  return run(async () => {
+    const a = await headOffice()
+    const v = gradesSettings.parse(config)
+    const why = gradesProblem(v)
+    if (why) throw new Error(why)
+    await saveConfig(a.orgId, 'grades', { ...v, bands: [...v.bands].sort((x, y) => y.min - x.min) }, {}, a.userId)
+    await auditSettings(a, 'grades'); settingsSaved()
+  })
+}
+
 // ---- Parents' links (modules/portal/parent.ts): made by the office, opened by the parent with no account
 export async function createParentLinkAction(registrationId: string) {
   return run(async () => {

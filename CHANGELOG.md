@@ -2,6 +2,16 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 4 (part 3): report cards (2026-10-21)
+
+- A printable A4 report card per registration (/registrations/<id>/report-card): every marked test and assignment
+  with its percent and grade, the overall result (total marks over total maximums) with grade and pass / not yet,
+  the rank in the student's batch (ties share a rank), what is still to be marked, attendance and the capstone.
+- Opened from Students (the document icon) and by the student from their portal (Grades → My report card); the
+  parents' page shows the overall result and grade.
+- Each institute sets its grade bands and pass mark in Settings → Report cards (lib/grades.ts; standard A+ to E,
+  pass at 40%). `scripts/report-card-test.ts`.
+
 ## Phase 4 (part 2): parents' links (2026-10-21)
 
 - A parent or guardian gets a private link (/p/<token>), made by the office from Students (the people icon) and sent

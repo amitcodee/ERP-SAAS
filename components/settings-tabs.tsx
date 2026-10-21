@@ -4,10 +4,10 @@
 // address (?tab=). Head office only, except Business rules and Certificates. Your own password is under My account.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { BadgeCheck, BellRing, Check, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
+import { Award, BadgeCheck, BellRing, Check, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
 import {
   createApiKeyAction, createWebhookAction, deleteWebhookAction, revokeApiKeyAction, runJobNowAction, saveBranchEmailAction, saveEmailSettingsAction, saveJobsAction, saveNumberingAction, saveRemindersAction,
-  savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
+  saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
 } from '@/app/actions'
 import { IntegrationsPanel } from '@/components/integrations-panel'
 import { WaCampaignsTab } from '@/components/wa-campaigns'
@@ -17,6 +17,7 @@ import { useNotify } from '@/components/panel-shell'
 import { useBrand } from '@/components/brand-context'
 import type { EmailConfig, JobsConfig, PaymentsConfig, RemindersConfig, SmsConfig, WhatsAppConfig } from '@/lib/config/store'
 import type { OnlinePaymentRow } from '@/modules/fees/online'
+import { DEFAULT_GRADES, gradesProblem, type GradesConfig } from '@/lib/grades'
 import { waBody, WA_EVENT_KEYS, WA_KEYS, WA_MESSAGES } from '@/lib/notify/whatsapp'
 import { DIAL_CODES } from '@/lib/countries'
 import type { ApiKeyRow } from '@/modules/integrations/api'
@@ -41,6 +42,7 @@ export type SettingsData = {
     numbering: NumberingRow[]
     billing: BillingTabData
     reminders: RemindersConfig
+    grades: GradesConfig
     jobs: JobsConfig
     jobInfo: Record<string, { label: string; what: string }>
     runs: { id: string; job: string; startedAt: string; finishedAt: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }[]
@@ -67,6 +69,7 @@ const TABS = [
   { key: 'billing', label: 'Plan & billing', icon: CreditCard, admin: true },
   { key: 'numbering', label: 'Numbering', icon: Hash, admin: true },
   { key: 'reminders', label: 'Reminders', icon: BellRing, admin: true },
+  { key: 'grades', label: 'Report cards', icon: Award, admin: true },
   { key: 'jobs', label: 'Scheduled jobs', icon: Clock3, admin: true },
   { key: 'integrations', label: 'Integrations', icon: Plug, admin: true },
   { key: 'api', label: 'API access', icon: KeyRound, admin: true },
@@ -140,11 +143,56 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
         {current === 'billing' && data.admin && <BillingTab d={data.admin.billing} />}
         {current === 'numbering' && data.admin && <NumberingTab rows={data.admin.numbering} />}
         {current === 'reminders' && data.admin && <RemindersTab cfg={data.admin.reminders} ready={{ email: data.admin.email.config.enabled, whatsapp: data.admin.whatsapp.config.enabled, sms: data.admin.sms.config.enabled }} goJobs={() => go('jobs')} goChannels={() => go('messaging')} />}
+        {current === 'grades' && data.admin && <GradesTab cfg={data.admin.grades} />}
         {current === 'jobs' && data.admin && <JobsTab cfg={data.admin.jobs} info={data.admin.jobInfo} runs={data.admin.runs} cronSecretSet={data.admin.cronSecretSet} origin={data.admin.origin} />}
         {current === 'integrations' && data.admin && <IntegrationsTab status={data.integrations} hooks={data.admin.webhooks} events={data.admin.events} origin={data.admin.origin} webLeadsOn={data.admin.webLeadsOn} />}
         {current === 'api' && data.admin && <ApiTab keys={data.admin.keys} datasets={data.admin.datasets} branches={data.admin.branches} origin={data.admin.origin} />}
       </div>
     </section>
+  )
+}
+
+// ---- Report cards
+
+/** The grade bands and the pass mark the report cards use (lib/grades.ts). */
+function GradesTab({ cfg }: { cfg: GradesConfig }) {
+  const notify = useNotify()
+  const router = useRouter()
+  const [g, setG] = useState<GradesConfig>({ ...cfg, bands: [...cfg.bands].sort((a, b) => b.min - a.min) })
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  const why = gradesProblem(g)
+  const band = (i: number, v: Partial<GradesConfig['bands'][number]>) => setG({ ...g, bands: g.bands.map((b, k) => (k === i ? { ...b, ...v } : b)) })
+  const save = () => start(async () => {
+    const r = await saveGradesAction(g)
+    if (!r.ok) return setError(r.error)
+    setError(''); notify('Report card grades saved'); router.refresh()
+  })
+  return (
+    <Section title="Grades on report cards" about="A student's overall result is their total marks over the total of the maximums, across marked tests and assignments. Each grade starts at the percent shown and runs up to the next one.">
+      <div className="set-rules">
+        {g.bands.map((b, i) => (
+          <div key={i} className="set-rule">
+            <div className="row-actions" style={{ gap: 8 }}>
+              <input value={b.grade} maxLength={4} onChange={(e) => band(i, { grade: e.target.value })} aria-label="Grade" style={{ width: 70 }} />
+              <input value={b.label} maxLength={40} onChange={(e) => band(i, { label: e.target.value })} aria-label="Grade wording" placeholder="e.g. Excellent" />
+            </div>
+            <div className="row-actions" style={{ gap: 8 }}>
+              <span className="section-hint">from</span>
+              <input type="number" min={0} max={100} value={b.min} onChange={(e) => band(i, { min: Number(e.target.value) })} aria-label={`${b.grade} starts at`} style={{ width: 80 }} /><span className="section-hint">%</span>
+              <button type="button" className="filter-button icon-only" title="Remove this grade" aria-label={`Remove ${b.grade}`} disabled={g.bands.length < 2} onClick={() => setG({ ...g, bands: g.bands.filter((_, k) => k !== i) })}><Trash2 size={14} /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="row-actions" style={{ margin: '10px 0', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" className="filter-button" disabled={g.bands.length >= 12} onClick={() => setG({ ...g, bands: [...g.bands, { min: 0, grade: '', label: '' }] })}><Plus size={14} /> Add a grade</button>
+        <button type="button" className="filter-button" onClick={() => setG(DEFAULT_GRADES)}>Back to the standard grades</button>
+        <label className="row-actions" style={{ gap: 6 }}>Pass mark <input type="number" min={0} max={100} value={g.passPct} onChange={(e) => setG({ ...g, passPct: Number(e.target.value) })} style={{ width: 80 }} />%</label>
+      </div>
+      <Err msg={error || why || ''} />
+      <div className="modal-actions"><button type="button" className="button primary" disabled={pending || !!why} onClick={save}>{pending ? 'Saving…' : 'Save grades'}</button></div>
+    </Section>
   )
 }
 

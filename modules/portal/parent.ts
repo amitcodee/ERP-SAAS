@@ -10,6 +10,8 @@ import { parentLinks } from '@/lib/db/schema'
 import { withOrgSystem, type Actor, type Tx } from '@/lib/db/withTenant'
 import { paymentChannel } from '@/modules/fees/plan'
 import { dueNow } from '@/modules/fees/online'
+import { getConfig } from '@/lib/config/store'
+import { DEFAULT_GRADES, gradeOf, overall, type GradesConfig } from '@/lib/grades'
 
 const LINK_DAYS = 365
 const hashOf = (token: string) => createHash('sha256').update(token).digest('hex')
@@ -56,14 +58,17 @@ export type ParentView = {
     receipts: { receiptNo: string; amount: number; paidAt: string; online: boolean; cancelled: boolean }[] }
   attendance: { total: number; present: number; recent: { date: string; present: boolean; batch: string }[] }
   marks: { title: string; kind: string; score: number | null; maxScore: number | null; date: string }[]
+  /** the overall result of the marked work, by the institute's grades (as on the report card) */
+  result: { pct: number; grade: string; label: string; passed: boolean } | null
 }
 
 /** What the link shows, or null for a token that is unknown, stopped or too old. Each opening is noted (last seen). */
 export async function parentView(orgId: string, token: string): Promise<ParentView | null> {
   if (!looksLikeToken(token)) return null
-  return withOrgSystem(orgId, (tx) => parentViewIn(tx, token))
+  const grades = (await getConfig(orgId, 'grades')).config
+  return withOrgSystem(orgId, (tx) => parentViewIn(tx, token, grades))
 }
-export async function parentViewIn(tx: Tx, token: string): Promise<ParentView | null> {
+export async function parentViewIn(tx: Tx, token: string, grades: GradesConfig = DEFAULT_GRADES): Promise<ParentView | null> {
   const [l] = (await tx.execute<{ id: string; registration_id: string; created_by: string }>(sql`
     select id, registration_id, created_by from parent_links where token_hash = ${hashOf(token)} and revoked_at is null
       and created_at > now() - make_interval(days => ${LINK_DAYS})`)).rows
@@ -94,5 +99,11 @@ export async function parentViewIn(tx: Tx, token: string): Promise<ParentView | 
       receipts: receipts.map((r) => ({ receiptNo: r.receipt_no, amount: r.amount, paidAt: r.paid_at, online: paymentChannel(r.mode) === 'online', cancelled: r.cancelled })) },
     attendance: { total: att.length, present: att.filter((a) => a.present).length, recent: att.slice(0, 20) },
     marks,
+    result: (() => {
+      const o = overall(marks.filter((m) => m.kind !== 'capstone'))
+      if (!o) return null
+      const b = gradeOf(o.pct, grades.bands)
+      return { pct: o.pct, grade: b.grade, label: b.label, passed: o.pct >= grades.passPct }
+    })(),
   }
 }

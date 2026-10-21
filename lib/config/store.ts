@@ -11,6 +11,7 @@ import { seal, unseal } from '@/lib/secret-box'
 import { withOrgSystem, type Actor } from '@/lib/db/withTenant'
 import { can } from '@/lib/auth/permissions'
 import type { WaEventKey, WaMessageKey } from '@/lib/notify/whatsapp'
+import { DEFAULT_GRADES, type GradesConfig } from '@/lib/grades'
 
 export type Channel = 'whatsapp' | 'sms' | 'email'
 
@@ -52,6 +53,7 @@ export type ConfigMap = {
   reminders: { config: RemindersConfig; secrets: Record<string, never> }
   jobs: { config: JobsConfig; secrets: Record<string, never> }
   payments: { config: PaymentsConfig; secrets: PaymentsSecrets }
+  grades: { config: GradesConfig; secrets: Record<string, never> }
 }
 export type ConfigKey = keyof ConfigMap
 
@@ -76,6 +78,7 @@ export const DEFAULTS: { [K in ConfigKey]: ConfigMap[K]['config'] } = {
   },
   jobs: { scheduler: 'panel', reminders: { enabled: true, time: '09:00' }, reconcile: { enabled: true, time: '02:00' }, purge: { enabled: true, time: '03:00' }, escalations: { enabled: true, time: '10:00' } },
   payments: { enabled: false, provider: 'razorpay', keyId: '' },
+  grades: DEFAULT_GRADES,
 }
 
 export type Loaded<K extends ConfigKey> = ConfigMap[K] & { saved: boolean; updatedAt: string | null }

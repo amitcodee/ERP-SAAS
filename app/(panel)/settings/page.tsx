@@ -43,7 +43,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
 
   let admin: SettingsData['admin'] = null
   if (headOffice) {
-    const [email, whatsapp, sms, reminders, jobs, pay] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs'), getConfig(b.actor.orgId, 'payments')])
+    const [email, whatsapp, sms, reminders, jobs, pay, grades] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs'), getConfig(b.actor.orgId, 'payments'), getConfig(b.actor.orgId, 'grades')])
     const data = await withHeadOffice(b.actor, async (tx) => ({
       webhooks: await listWebhooks(tx),
       keys: await listApiKeys(tx),
@@ -68,6 +68,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
         plans: (await publicPlans()).filter((p) => p.priceMonthly > 0).map((p) => ({ key: p.key, name: p.name, monthly: p.priceMonthly, yearly: p.priceYearly })),
       },
       reminders: reminders.config,
+      grades: grades.config,
       jobs: jobs.config,
       jobInfo: Object.fromEntries(Object.entries(JOBS).map(([k, j]) => [k, { label: j.label, what: j.what }])),
       runs: data.runs.map((r) => ({ id: r.id, job: r.job, startedAt: r.started_at, finishedAt: r.finished_at, ok: r.ok, error: r.error, summary: r.summary })),

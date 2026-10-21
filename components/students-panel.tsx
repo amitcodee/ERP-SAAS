@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { CalendarCheck, CalendarDays, Copy, Eye, GraduationCap, HandHelping, Users } from 'lucide-react'
+import { CalendarCheck, CalendarDays, Copy, Eye, FileText, GraduationCap, HandHelping, Users } from 'lucide-react'
 import { AttendancePanel } from '@/components/attendance-panel'
 import { AttendanceCalendar } from '@/components/attendance-calendar'
 import { createParentLinkAction, createStudentLoginAction, parentLinkStateAction, queryStudentsAction, revokeParentLinkAction, studentHelpAction } from '@/app/actions'
@@ -102,6 +102,7 @@ function StudentsList({ rows, total, summary, departments, canCreateLogin, canSe
                       {canCreateLogin && <button type="button" className="filter-button icon-only" title="Parent link: a private page for the parent with attendance, fees and marks" aria-label={`Parent link of ${r.name}`} onClick={() => setParentFor(r)}><Users size={15} /></button>}
                       {canSeeAttendance && <button type="button" className="filter-button icon-only" title="Attendance: the calendar marked by the trainer" aria-label={`Attendance of ${r.name}`} onClick={() => setAttendanceFor(r)}><CalendarCheck size={15} /></button>}
                       <button type="button" className="filter-button icon-only" title="Project help: what the student asked and the trainer who helped" aria-label={`Help requests of ${r.name}`} onClick={() => setHelpFor(r)}><HandHelping size={15} /></button>
+                      <a className="filter-button icon-only" href={`/registrations/${r.registrationId}/report-card`} target="_blank" rel="noreferrer" title="Report card: marks, grade, rank, attendance (to print)" aria-label={`Report card of ${r.name}`}><FileText size={15} /></a>
                       <button type="button" className="filter-button icon-only" title="View the full profile" aria-label={`View ${r.name}`} onClick={() => setViewing(r)}><Eye size={15} /></button>
                     </div>
                   </td>
