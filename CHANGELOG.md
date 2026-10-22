@@ -2,6 +2,21 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 4): features by plan, your own domain, "how is your institute run?" (2026-10-22)
+
+- **Features follow the plan.** The feature packs are plan modules (Console → Plans ticks them; the pricing page lists
+  what sets plans apart). A pack outside the plan is not in the menu and shows in Settings → Features as "Not in your
+  <plan> plan" with a link to the plans. During the trial (and while waiting for approval) everything is open.
+  Migration 0116 gives every existing plan every pack, so nothing changed for paying institutes.
+- **Your own domain** (Settings → Your domain, plans with the custom-domain module): add e.g. erp.acme.in, make a CNAME
+  to the institute's address and a TXT record with its token, press Verify (the server looks the record up). Verified:
+  the institute answers on it and its links use it. Hosting must still route the domain and issue its certificate.
+- **Set Up asks how the institute is run**: one centre, several of its own, or own centres and franchises (which
+  switches Franchises on), each with what to do next.
+- Fix: an enquiry's history kept steps saved together in the right order (migration 0117: `clock_timestamp()`); the
+  timeline could show them either way round.
+- `scripts/domain-test.ts`; plan checks in `scripts/features-test.ts`.
+
 ## Phase 6 (part 3): franchises (2026-10-22)
 
 - **A branch can be a franchise** (Branches → Make a franchise, or Franchises): the partner's legal name, owner, phone,

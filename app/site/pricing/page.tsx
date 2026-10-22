@@ -18,6 +18,7 @@ export default async function Pricing() {
     <SitePage eyebrow="Pricing" title="Simple plans that grow with you" intro={`Every plan starts with a ${trialDays}-day free trial of everything. Prices are per institute, before 18% GST.`}>
       <div className="site-plans">
         {plans.map((p) => {
+          const common = new Set(plans.reduce<string[]>((acc, x, i) => (i === 0 ? x.modules : acc.filter((m) => x.modules.includes(m))), []))
           const custom = p.priceMonthly === 0 && p.key !== 'free'
           return (
             <div key={p.key} className={`site-plan${p.key === 'growth' ? ' pop' : ''}`}>
@@ -27,7 +28,8 @@ export default async function Pricing() {
               <p style={{ margin: 0, color: 'var(--text)' }}>{p.description}</p>
               <ul>
                 {(Object.keys(LIMIT_LABELS) as (keyof PlanLimits)[]).map((k) => <li key={k}><Check size={15} />{p.limits[k] == null ? 'Unlimited' : p.limits[k]!.toLocaleString('en-IN')} {LIMIT_LABELS[k]}</li>)}
-                {p.modules.map((m) => <li key={m}><Check size={15} />{PLAN_MODULES[m] ?? m}</li>)}
+                {/* what sets the plans apart: what every plan has is said once, below */}
+                {p.modules.filter((m) => !common.has(m)).map((m) => <li key={m}><Check size={15} />{PLAN_MODULES[m] ?? m}</li>)}
               </ul>
               <Link href={custom ? '/contact' : `/signup?plan=${p.key}`} className={`lp-btn ${p.key === 'growth' ? 'lp-btn-dark' : 'lp-btn-lime'}`} style={{ marginTop: 8 }}>{custom ? 'Contact sales' : 'Start free trial'}</Link>
             </div>

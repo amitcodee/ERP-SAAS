@@ -13,7 +13,7 @@ import { listRoles } from '@/modules/roles/service'
 import { MODULES, type ModuleKey } from './modules'
 import { orgPlan, planHasModule } from '@/lib/plan/limits'
 import { getConfig } from '@/lib/config/store'
-import { hiddenModules } from './features'
+import { FEATURES, hiddenModules } from './features'
 
 const initials = (n: string) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 
@@ -39,7 +39,7 @@ export const loadPanelBase = cache(async () => {
   // pages of a paid module show only when the plan includes it (every module during the trial)
   // the feature packs the institute switched off are not in the menu (lib/panel/features.ts), nor moving students
   // between branches while it has only one
-  const hidden = hiddenModules(features.config.off)
+  const hidden = hiddenModules([...features.config.off, ...FEATURES.filter((f) => !planHasModule(plan, f.key)).map((f) => f.key)]) // switched off, or not in the plan
   if (branchCount <= 1) { hidden.add('Transfers'); hidden.add('Shared Students') }
   // a franchise's own staff see their centre's royalty; other branches have none
   if (!isSuper && acting?.kind !== 'franchise') hidden.add('Franchises')

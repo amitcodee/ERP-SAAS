@@ -813,6 +813,20 @@
       "when": 1794118400000,
       "tag": "0115_franchises",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1794204800000,
+      "tag": "0116_plan_feature_packs",
+      "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1794291200000,
+      "tag": "0117_event_clock_time",
+      "breakpoints": true
     }
   ]
 }

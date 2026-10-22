@@ -3,9 +3,12 @@
 import { sql } from 'drizzle-orm'
 import type { PlanLimits } from '@/lib/db/schema/tenancy'
 import { withPlatform, type Tx } from '@/lib/db/withTenant'
+import { FEATURES } from '@/lib/panel/features'
 
-/** The parts of the product a plan can include beyond the core, with what they are called on the pricing page. */
+/** The parts of the product a plan can include beyond the core, with what they are called on the pricing page: the
+ * feature packs an institute switches on (lib/panel/features.ts), then the paid extras. */
 export const PLAN_MODULES: Record<string, string> = {
+  ...Object.fromEntries(FEATURES.filter((f) => f.key !== 'events').map((f) => [f.key, f.label])),
   events: 'Seminars & workshops with certificates',
   api: 'Read API and webhooks (Power BI, Excel, n8n)',
   custom_domain: 'Your own domain (erp.yourinstitute.com)',

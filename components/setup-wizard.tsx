@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, CircleDashed, SkipForward } from 'lucide-react'
-import { setupBrandingAction, setupCatalogueAction, setupFeesAction, setupStepAction } from '@/app/actions'
+import { enableFeatureAction, setupBrandingAction, setupCatalogueAction, setupFeesAction, setupStepAction } from '@/app/actions'
 import { useNotify } from '@/components/panel-shell'
 import type { Onboarding, StepKey } from '@/modules/onboarding/service'
 
@@ -72,6 +72,7 @@ export function SetupWizard({ state, branding, catalogues, gst, modes }: { state
                     <p className="section-hint" style={{ margin: 0 }}>Or add your own under <Link href="/courses">Courses</Link>. Fees and durations can be changed there.</p>
                   </div>
                 )}
+                {s.key === 'branch' && <ShapeStep pending={pending} franchises={() => act(() => enableFeatureAction('franchise'), 'Franchises is on: make a branch a franchise from Branches')} />}
                 {s.key === 'fees' && <FeesStep gst={gst} modes={modes} pending={pending} save={(v) => act(() => setupFeesAction(v), 'Saved')} />}
                 {LINKS[s.key] && <p style={{ margin: 0 }}><Link className="button secondary" href={LINKS[s.key]!.href}>{LINKS[s.key]!.label}</Link></p>}
                 <div className="row-actions">
@@ -86,6 +87,30 @@ export function SetupWizard({ state, branding, catalogues, gst, modes }: { state
       </div>
       {!state.complete && !state.dismissed && <p className="section-hint" style={{ marginTop: 16 }}>Not now? <button type="button" className="filter-button" disabled={pending} onClick={() => act(() => setupStepAction('dismiss', 'done'), 'Put away: Set Up stays under Administration')}>Hide the checklist</button></p>}
     </section>
+  )
+}
+
+/** How the institute is run: one centre, several of its own, or with franchises; each answer says what to do next. */
+function ShapeStep({ pending, franchises }: { pending: boolean; franchises: () => void }) {
+  const [shape, setShape] = useState<'one' | 'several' | 'franchise' | null>(null)
+  const opt = (k: 'one' | 'several' | 'franchise', label: string, sub: string) => (
+    <button type="button" className={`panel${shape === k ? ' on' : ''}`} onClick={() => { setShape(k); if (k === 'franchise') franchises() }} disabled={pending}
+      style={{ textAlign: 'left', border: `1.5px solid ${shape === k ? 'var(--navy)' : 'var(--line)'}`, cursor: 'pointer', display: 'grid', gap: 4 }}>
+      <strong>{label}</strong><small style={{ color: '#64748b' }}>{sub}</small>
+    </button>
+  )
+  return (
+    <div style={{ display: 'grid', gap: 10 }}>
+      <strong>How is your institute run?</strong>
+      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        {opt('one', 'One centre', 'Fill in its details; you work in it directly.')}
+        {opt('several', 'Several centres of my own', 'Add each one in Branches; head office sees them all.')}
+        {opt('franchise', 'My own centres and franchises', 'Partners run some centres and pay you a royalty.')}
+      </div>
+      {shape === 'one' && <p className="section-hint" style={{ margin: 0 }}>Open Branches, complete your branch’s details (address, phone, e-mail) and activate it.</p>}
+      {shape === 'several' && <p className="section-hint" style={{ margin: 0 }}>Open Branches: complete the first branch, then <b>Add branch</b> for each other centre. Each gets its own manager login.</p>}
+      {shape === 'franchise' && <p className="section-hint" style={{ margin: 0 }}>Add each centre in Branches; for a franchise, press <b>Make a franchise</b> there: the partner’s name goes on its receipts and its royalty shows under Franchises.</p>}
+    </div>
   )
 }
 

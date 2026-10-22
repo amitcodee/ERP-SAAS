@@ -42,10 +42,12 @@ import { deleteAnnouncementTemplate, fillTemplate, resetTemplate as resetMessage
 import { askForHelp, batchTeaching, chooseHelper, closeHelp, courseSyllabus, createTest, decideSyllabusChange, deleteNote, deleteTest, helpMails, listNotes, offerHelp, saveSyllabus, saveTestMarks, setDayTopics, setSyllabusFile, setTopicCovered, studentHelp, teachingCalendar, withdrawOffer, type HelpInput, type TestInput, type TopicInput } from '@/modules/teaching/service'
 import { assignTicket, closeTicket, escalateTicket, postAnnouncement, raiseInternalTicket, raiseTicket, rateTicket, removeAnnouncement, replyTicket, setAnnouncementPinned, setTicketPriority, ticketAssignees, ticketMessages, type AnnouncementInput, type InternalTicketInput, type RaiseTicketInput } from '@/modules/support/service'
 import { branches } from '@/lib/db/schema'
-import { appOrigin } from '@/lib/app-url'
+import { appOrigin, forgetOrgAddresses } from '@/lib/app-url'
+import { forgetHosts } from '@/lib/tenant/resolve'
 import { openFeePayment, startFeePayment } from '@/modules/fees/online'
 import { gradesProblem } from '@/lib/grades'
 import { FEATURES } from '@/lib/panel/features'
+import { addDomain, cnameTarget, removeDomain, verifyDomain } from '@/modules/orgs/domains'
 import { deleteRoyaltyPayment, recordRoyaltyPayment, setFranchise, type FranchiseInput, type RoyaltyPaymentInput } from '@/modules/franchise/service'
 import { addExpense, deleteExpense, type ExpenseInput } from '@/modules/expenses/service'
 import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
@@ -1437,6 +1439,23 @@ export async function saveGradesAction(config: z.input<typeof gradesSettings>) {
   })
 }
 
+// ---- The institute's own domain (modules/orgs/domains.ts)
+export async function addDomainAction(host: string) {
+  return run(async () => { const actor = await headOffice(); const d = await withTenant(actor, (tx) => addDomain(tx, actor, host)); settingsSaved(); return { ...d, cname: cnameTarget((await requireRequestOrg()).slug) } })
+}
+export async function verifyDomainAction(id: string) {
+  return run(async () => {
+    const actor = await headOffice()
+    const ok = await withTenant(actor, (tx) => verifyDomain(tx, actor, id))
+    if (ok) { forgetHosts(); forgetOrgAddresses() } // the institute answers on it at once, and its links use it
+    settingsSaved()
+    return ok
+  })
+}
+export async function removeDomainAction(id: string) {
+  return run(async () => { const actor = await headOffice(); await withTenant(actor, (tx) => removeDomain(tx, actor, id)); forgetHosts(); forgetOrgAddresses(); settingsSaved() })
+}
+
 // ---- Franchises (modules/franchise/service.ts)
 export async function setFranchiseAction(input: FranchiseInput) {
   return run(async () => {
@@ -1468,6 +1487,17 @@ export async function saveCourseDesignAction(designId: string | null) {
     }
     await saveConfig(a.orgId, 'course_certificate', { designId: id }, {}, a.userId)
     await auditSettings(a, 'course_certificate'); settingsSaved()
+  })
+}
+
+/** One feature pack switched on (Set Up: "own centres and franchises" turns on Franchises). */
+export async function enableFeatureAction(key: string) {
+  return run(async () => {
+    const a = await headOffice()
+    if (!FEATURES.some((f) => f.key === key)) throw new Error('Unknown feature')
+    const cur = await getConfig(a.orgId, 'features')
+    if (cur.config.off.includes(key)) await saveConfig(a.orgId, 'features', { off: cur.config.off.filter((k) => k !== key) }, {}, a.userId)
+    await auditSettings(a, 'features'); settingsSaved(); revalidatePath('/setup')
   })
 }
 

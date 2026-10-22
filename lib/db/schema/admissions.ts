@@ -174,7 +174,7 @@ export const enquiryEvents = pgTable(
     id: id(),
     enquiryId: uuid('enquiry_id').notNull().references(() => enquiries.id),
     branchId: uuid('branch_id').notNull().references(() => branches.id),
-    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    at: timestamp('at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`), // each insert's own moment: steps saved together keep their order (0117)
     byUser: uuid('by_user').references(() => users.id),
     fromStatus: enquiryStatusEnum('from_status'),
     toStatus: enquiryStatusEnum('to_status').notNull(),

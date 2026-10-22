@@ -1,4 +1,8 @@
 export const dynamic = 'force-dynamic'
+import { FEATURES } from '@/lib/panel/features'
+import { requireRequestOrg } from '@/lib/tenant/request'
+import { cnameTarget, listDomains, TXT_PREFIX } from '@/modules/orgs/domains'
+import { planHasModule } from '@/lib/plan/limits'
 import { sql } from 'drizzle-orm'
 import { listOnlinePayments } from '@/modules/fees/online'
 import { CertificateSignatures } from '@/components/certificate-signatures'
@@ -52,6 +56,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       onlinePayments: await listOnlinePayments(tx, 50),
       billing: await billingOverview(tx), plan: await orgPlan(tx), usage: await orgUsage(tx),
       branches: (await tx.execute<{ id: string; name: string; code: string }>(sql`select id, name, code from branches where is_active order by name`)).rows,
+      domains: await listDomains(tx),
       designs: (await tx.execute<{ id: string; name: string; page: string }>(sql`select id, name, design->>'page' as page from certificate_designs where is_active order by name`)).rows,
       runs: (await tx.execute<{ id: string; job: string; started_at: string; finished_at: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }>(sql`
         select id, job, started_at::text, finished_at::text, ok, error, summary from job_runs order by started_at desc limit 30`)).rows,
@@ -72,6 +77,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       grades: grades.config,
       admissionForm: admissionForm.config,
       featuresOff: features.config.off,
+      domains: { rows: data.domains, cname: cnameTarget((await requireRequestOrg()).slug), txtPrefix: TXT_PREFIX, inPlan: planHasModule(data.plan, 'custom_domain'), plan: data.plan.name },
+      // packs the plan does not include are shown locked (everything is open during the trial)
+      featuresLocked: { plan: data.plan.name, keys: FEATURES.filter((f) => !planHasModule(data.plan, f.key)).map((f) => f.key) },
       courseDesign: { designId: courseCert.config.designId, designs: data.designs.map((d) => ({ id: d.id, name: d.name, portrait: d.page === 'portrait' })) },
       jobs: jobs.config,
       jobInfo: Object.fromEntries(Object.entries(JOBS).map(([k, j]) => [k, { label: j.label, what: j.what }])),

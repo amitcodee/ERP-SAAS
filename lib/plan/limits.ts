@@ -46,9 +46,9 @@ export async function assertWithinLimit(tx: Tx, key: LimitKey, adding = 1) {
   }
 }
 
-/** Whether the institute's plan includes a module (everything is open during the trial). */
+/** Whether the institute's plan includes a module (everything is open during the trial, and while it is set up for approval). */
 export function planHasModule(plan: OrgPlan, module: string): boolean {
-  return plan.status === 'trial' || plan.modules.includes(module)
+  return plan.status === 'trial' || plan.status === 'pending' || plan.modules.includes(module)
 }
 export const hasModule = async (tx: Tx, module: string) => planHasModule(await orgPlan(tx), module)
 

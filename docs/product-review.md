@@ -36,8 +36,7 @@ Status keys: **done** (built and tested this round), **next** (planned, in order
 
 ## 3. Features follow the plan
 
-The plans today gate five paid modules (events, API, custom domain, white label, SSO); the trial opens everything.
-**Next:** the feature packs above become part of each plan in the console's plan editor, so a plan decides which packs
+**Done (part 4).** Was: the feature packs above become part of each plan in the console's plan editor, so a plan decides which packs
 an institute may switch on. A pack outside the plan shows in Settings → Features with "On <plan>" and an upgrade
 button instead of a switch; during the trial every pack is available. Staff logins, branches and active students are
 already limited per plan.
@@ -55,7 +54,8 @@ certificates; partners are invited by e-mail.
 
 Name, legal name, colour, logo and accreditations are set in Set Up and used on receipts, certificates, ID cards, the
 portal and e-mails. **Done:** course certificates in the institute's own design (every plan), a tab icon per institute.
-**Next:** their own domain from Settings (the database supports it; there is no screen).
+**Done (part 4):** their own domain from Settings → Your domain (DNS-verified). Hosting still has to route new domains
+and issue their certificates.
 
 ## 6. Big institutes
 

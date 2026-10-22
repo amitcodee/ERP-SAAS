@@ -4,11 +4,11 @@
 // address (?tab=). Head office only, except Business rules and Certificates. Your own password is under My account.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutGrid } from 'lucide-react'
+import { Globe, LayoutGrid } from 'lucide-react'
 import { Award, BadgeCheck, BellRing, Check, ClipboardList, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
 import {
   createApiKeyAction, createWebhookAction, deleteWebhookAction, revokeApiKeyAction, runJobNowAction, saveBranchEmailAction, saveEmailSettingsAction, saveJobsAction, saveNumberingAction, saveRemindersAction,
-  saveAdmissionFormAction, saveCourseDesignAction, saveFeaturesAction, saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
+  addDomainAction, removeDomainAction, verifyDomainAction, saveAdmissionFormAction, saveCourseDesignAction, saveFeaturesAction, saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
 } from '@/app/actions'
 import { IntegrationsPanel } from '@/components/integrations-panel'
 import { WaCampaignsTab } from '@/components/wa-campaigns'
@@ -20,6 +20,7 @@ import type { AdmissionFormConfig, EmailConfig, JobsConfig, PaymentsConfig, Remi
 import type { OnlinePaymentRow } from '@/modules/fees/online'
 import { DEFAULT_GRADES, gradesProblem, type GradesConfig } from '@/lib/grades'
 import { FEATURES } from '@/lib/panel/features'
+import type { DomainRow } from '@/modules/orgs/domains'
 import { waBody, WA_EVENT_KEYS, WA_KEYS, WA_MESSAGES } from '@/lib/notify/whatsapp'
 import { DIAL_CODES } from '@/lib/countries'
 import type { ApiKeyRow } from '@/modules/integrations/api'
@@ -47,6 +48,8 @@ export type SettingsData = {
     grades: GradesConfig
     admissionForm: AdmissionFormConfig
     featuresOff: string[]
+    featuresLocked: { plan: string; keys: string[] }
+    domains: { rows: DomainRow[]; cname: string; txtPrefix: string; inPlan: boolean; plan: string }
     courseDesign: { designId: string | null; designs: { id: string; name: string; portrait: boolean }[] }
     jobs: JobsConfig
     jobInfo: Record<string, { label: string; what: string }>
@@ -77,6 +80,7 @@ const TABS = [
   { key: 'reminders', label: 'Reminders', icon: BellRing, admin: true },
   { key: 'grades', label: 'Report cards', icon: Award, admin: true },
   { key: 'admission', label: 'Admission form', icon: ClipboardList, admin: true },
+  { key: 'domain', label: 'Your domain', icon: Globe, admin: true },
   { key: 'jobs', label: 'Scheduled jobs', icon: Clock3, admin: true },
   { key: 'integrations', label: 'Integrations', icon: Plug, admin: true },
   { key: 'api', label: 'API access', icon: KeyRound, admin: true },
@@ -152,7 +156,8 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
         {current === 'numbering' && data.admin && <NumberingTab rows={data.admin.numbering} />}
         {current === 'reminders' && data.admin && <RemindersTab cfg={data.admin.reminders} ready={{ email: data.admin.email.config.enabled, whatsapp: data.admin.whatsapp.config.enabled, sms: data.admin.sms.config.enabled }} goJobs={() => go('jobs')} goChannels={() => go('messaging')} />}
         {current === 'grades' && data.admin && <GradesTab cfg={data.admin.grades} />}
-        {current === 'features' && data.admin && <FeaturesTab off={data.admin.featuresOff} />}
+        {current === 'domain' && data.admin && <DomainTab d={data.admin.domains} />}
+        {current === 'features' && data.admin && <FeaturesTab off={data.admin.featuresOff} locked={data.admin.featuresLocked} />}
         {current === 'admission' && data.admin && <AdmissionTab cfg={data.admin.admissionForm} origin={data.admin.origin} branches={data.admin.branches} />}
         {current === 'jobs' && data.admin && <JobsTab cfg={data.admin.jobs} info={data.admin.jobInfo} runs={data.admin.runs} cronSecretSet={data.admin.cronSecretSet} origin={data.admin.origin} />}
         {current === 'integrations' && data.admin && <IntegrationsTab status={data.integrations} hooks={data.admin.webhooks} events={data.admin.events} origin={data.admin.origin} webLeadsOn={data.admin.webLeadsOn} />}
@@ -206,6 +211,52 @@ function GradesTab({ cfg }: { cfg: GradesConfig }) {
   )
 }
 
+// ---- Your domain
+
+/** The institute on its own domain: add it, point it here (CNAME), prove it is theirs (TXT), then it is used. */
+function DomainTab({ d }: { d: NonNullable<SettingsData['admin']>['domains'] }) {
+  const notify = useNotify()
+  const router = useRouter()
+  const [host, setHost] = useState('')
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  const act = (fn: () => Promise<{ ok: boolean; error?: string; data?: unknown }>, ok: (data: unknown) => string) => start(async () => {
+    const r = await fn()
+    if (!r.ok) return setError(r.error ?? 'Failed')
+    setError(''); notify(ok(r.data)); router.refresh()
+  })
+  if (!d.inPlan) return (
+    <Section title="Your own domain" about="Run the panel, the student portal, certificates and the admission form on your own address, e.g. erp.yourinstitute.com.">
+      <p className="section-hint" style={{ margin: 0 }}>Not part of your {d.plan} plan. <a href="/settings?tab=billing">See the plans that include it</a>.</p>
+    </Section>
+  )
+  return (
+    <Section title="Your own domain" about="Run the panel, the student portal, certificates and the admission form on your own address, e.g. erp.yourinstitute.com. Add it, make the two DNS records below where you bought the domain, then press Verify. Changes can take up to an hour to show.">
+      {d.rows.map((r) => (
+        <div key={r.id} className="panel" style={{ padding: 14, marginBottom: 10, display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <strong>{r.host}</strong>
+            {r.verifiedAt ? <Badge tone="green">Verified: in use</Badge> : <Badge tone="amber">Waiting for the DNS records</Badge>}
+          </div>
+          {!r.verifiedAt && <>
+            <p className="section-hint" style={{ margin: 0 }}>1. A <b>CNAME</b> record: name <code>{r.host}</code>, value <CopyText text={d.cname} label="Copy the CNAME value" /></p>
+            <p className="section-hint" style={{ margin: 0 }}>2. A <b>TXT</b> record: name <code>{d.txtPrefix}.{r.host}</code>, value <CopyText text={r.token} label="Copy the TXT value" /></p>
+          </>}
+          <div className="row-actions" style={{ gap: 8 }}>
+            {!r.verifiedAt && <button type="button" className="button primary" disabled={pending} onClick={() => act(() => verifyDomainAction(r.id), (ok) => (ok ? `${r.host} is verified: the institute answers on it now` : 'Not found yet: DNS changes can take up to an hour. Try again later.'))}>Verify</button>}
+            <button type="button" className="button secondary" disabled={pending} onClick={() => { if (window.confirm(`Remove ${r.host}? Links will use the platform address again.`)) act(() => removeDomainAction(r.id), () => `${r.host} removed`) }}>Remove</button>
+          </div>
+        </div>
+      ))}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={host} onChange={(e) => setHost(e.target.value)} placeholder="erp.yourinstitute.com" aria-label="Domain" style={{ flex: '1 1 260px' }} />
+        <button type="button" className="button primary" disabled={pending || host.trim().length < 4} onClick={() => act(() => addDomainAction(host), () => { setHost(''); return 'Domain added: now make the two DNS records' })}>Add domain</button>
+      </div>
+      <Err msg={error} />
+    </Section>
+  )
+}
+
 // ---- Course certificate design
 
 /** Which design course certificates are drawn with: the built-in layout, or one made in Certificate Designs. */
@@ -239,7 +290,7 @@ function CourseDesignPicker({ d }: { d: NonNullable<SettingsData['admin']>['cour
 // ---- Features
 
 /** The feature packs: switch on what the institute uses; the menu shows only those (lib/panel/features.ts). */
-function FeaturesTab({ off }: { off: string[] }) {
+function FeaturesTab({ off, locked }: { off: string[]; locked: { plan: string; keys: string[] } }) {
   const notify = useNotify()
   const router = useRouter()
   const [v, setV] = useState(new Set(off))
@@ -253,7 +304,13 @@ function FeaturesTab({ off }: { off: string[] }) {
   return (
     <Section title="What your institute uses" about="Leads, enquiries, admissions, fees, students, courses, certificates, reports, staff and branches are always there. Switch on the extras you use; the menu shows only those. Switching one off hides it and deletes nothing.">
       <div style={{ display: 'grid', gap: 12 }}>
-        {FEATURES.map((f) => (
+        {FEATURES.map((f) => locked.keys.includes(f.key) ? (
+          // not in the plan: shown, so the institute knows it exists, with the way to get it
+          <div key={f.key} className="set-toggle" style={{ opacity: 0.7 }}>
+            <button type="button" role="switch" aria-checked={false} disabled aria-label={f.label}><span /></button>
+            <div><strong>{f.label} <span className="status-badge status-slate"><span className="status-dot" />Not in your {locked.plan} plan</span></strong><small>{f.about} <a href="/settings?tab=billing">See plans</a></small></div>
+          </div>
+        ) : (
           <Toggle key={f.key} label={f.label} hint={f.about} value={!v.has(f.key)} set={(on) => { const n = new Set(v); if (on) n.delete(f.key); else n.add(f.key); setV(n) }} />
         ))}
       </div>

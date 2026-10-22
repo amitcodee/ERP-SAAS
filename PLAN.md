@@ -360,7 +360,7 @@ and numbering, staff with roles (custom roles), certificate designs drawn on the
 the platform console. What is missing is below, in order. Each step: a `scripts/<area>-test.ts`, e2e steps, Chrome.
 
 1. [x] **Small institutes: simple by default.** (Settings → Features, plain menu, one branch without picking; the
-   Set Up question "one centre or several" is still to do.)
+   Set Up question, part 4.)
    - One centre: the owner works in it directly (no "All branches (view only)", no branch picker to understand).
    - Modules on / off per institute (Settings → Modules): Help desk, Projects, Seminars & events, Letters, WhatsApp
      campaigns, Lead distribution, Random call, Transfers… A new institute starts with the core (Leads, Admissions,
@@ -379,8 +379,7 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
    - Every month: the royalty statement per franchise (fees collected × percent, or the fixed fee), what was paid,
      what is due; a league table of centres.
 3. [ ] **Their own brand, everywhere.**
-   - Their own domain (admissions.acme.com) from Settings, with the DNS record to add and a check (custom_domains
-     exists; there is no screen yet).
+   - [x] Their own domain from Settings, with the DNS records to add and a check (part 4).
    - Certificate templates: a small gallery of starting designs (course, internship, workshop, merit) to copy and
      change; the logo, colour, signatures and seal filled in from the brand.
    - E-mails, receipts, ID cards, the student portal and the public pages in their colour and logo (done), checked

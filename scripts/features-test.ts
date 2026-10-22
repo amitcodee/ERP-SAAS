@@ -6,6 +6,8 @@ import { withPlatform } from '../lib/db/withTenant'
 import { FEATURES, hiddenModules, NEW_ORG_OFF } from '../lib/panel/features'
 import { GROUPS, labelOf, MODULES } from '../lib/panel/modules'
 import { provisionOrgIn } from '../modules/orgs/provision'
+import { PLAN_MODULES } from '../modules/plans/service'
+import { planHasModule } from '../lib/plan/limits'
 
 class Rollback extends Error {}
 let failed = 0
@@ -22,6 +24,13 @@ async function main() {
   check('a new institute starts without calling, internships, letters, events, WhatsApp campaigns and the old-system import', ['calling', 'internships', 'letters', 'events', 'whatsapp', 'import'].every((k) => NEW_ORG_OFF.includes(k as never)) && !NEW_ORG_OFF.includes('webleads'))
   check('every page sits in one of the menu groups', MODULES.every((m) => GROUPS.includes(m.group)))
   check('plain names in the menu', labelOf('Enquiry') === 'Enquiries' && labelOf('Random Call') === 'Calls' && labelOf('Enquiry Update') === 'Find an enquiry')
+
+  // ---- the packs follow the plan ----
+  const plan = (status: string, modules: string[]) => ({ key: 'p', name: 'P', status, limits: {} as never, modules })
+  check('a plan may leave a pack out; trial and waiting for approval open everything', !planHasModule(plan('active', ['webleads']), 'calling') && planHasModule(plan('active', ['calling']), 'calling') && planHasModule(plan('trial', []), 'calling') && planHasModule(plan('pending', []), 'franchise'))
+  check('every pack can be ticked on a plan in the console', FEATURES.every((f) => f.key in PLAN_MODULES))
+  const plans = await withPlatform(async (tx) => (await tx.execute<{ key: string; modules: string[] }>(sql`select key, modules from plans where key in ('starter', 'growth', 'enterprise')`)).rows)
+  check('the plans that existed kept every pack (nothing changed for paying institutes)', plans.length === 3 && plans.every((p) => FEATURES.filter((f) => f.key !== 'events').every((f) => p.modules.includes(f.key))), JSON.stringify(plans.map((p) => p.key)))
 
   try {
     await withPlatform(async (tx) => {
