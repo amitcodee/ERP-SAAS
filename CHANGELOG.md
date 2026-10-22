@@ -2,6 +2,18 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 5): inviting franchise partners, franchise fee ranges (2026-10-22)
+
+- **Invite the partner** (Franchises → the send icon): their login goes to the e-mail in the franchise's terms. A new
+  partner gets a branch-manager login at their centre (e-mailed with a one-time password; while the branch is not
+  active it goes out when it is activated); inviting again before they have signed in sends a fresh password, after
+  that it leaves their password alone; a partner who already runs another centre gets this one added to their login
+  with full access, so one login covers all their centres.
+- **Course fees at franchises** (Franchises, head office): the lowest and highest total fee (after discounts, with GST)
+  a franchise may charge per course. Checked when a franchise registers a student, changes a total fee or gives a
+  discount, with the range in the message; the institute's own centres are not bound. Migration 0118.
+- More checks in `scripts/franchise-test.ts`; the e2e franchise step sees the fee table.
+
 ## Phase 6 (part 4): features by plan, your own domain, "how is your institute run?" (2026-10-22)
 
 - **Features follow the plan.** The feature packs are plan modules (Console → Plans ticks them; the pricing page lists

@@ -44,8 +44,8 @@ already limited per plan.
 ## 4. Own centres and franchises
 
 **Done (part 3):** a branch is own or franchise, with its partner and royalty; its receipts carry the partner's legal
-name; Franchises shows the monthly royalty, payments and balance; the partner's login sees only its centre. **Next**,
-from the original list: a branch is own or franchise; a franchise
+name; Franchises shows the monthly royalty, payments and balance; the partner's login sees only its centre. **Done (part 5):** inviting the partner by e-mail, course fee ranges.
+**Next**, from the original list: a branch is own or franchise; a franchise
 partner login sees only its centres; its receipts carry the partner's legal name and GSTIN; the royalty (percent of
 fees or a fixed fee) is worked out monthly with what is paid and due; head office sets course fee ranges and approves
 certificates; partners are invited by e-mail.

@@ -1,4 +1,5 @@
 // The ONLY place registrations are written. Callers pass an open tenant transaction (withTenant).
+import { assertFranchiseFee } from '../franchise/fees'
 import { emitRegistration } from '@/modules/integrations/webhooks'
 import { confirmRegistration } from '@/modules/notifications/whatsapp-events'
 import { and, eq, ilike, or, sql } from 'drizzle-orm'
@@ -66,6 +67,7 @@ export async function createRegistration(tx: Tx, actor: Actor, raw: CreateRegist
   if (custom) courseId = null // a customized course replaces the one from the list (also the enquiry's)
   if (!departmentId) throw new Error('Department is required')
   if (!totalFee || totalFee <= 0) throw new Error('Total fee is required')
+  await assertFranchiseFee(tx, branchId, courseId, totalFee) // a franchise charges within head office's range
   // the offer fee (below the full fee) is up to whoever admits the student: no fixed discount limit
 
   if (input.kind === 'upgrade') {

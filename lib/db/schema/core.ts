@@ -177,6 +177,9 @@ export const courses = pgTable(
     deletedAt: deletedAt(), // in the Recycle Bin (hidden from the course lists)
     deletedBy: uuid('deleted_by').references(() => users.id),
     skills: text('skills'), // tools / skills taught, for {{skills}} in internship letters
+    // what a franchise may charge in all for it (paise; migration 0118, modules/franchise/fees.ts); null: no bound
+    franchiseMinFee: integer('franchise_min_fee'),
+    franchiseMaxFee: integer('franchise_max_fee'),
     // head office adds approved courses; a branch admin adds one (pending) and head office approves it
     status: text('status').notNull().default('approved'), // approved | pending | rejected
     requestedBy: uuid('requested_by').references(() => users.id),

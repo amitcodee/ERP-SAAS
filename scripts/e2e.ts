@@ -922,7 +922,7 @@ async function main() {
         await m.getByLabel(/Partner’s legal name/).fill(`Bright Skills ${RUN} LLP`)
         await m.locator('input[type=number]').fill('10')
         await m.getByRole('button', { name: 'Save' }).click(); await toast(w, 'It is a franchise now')
-        await w.goto(`${IBASE}/franchises`); await expectText(w, `Bright Skills ${RUN} LLP`); await expectText(w, '10% of fees received')
+        await w.goto(`${IBASE}/franchises`); await expectText(w, `Bright Skills ${RUN} LLP`); await expectText(w, '10% of fees received'); await expectText(w, 'Course fees at franchises')
       }, w)
       await ctx.close()
     }

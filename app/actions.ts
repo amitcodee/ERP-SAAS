@@ -48,7 +48,8 @@ import { openFeePayment, startFeePayment } from '@/modules/fees/online'
 import { gradesProblem } from '@/lib/grades'
 import { FEATURES } from '@/lib/panel/features'
 import { addDomain, cnameTarget, removeDomain, verifyDomain } from '@/modules/orgs/domains'
-import { deleteRoyaltyPayment, recordRoyaltyPayment, setFranchise, type FranchiseInput, type RoyaltyPaymentInput } from '@/modules/franchise/service'
+import { setFranchiseFee } from '@/modules/franchise/fees'
+import { deleteRoyaltyPayment, invitePartner, recordRoyaltyPayment, setFranchise, type FranchiseInput, type RoyaltyPaymentInput } from '@/modules/franchise/service'
 import { addExpense, deleteExpense, type ExpenseInput } from '@/modules/expenses/service'
 import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
@@ -1468,6 +1469,26 @@ export async function setFranchiseAction(input: FranchiseInput) {
     }
     revalidatePath('/franchises')
   })
+}
+/** The partner's login: made (or re-sent, or their other centre's login given this one too) and e-mailed. */
+export async function invitePartnerAction(branchId: string) {
+  const { actor } = await getActor()
+  const res = await run(() => withTenant(actor, async (tx) => {
+    const inv = await invitePartner(tx, actor, branchId)
+    const [b] = await tx.select().from(branches).where(eq(branches.id, branchId))
+    return { inv, b, names: await roleNames(tx) }
+  }))
+  if (!res.ok) return res
+  revalidatePath('/franchises')
+  const { inv, b, names } = res.data!
+  if (inv.status === 'shared') return { ok: true as const, data: { message: `${inv.name} already runs another centre: this one is added to their login` } }
+  if (inv.status === 'signed_in') return { ok: true as const, data: { message: `${inv.email} already signs in to this centre (a lost password: Forgot password on the sign-in page)` } }
+  if (inv.status === 'pending_activation') return { ok: true as const, data: { message: `Login ready for ${inv.email}: it is e-mailed when you activate the branch (Branches)` } }
+  const [m] = await mailLogins(actor.orgId, b, [inv.login], names, await appOrigin(actor.orgId))
+  return { ok: true as const, data: { message: m.emailed ? `Login e-mailed to ${m.email}` : `The e-mail could not go out (${m.error ?? 'no mail server'}): give ${m.email} this one-time password: ${m.password}` } }
+}
+export async function setFranchiseFeeAction(courseId: string, min: number | null, max: number | null) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => setFranchiseFee(tx, actor, { courseId, min, max })); revalidatePath('/franchises') })
 }
 export async function recordRoyaltyAction(input: RoyaltyPaymentInput) {
   return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => recordRoyaltyPayment(tx, actor, input)); revalidatePath('/franchises') })

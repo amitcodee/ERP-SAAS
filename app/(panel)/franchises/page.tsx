@@ -3,6 +3,7 @@ import { FranchisesPanel } from '@/components/franchises-panel'
 import { requirePage } from '@/lib/panel/base'
 import { withTenant } from '@/lib/db/withTenant'
 import { todayIST } from '@/lib/ist'
+import { listFranchiseFees } from '@/modules/franchise/fees'
 import { franchiseStatements, listRoyaltyPayments, ROYALTY_MODES } from '@/modules/franchise/service'
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/
@@ -18,10 +19,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
   const d = await withTenant(actor, async (tx) => ({
     franchises: await franchiseStatements(tx, actor, { month, branchId }),
     payments: await listRoyaltyPayments(tx, actor, branchId),
+    fees: ok('update', 'franchise') ? await listFranchiseFees(tx, actor) : [],
   }))
   return (
     <FranchisesPanel
-      month={month} thisMonth={now} today={todayIST()} franchises={d.franchises} payments={d.payments} modes={[...ROYALTY_MODES]}
+      month={month} thisMonth={now} today={todayIST()} franchises={d.franchises} payments={d.payments} modes={[...ROYALTY_MODES]} fees={d.fees}
       canEdit={ok('update', 'franchise')} canRecord={ok('create', 'franchise')} canDelete={ok('delete', 'franchise')}
       ownBranches={isSuper ? branches.filter((b) => !d.franchises.some((f) => f.branchId === b.id)).map((b) => ({ id: b.id, name: b.name })) : []}
     />

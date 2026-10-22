@@ -9,6 +9,8 @@ import { assertCan } from '@/lib/auth/permissions'
 import { royaltyPayments } from '@/lib/db/schema'
 import type { Actor, Tx } from '@/lib/db/withTenant'
 import { todayIST } from '@/lib/ist'
+import { freshLogins, shareStaff, type Login } from '../branches/service'
+import { createUser } from '../users/service'
 
 export const ROYALTY_MODES = ['Bank transfer', 'UPI', 'Cheque', 'Cash', 'Adjusted'] as const
 /** At most this many months back a statement goes (an agreement older than that starts there). */
@@ -162,4 +164,50 @@ export async function listRoyaltyPayments(tx: Tx, actor: Actor, branchId?: strin
     from royalty_payments r join branches b on b.id = r.branch_id join users u on u.id = r.created_by
     where r.deleted_at is null ${branchId ? sql`and r.branch_id = ${branchId}::uuid` : sql``}
     order by r.paid_on desc, r.created_at desc limit 200`)).rows
+}
+
+export type PartnerInvite =
+  | { status: 'new'; login: Login; branchActive: boolean }
+  | { status: 'resent'; login: Login }
+  | { status: 'shared'; name: string }
+  | { status: 'pending_activation'; email: string }
+  | { status: 'signed_in'; email: string }
+
+/**
+ * Gives the franchise's partner their login (Franchises → Invite partner), to the e-mail in the terms:
+ *  - nobody has it yet: a branch-manager login at this centre, with a one-time password (e-mailed by the caller; while
+ *    the branch is not active, it goes out when it is activated, like every login of the branch);
+ *  - their login is this centre's already: a fresh one-time password (they had not signed in, or asked again);
+ *  - they run another centre already: this one is added to theirs, with full access (one login for all their centres).
+ */
+export async function invitePartner(tx: Tx, actor: Actor, branchId: string): Promise<PartnerInvite> {
+  assertCan(actor, 'update', 'franchise')
+  const [b] = (await tx.execute<{ id: string; kind: string; status: string; partner_email: string | null; partner_owner: string | null; partner_name: string | null; partner_phone: string | null }>(sql`
+    select id, kind, status, partner_email, partner_owner, partner_name, partner_phone from branches where id = ${z.string().uuid().parse(branchId)}`)).rows
+  if (!b) throw new Error('Branch not found')
+  if (b.kind !== 'franchise') throw new Error('This centre is not a franchise')
+  if (!b.partner_email) throw new Error('Add the partner’s e-mail to the franchise terms first')
+  const [u] = (await tx.execute<{ id: string; branch_id: string | null; name: string; email: string; is_active: boolean; signed_in: boolean }>(sql`
+    select id, branch_id, name, email, is_active, last_login_at is not null as signed_in from users where lower(email) = ${b.partner_email} and deleted_at is null`)).rows
+  if (u && !u.is_active) throw new Error('That e-mail belongs to a deactivated login: activate it under Users & Staff first')
+  if (u && !u.branch_id) throw new Error('That e-mail is a head-office login: give the partner another e-mail')
+  if (u && u.branch_id !== branchId) {
+    const { name } = await shareStaff(tx, actor, branchId, u.id)
+    await tx.execute(sql`update user_branches set access = 'full' where user_id = ${u.id} and branch_id = ${branchId}`)
+    await audit(tx, actor, { action: 'invite_partner', entity: 'franchise', entityId: branchId, after: { userId: u.id, shared: true } })
+    return { status: 'shared', name }
+  }
+  if (u) {
+    if (b.status !== 'active') return { status: 'pending_activation', email: u.email }
+    // already working: a new password would lock them out (they use Forgot password if they lost it)
+    if (u.signed_in) return { status: 'signed_in', email: u.email }
+    const [login] = await freshLogins(tx, branchId, u.id)
+    if (!login) throw new Error('That login cannot be sent again')
+    await audit(tx, actor, { action: 'invite_partner', entity: 'franchise', entityId: branchId, after: { userId: u.id, resent: true } })
+    return { status: 'resent', login }
+  }
+  const made = await createUser(tx, actor, { name: b.partner_owner || b.partner_name || 'Partner', email: b.partner_email, phone: b.partner_phone ?? undefined, roles: ['branch_manager'], branchId })
+  await audit(tx, actor, { action: 'invite_partner', entity: 'franchise', entityId: branchId, after: { userId: made.user.id } })
+  if (b.status !== 'active') return { status: 'pending_activation', email: made.user.email }
+  return { status: 'new', branchActive: true, login: { userId: made.user.id, name: made.user.name, email: made.user.email, password: made.tempPassword, roles: made.roles } }
 }

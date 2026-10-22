@@ -4,8 +4,9 @@
 // opened from Branches ("Make a franchise").
 import { Fragment, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Handshake, Pencil, Plus, Trash2 } from 'lucide-react'
-import { deleteRoyaltyAction, recordRoyaltyAction, setFranchiseAction } from '@/app/actions'
+import { Handshake, Pencil, Plus, Send, Trash2 } from 'lucide-react'
+import { deleteRoyaltyAction, invitePartnerAction, recordRoyaltyAction, setFranchiseAction, setFranchiseFeeAction } from '@/app/actions'
+import type { FranchiseFeeRow } from '@/modules/franchise/fees'
 import { Err, Modal } from '@/components/modal'
 import { useNotify } from '@/components/panel-shell'
 import type { Franchise, RoyaltyPaymentRow } from '@/modules/franchise/service'
@@ -19,6 +20,7 @@ export const termsText = (f: Pick<Franchise, 'royaltyKind' | 'royaltyValue'>) =>
 type Props = {
   month: string; thisMonth: string; today: string; franchises: Franchise[]; payments: RoyaltyPaymentRow[]; modes: string[]
   canEdit: boolean; canRecord: boolean; canDelete: boolean; ownBranches: { id: string; name: string }[]
+  fees: FranchiseFeeRow[]
 }
 
 export function FranchisesPanel(p: Props) {
@@ -77,6 +79,7 @@ export function FranchisesPanel(p: Props) {
                     <div className="row-actions" style={{ justifyContent: 'flex-end' }}>
                       <button type="button" className="filter-button" onClick={() => setOpen(open === f.branchId ? null : f.branchId)}>{open === f.branchId ? 'Hide' : 'Statement'}</button>
                       {p.canRecord && <button type="button" className="filter-button" onClick={() => setPaying(f)}><Plus size={14} /> Payment</button>}
+                      {p.canEdit && <button type="button" className="filter-button icon-only" title={f.partnerEmail ? `Invite the partner: their login, e-mailed to ${f.partnerEmail}` : 'Add the partner’s e-mail to the terms to invite them'} aria-label={`Invite the partner of ${f.branch}`} disabled={pending || !f.partnerEmail} onClick={() => start(async () => { const r = await invitePartnerAction(f.branchId); notify(r.ok ? r.data!.message : r.error) })}><Send size={14} /></button>}
                       {p.canEdit && <button type="button" className="filter-button icon-only" title="Edit the terms" aria-label={`Edit ${f.branch}`} onClick={() => setEdit(f)}><Pencil size={14} /></button>}
                     </div>
                   </td>
@@ -110,6 +113,8 @@ export function FranchisesPanel(p: Props) {
           </table>
         </div>
       )}
+
+      {p.canEdit && !!p.fees.length && <CourseFees fees={p.fees} />}
 
       {edit && <FranchiseModal f={edit === 'new' ? null : edit} branches={p.ownBranches} onClose={() => setEdit(null)} onDone={(m) => { setEdit(null); notify(m); router.refresh() }} />}
       {paying && <PaymentModal f={paying} today={p.today} modes={p.modes} onClose={() => setPaying(null)} onDone={(m) => { setPaying(null); notify(m); router.refresh() }} />}
@@ -187,5 +192,42 @@ function PaymentModal({ f, today, modes, onClose, onDone }: { f: Franchise; toda
       <Err msg={error} />
       <div className="modal-actions"><button type="button" className="button secondary" onClick={onClose}>Cancel</button><button type="button" className="button primary" disabled={pending} onClick={save}>{pending ? 'Saving…' : 'Record payment'}</button></div>
     </Modal>
+  )
+}
+
+const toRupees = (p: number | null) => (p == null ? '' : String(p / 100))
+const toPaise = (s: string) => (s.trim() === '' ? null : Math.round(Number(s) * 100))
+
+/** Head office: the lowest and highest total fee a franchise may charge for each course (empty: no bound). */
+function CourseFees({ fees }: { fees: FranchiseFeeRow[] }) {
+  const router = useRouter()
+  const notify = useNotify()
+  const [v, setV] = useState<Record<string, { min: string; max: string }>>(() => Object.fromEntries(fees.map((f) => [f.courseId, { min: toRupees(f.min), max: toRupees(f.max) }])))
+  const [pending, start] = useTransition()
+  const changed = (f: FranchiseFeeRow) => toPaise(v[f.courseId].min) !== f.min || toPaise(v[f.courseId].max) !== f.max
+  const save = (f: FranchiseFeeRow) => start(async () => {
+    const min = toPaise(v[f.courseId].min), max = toPaise(v[f.courseId].max)
+    if ((min != null && (!Number.isFinite(min) || min < 0)) || (max != null && (!Number.isFinite(max) || max < 0))) return notify('Enter amounts in rupees, or leave empty')
+    const r = await setFranchiseFeeAction(f.courseId, min, max)
+    notify(r.ok ? `${f.title}: saved` : r.error); if (r.ok) router.refresh()
+  })
+  const set = (id: string, k: 'min' | 'max', val: string) => setV({ ...v, [id]: { ...v[id], [k]: val } })
+  return (
+    <div className="panel table-scroll" style={{ marginTop: 16 }}>
+      <h2 style={{ margin: '0 0 4px', fontSize: 16 }}>Course fees at franchises</h2>
+      <p className="section-hint" style={{ margin: '0 0 10px' }}>The total fee (after discounts, with GST) a franchise may charge for each course. Checked when it registers a student, changes a fee or gives a discount. Empty: no limit. Your own centres are not bound by it.</p>
+      <table>
+        <thead><tr><th>Course</th><th style={{ textAlign: 'right' }}>Usual fee</th><th>Lowest (₹)</th><th>Highest (₹)</th><th /></tr></thead>
+        <tbody>{fees.map((f) => (
+          <tr key={f.courseId}>
+            <td><strong>{f.title}</strong><small style={{ display: 'block' }}>{f.department}</small></td>
+            <td style={{ textAlign: 'right' }}>{inr(f.baseFee)}</td>
+            <td><input type="number" min={0} step="1" value={v[f.courseId].min} onChange={(e) => set(f.courseId, 'min', e.target.value)} aria-label={`Lowest fee for ${f.title}`} style={{ width: 120 }} /></td>
+            <td><input type="number" min={0} step="1" value={v[f.courseId].max} onChange={(e) => set(f.courseId, 'max', e.target.value)} aria-label={`Highest fee for ${f.title}`} style={{ width: 120 }} /></td>
+            <td><button type="button" className="filter-button" disabled={pending || !changed(f)} onClick={() => save(f)}>Save</button></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
   )
 }

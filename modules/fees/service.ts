@@ -1,4 +1,5 @@
 // The ONLY place money is written (P4). Balance is never stored: it is sum(fee_ledger) via v_fee_balance.
+import { assertFranchiseFee } from '../franchise/fees'
 import { emitPayment } from '@/modules/integrations/webhooks'
 import { and, eq, sql, type SQL } from 'drizzle-orm'
 import { z } from 'zod'
@@ -247,6 +248,7 @@ export async function changeTotalFee(tx: Tx, actor: Actor, raw: FeeChangeInput) 
   const delta = input.newTotal - current
   if (delta === 0) throw new Error('That is already the total fees')
   if (balance + delta < 0) throw new Error(`The student has already paid more than that: the total cannot go below ₹${((current - balance) / 100).toLocaleString('en-IN')}`)
+  await assertFranchiseFee(tx, reg.branchId, reg.courseId, input.newTotal)
 
   await tx.insert(feeLedger).values({ branchId: reg.branchId, registrationId: reg.id, entryType: delta > 0 ? 'charge' : 'discount', amount: delta, note: `Total fees changed: ${input.reason}`, createdBy: actor.userId })
   // The fee's parts follow in the same proportion (course fee + GST = total; the list fee is never below it).
@@ -456,6 +458,7 @@ export async function applyDiscount(tx: Tx, actor: Actor, raw: DiscountInput) {
   assertOpenFees(reg)
   const { balance } = await getBalance(tx, reg.id)
   if (input.amount > balance) throw new Error('Discount is more than the outstanding balance')
+  await assertFranchiseFee(tx, reg.branchId, reg.courseId, reg.totalFee - input.amount)
   const pct = reg.totalFee > 0 ? (input.amount / reg.totalFee) * 100 : 0
 
   await tx.insert(feeLedger).values({ branchId: reg.branchId, registrationId: reg.id, entryType: 'discount', amount: -input.amount, note: input.reason, createdBy: actor.userId })

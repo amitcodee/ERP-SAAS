@@ -827,6 +827,13 @@
       "when": 1794291200000,
       "tag": "0117_event_clock_time",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1794377600000,
+      "tag": "0118_franchise_fee_range",
+      "breakpoints": true
     }
   ]
 }
