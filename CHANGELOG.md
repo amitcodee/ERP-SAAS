@@ -2,6 +2,19 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 3): franchises (2026-10-22)
+
+- **A branch can be a franchise** (Branches → Make a franchise, or Franchises): the partner's legal name, owner, phone,
+  e-mail, the agreement's dates and the royalty: a percent of the fees the centre receives, or a fixed amount a month.
+  Migration 0115 (branch columns, `royalty_payments`, the `franchise` permission area).
+- **Its receipts are the partner's**: the page and the PDF print the partner's legal name, the centre and "a franchise
+  of <institute>", with the centre's own GSTIN.
+- **Fees & money → Franchises**: each franchise's fees received, royalty and payments for a month, the balance owed to
+  date, a 12-month statement, royalty payments recorded by head office (deleted softly). A franchise's own branch
+  manager sees their centre's statement only; other branches see nothing (RLS). The page joins the menu by itself with
+  the first franchise (a feature pack, off for new institutes until then).
+- `scripts/franchise-test.ts`; e2e: a branch made a franchise (71 steps).
+
 ## Phase 6 (part 2): course certificates in your own design (2026-10-22)
 
 - **Course certificates in the institute's own design.** Certificate Designs is on every plan (it was tied to the paid

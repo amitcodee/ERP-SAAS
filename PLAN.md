@@ -366,7 +366,9 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
      campaigns, Lead distribution, Random call, Transfers… A new institute starts with the core (Leads, Admissions,
      Fees, Classes, Certificates) and turns the rest on; the menu shows only what is on.
    - Set Up asks "one centre or several / franchises?" and opens the matching modules.
-2. [ ] **Franchises.**
+2. [~] **Franchises.** Done: own / franchise, partner and terms, receipts in the partner's name, the monthly royalty
+   statement and payments, the partner's login seeing only its centre. Still to do: course fee ranges set by head
+   office, certificates approved by head office, inviting a partner by e-mail.
    - A branch is the institute's own or a franchise. A franchise has its partner (legal name, GSTIN, owner, agreement
      dates) and its terms: a royalty percent of fees collected, or a fixed monthly fee.
    - A franchise partner login sees only its own centres (one or several), never head office or other partners.

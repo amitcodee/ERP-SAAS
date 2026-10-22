@@ -806,6 +806,13 @@
       "when": 1794032000000,
       "tag": "0114_org_pending",
       "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1794118400000,
+      "tag": "0115_franchises",
+      "breakpoints": true
     }
   ]
 }

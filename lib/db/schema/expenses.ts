@@ -25,3 +25,24 @@ export const expenses = pgTable(
   },
   (t) => [index('expenses_branch_day_idx').on(t.branchId, t.spentOn), check('expenses_amount_ck', sql`amount > 0`)],
 )
+
+// Royalty a franchise partner pays head office (modules/franchise/service.ts), in paise, against what its centre owes
+// (branches.royalty_kind / royalty_value). Recorded by head office; a wrong one is deleted softly and stays on record.
+export const royaltyPayments = pgTable(
+  'royalty_payments',
+  {
+    orgId: orgId(),
+    id: uuid('id').primaryKey().defaultRandom(),
+    branchId: uuid('branch_id').notNull().references(() => branches.id),
+    paidOn: date('paid_on').notNull(),
+    amount: integer('amount').notNull(),
+    mode: text('mode'),
+    ref: text('ref'),
+    note: text('note'),
+    createdBy: uuid('created_by').notNull().references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    deletedBy: uuid('deleted_by').references(() => users.id),
+  },
+  (t) => [index('royalty_payments_branch_day_idx').on(t.branchId, t.paidOn), check('royalty_payments_amount_ck', sql`amount > 0`)],
+)

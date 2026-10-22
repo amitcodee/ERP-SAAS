@@ -916,6 +916,14 @@ async function main() {
         await w.goto(`${IBASE}/web-leads`); await expectText(w, `Embed Visitor ${RUN}`); await expectText(w, 'acme-site.localhost'); await expectText(w, 'google / cpc / brand')
       }, v)
       await vctx.close()
+      await ok('a branch becomes a franchise: the partner and a 10% royalty, then its statement under Franchises', async () => {
+        await w.goto(`${IBASE}/branches`, { waitUntil: 'networkidle' }); await w.getByRole('button', { name: 'Make a franchise' }).click()
+        const m = w.locator('.modal-card')
+        await m.getByLabel(/Partner’s legal name/).fill(`Bright Skills ${RUN} LLP`)
+        await m.locator('input[type=number]').fill('10')
+        await m.getByRole('button', { name: 'Save' }).click(); await toast(w, 'It is a franchise now')
+        await w.goto(`${IBASE}/franchises`); await expectText(w, `Bright Skills ${RUN} LLP`); await expectText(w, '10% of fees received')
+      }, w)
       await ctx.close()
     }
 

@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -56,6 +57,16 @@ export const branches = pgTable(
     websiteUrl: text('website_url'), // the branch's own website (e.g. an acme-<city> site): its form leads come to this branch
     websiteHost: text('website_host'), // websiteUrl's host without www., which is what incoming leads are matched on
     isActive: boolean('is_active').notNull().default(true),
+    // a franchise (migration 0115, modules/franchise/service.ts): run by a partner who pays a royalty
+    kind: text('kind').$type<'own' | 'franchise'>().notNull().default('own'),
+    partnerName: text('partner_name'), // the partner's legal name, printed on the centre's receipts
+    partnerOwner: text('partner_owner'),
+    partnerPhone: text('partner_phone'),
+    partnerEmail: text('partner_email'),
+    agreementFrom: date('agreement_from'),
+    agreementTo: date('agreement_to'),
+    royaltyKind: text('royalty_kind').$type<'percent' | 'fixed'>(), // percent: of the fees received; fixed: a month
+    royaltyValue: integer('royalty_value'), // percent: basis points (1250 = 12.5%); fixed: paise a month
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('branches_code_uq').on(t.orgId, t.code), uniqueIndex('branches_cert_code_uq').on(t.orgId, t.certCode), uniqueIndex('branches_website_host_uq').on(t.orgId, t.websiteHost).where(sql`website_host IS NOT NULL`)],

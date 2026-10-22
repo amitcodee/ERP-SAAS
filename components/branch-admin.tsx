@@ -2,7 +2,9 @@
 // Head office: create a branch, complete its setup (details, counselor, accountant), then activate it.
 // Nobody of a branch can sign in before activation; activation e-mails everyone their login.
 import { useEffect, useState, useTransition } from 'react'
-import { ArrowLeft, CheckCircle2, Circle, Plus, X } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Circle, Handshake, Plus, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { FranchiseModal } from '@/components/franchises-panel'
 import { activateBranchAction, branchSetupAction, createBranchAction, createUserAction, resendLoginAction, regNumberingAction, setRegNumberingAction, setStaffAccessAction, setUserRolesAction, shareStaffAction, staffElsewhereAction, unshareStaffAction, updateBranchAction, type MailedLogin } from '@/app/actions'
 import { codeForCity, nextFreeCode } from '@/lib/branch-code'
 import type { RoleOpt } from '@/components/users-panel'
@@ -14,6 +16,7 @@ import { useLocalList } from '@/components/use-local-list'
 export type BranchOpt = {
   id: string; code: string; name: string; city: string | null; address: string | null; phone: string | null
   state: string | null; pincode: string | null; email: string | null; certCode: string | null; websiteUrl: string | null; status: string; setupPct: number
+  kind?: 'own' | 'franchise'; partnerName?: string | null
 }
 
 const STATES = ['Punjab', 'Chandigarh', 'Haryana', 'Himachal Pradesh', 'Delhi', 'Jammu and Kashmir', 'Rajasthan', 'Uttar Pradesh', 'Uttarakhand']
@@ -31,6 +34,8 @@ function Progress({ pct, status }: { pct: number; status: string }) {
 
 export function BranchAdmin({ branches, roles, notify }: { branches: BranchOpt[]; roles: RoleOpt[]; notify: (m: string) => void }) {
   const [adding, setAdding] = useState(false)
+  const [franchising, setFranchising] = useState(false)
+  const router = useRouter()
   const [openId, setOpenId] = useState<string | null>(null)
   const list = useLocalList(branches, {
     text: (b) => [b.code, b.name, b.city, b.address, b.state, b.pincode, b.phone, b.email, b.websiteUrl].filter(Boolean).join(' '),
@@ -44,8 +49,13 @@ export function BranchAdmin({ branches, roles, notify }: { branches: BranchOpt[]
       <div className="page-heading">
         <div><p className="eyebrow">Setup / Branches</p><h1>Branches</h1>
           <p className="subheading">Create a branch, then complete its setup: details, a counselor and an accountant. Its logins work only after you activate it.</p></div>
-        <div className="heading-actions"><button className="button primary" onClick={() => setAdding((o) => !o)}><Plus size={17} /> Add branch</button></div>
+        <div className="heading-actions">
+          {/* a franchise: the partner's name on its receipts and a royalty (Franchises) */}
+          {branches.some((b) => b.kind !== 'franchise') && <button className="button secondary" onClick={() => setFranchising(true)}><Handshake size={16} /> Make a franchise</button>}
+          <button className="button primary" onClick={() => setAdding((o) => !o)}><Plus size={17} /> Add branch</button>
+        </div>
       </div>
+      {franchising && <FranchiseModal f={null} branches={branches.filter((b) => b.kind !== 'franchise').map((b) => ({ id: b.id, name: b.name }))} onClose={() => setFranchising(false)} onDone={(m) => { setFranchising(false); notify(`${m}: see Franchises for its royalty`); router.refresh() }} />}
       {adding && <NewBranchForm branches={branches} onDone={(id, code) => { setAdding(false); notify(`Branch created: ${code}`); setOpenId(id) }} onCancel={() => setAdding(false)} />}
       <div className="panel table-panel">
         <ListToolbar list={list} placeholder="Search code, name, city, phone…"
@@ -61,7 +71,7 @@ export function BranchAdmin({ branches, roles, notify }: { branches: BranchOpt[]
               {list.rows.map((b) => (
                 <tr key={b.id}>
                   <td><strong className="id-text">{b.code}</strong></td>
-                  <td>{b.name}</td>
+                  <td>{b.name}{b.kind === 'franchise' && <small style={{ display: 'block' }}><span className="status-badge status-blue"><span className="status-dot" />Franchise</span> {b.partnerName}</small>}</td>
                   <td style={{ whiteSpace: 'normal', maxWidth: 240 }}>{[b.address, b.city, b.state, b.pincode].filter(Boolean).join(', ') || '—'}</td>
                   <td>{b.phone ?? '—'}<br /><span style={{ color: '#8b98aa' }}>{b.email ?? 'no e-mail'}</span></td>
                   <td><Progress pct={b.setupPct} status={b.status} /></td>

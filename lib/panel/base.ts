@@ -41,6 +41,8 @@ export const loadPanelBase = cache(async () => {
   // between branches while it has only one
   const hidden = hiddenModules(features.config.off)
   if (branchCount <= 1) { hidden.add('Transfers'); hidden.add('Shared Students') }
+  // a franchise's own staff see their centre's royalty; other branches have none
+  if (!isSuper && acting?.kind !== 'franchise') hidden.add('Franchises')
   const modules = MODULES.filter((m) => m.allowed(ok) && (!m.planModule || planHasModule(plan, m.planModule)) && !hidden.has(m.key)).map((m) => m.key)
   return {
     session: s, actor, mustChange, isSuper, ok, modules, plan,
@@ -48,7 +50,7 @@ export const loadPanelBase = cache(async () => {
     // The branches the sidebar lets this person switch between: all for a super admin, their own for shared staff.
     switchBranches: isSuper ? base.branches.map((b) => ({ id: b.id, code: b.code, name: b.name })) : myBranches,
     needsBranch: !actor.branchId,
-    branches: base.branches.map((b) => ({ id: b.id, code: b.code, name: b.name, city: b.city, address: b.address, phone: b.phone, state: b.state, pincode: b.pincode, email: b.email, certCode: b.certCode, websiteUrl: b.websiteUrl, status: b.status, setupPct: base.setupPct[b.id] ?? 0 })),
+    branches: base.branches.map((b) => ({ id: b.id, code: b.code, name: b.name, city: b.city, address: b.address, phone: b.phone, state: b.state, pincode: b.pincode, email: b.email, certCode: b.certCode, websiteUrl: b.websiteUrl, status: b.status, kind: b.kind, partnerName: b.partnerName, setupPct: base.setupPct[b.id] ?? 0 })),
     user: {
       id: s.userId, name: s.name, email: s.email, initials: initials(s.name),
       roleLabel: actor.roles?.map((k) => base.roleRows.find((r) => r.key === k)?.name ?? k).join(' · ') ?? s.role,

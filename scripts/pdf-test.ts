@@ -31,7 +31,7 @@ async function main() {
       const pay = await recordPayment(tx, { ...acct, role: 'counselor' }, { registrationId: reg.id, amount: 1000050, modeId: cash.id, nextInstallmentDate: '2026-11-01', nextInstallmentAmount: 1499950 })
       const view = await getReceipt(tx, acct, pay.receipt.receiptNo)
 
-      const bytes = await receiptPdf(view, 'https://example.test/verify/receipt/x', { name: 'Sample Institute', logo: null })
+      const bytes = await receiptPdf(view, 'https://example.test/verify/receipt/x', { name: 'Sample Institute', legalName: 'Sample Institute', logo: null })
       check('receipt PDF is a valid PDF', Buffer.from(bytes.subarray(0, 5)).toString() === '%PDF-')
       const doc = await PDFDocument.load(bytes)
       const [w, h] = [doc.getPage(0).getWidth(), doc.getPage(0).getHeight()]
@@ -63,7 +63,7 @@ async function main() {
       // ₹ and Punjabi / Hindi names: drawn in the Unicode fonts, shaped (conjuncts, vowel signs), never "Rs." or "?"
       const fontsOf = async (bytes: Uint8Array) => (await PDFDocument.load(bytes)).context.enumerateIndirectObjects()
         .map(([, o]) => String((o as { get?: (k: unknown) => unknown }).get?.(PDFName.of('BaseFont')) ?? '')).filter(Boolean).join(' ')
-      const indian = await receiptPdf({ ...view, studentName: 'ਗੁਰਪ੍ਰੀਤ ਸਿੰਘ', course: 'वेब डिज़ाइन', receivedBy: 'प्रियंका शर्मा' }, 'https://example.test/verify/receipt/x', { name: 'Sample Institute', logo: null })
+      const indian = await receiptPdf({ ...view, studentName: 'ਗੁਰਪ੍ਰੀਤ ਸਿੰਘ', course: 'वेब डिज़ाइन', receivedBy: 'प्रियंका शर्मा' }, 'https://example.test/verify/receipt/x', { name: 'Sample Institute', legalName: 'Sample Institute', logo: null })
       const f = await fontsOf(indian)
       check('a receipt with Punjabi and Hindi names embeds the Gurmukhi and Devanagari fonts', /NotoSansGurmukhi/.test(f) && /NotoSansDevanagari/.test(f), f)
       check('... and the Latin font for ₹ (no built-in Helvetica)', /NotoSans-(Regular|Bold)/.test(f) && !/Helvetica/.test(f), f)

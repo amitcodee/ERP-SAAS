@@ -46,6 +46,7 @@ import { appOrigin } from '@/lib/app-url'
 import { openFeePayment, startFeePayment } from '@/modules/fees/online'
 import { gradesProblem } from '@/lib/grades'
 import { FEATURES } from '@/lib/panel/features'
+import { deleteRoyaltyPayment, recordRoyaltyPayment, setFranchise, type FranchiseInput, type RoyaltyPaymentInput } from '@/modules/franchise/service'
 import { addExpense, deleteExpense, type ExpenseInput } from '@/modules/expenses/service'
 import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
@@ -1434,6 +1435,26 @@ export async function saveGradesAction(config: z.input<typeof gradesSettings>) {
     await saveConfig(a.orgId, 'grades', { ...v, bands: [...v.bands].sort((x, y) => y.min - x.min) }, {}, a.userId)
     await auditSettings(a, 'grades'); settingsSaved()
   })
+}
+
+// ---- Franchises (modules/franchise/service.ts)
+export async function setFranchiseAction(input: FranchiseInput) {
+  return run(async () => {
+    const { actor } = await getActor()
+    await withTenant(actor, (tx) => setFranchise(tx, actor, input))
+    // the first franchise: its page joins the menu (Settings → Features)
+    if (input.kind === 'franchise') {
+      const f = await getConfig(actor.orgId, 'features')
+      if (f.config.off.includes('franchise')) await saveConfig(actor.orgId, 'features', { off: f.config.off.filter((k) => k !== 'franchise') }, {}, actor.userId)
+    }
+    revalidatePath('/franchises')
+  })
+}
+export async function recordRoyaltyAction(input: RoyaltyPaymentInput) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => recordRoyaltyPayment(tx, actor, input)); revalidatePath('/franchises') })
+}
+export async function deleteRoyaltyAction(id: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => deleteRoyaltyPayment(tx, actor, id)); revalidatePath('/franchises') })
 }
 
 // ---- The design course certificates are drawn with (modules/certificates/course-design.ts)

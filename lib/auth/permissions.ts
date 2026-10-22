@@ -6,7 +6,7 @@ export const RESOURCES = [
   'branch', 'user', 'role', 'catalog', 'setting',
   'call', 'enquiry', 'lead', 'weblead', 'registration', 'fee', 'receipt',
   'batch', 'attendance', 'assessment', 'teaching', 'certificate', 'internship', 'report', 'audit',
-  'helpdesk', 'template', 'overdue', 'branchmail', 'recycle', 'broadcast', 'event', 'certdesign', 'expense',
+  'helpdesk', 'template', 'overdue', 'branchmail', 'recycle', 'broadcast', 'event', 'certdesign', 'expense', 'franchise',
 ] as const
 export type Resource = (typeof RESOURCES)[number]
 export const ACTIONS = ['read', 'create', 'update', 'approve', 'delete', 'clear', 'assign'] as const
@@ -44,6 +44,7 @@ export const CATALOG: Record<Resource, { label: string; actions: Partial<Record<
   event: { label: 'Seminars & workshops', actions: { read: 'See events & who joined', create: 'Create events (quiz, certificate)', update: 'Edit / open / close events, resend certificates' } },
   certdesign: { label: 'Certificate designs', actions: { read: 'See the designs', update: 'Design certificates on the canvas' } },
   expense: { label: 'Expenses', actions: { read: 'See expenses & profit', create: 'Record expenses', delete: 'Delete expenses' } },
+  franchise: { label: 'Franchises', actions: { read: 'See franchise terms & royalty', update: 'Set franchise terms', create: 'Record royalty payments', delete: 'Delete royalty payments' } },
 }
 export const ALL_PERMS: Perm[] = RESOURCES.flatMap((r) => (Object.keys(CATALOG[r].actions) as Action[]).map((a) => `${r}:${a}` as Perm))
 
@@ -52,7 +53,7 @@ export const ALL_PERMS: Perm[] = RESOURCES.flatMap((r) => (Object.keys(CATALOG[r
 // or it could not be ticked.
 export const PERM_GROUPS: { title: string; hint: string; areas: Resource[] }[] = [
   { title: 'Leads & admissions', hint: 'From the first call to an admitted student', areas: ['call', 'enquiry', 'lead', 'weblead', 'registration'] },
-  { title: 'Money', hint: 'Fees coming in, expenses going out', areas: ['fee', 'receipt', 'expense'] },
+  { title: 'Money', hint: 'Fees coming in, expenses going out, franchise royalty', areas: ['fee', 'receipt', 'expense', 'franchise'] },
   { title: 'Academics', hint: 'Classes, teaching, grades and certificates', areas: ['batch', 'attendance', 'assessment', 'teaching', 'certificate', 'internship'] },
   { title: 'Students & messages', hint: 'Help desk, e-mail wording, the branch mailbox and bulk WhatsApp', areas: ['helpdesk', 'template', 'branchmail', 'broadcast'] },
   { title: 'Events', hint: 'Seminars, workshops and webinars: sign-up link, quiz and e-mailed certificates', areas: ['event', 'certdesign'] },
@@ -90,6 +91,7 @@ export const PERM_HELP: Record<Resource, { about: string; actions: Partial<Recor
   certdesign: { about: 'Certificate designs made on the canvas (from a ready-made template, a blank page or a picture), used by events. Head office’s designs are offered to every branch.', actions: { read: 'See the designs and preview them.', update: 'Create and edit designs on the canvas (a branch: its own; head office: every one).' } },
   broadcast: { about: 'WhatsApp campaigns (made in AiSensy, listed by head office in Settings) sent to many students or leads at once.', actions: { read: 'Open Bulk WhatsApp and see what was sent from this branch.', create: 'Send a campaign to students or leads of this branch (head office: of every branch).' } },
   expense: { about: 'What the branch spends (rent, salaries, bills, marketing…), and the profit after fees received.', actions: { read: 'Open Expenses and see the spending and the profit.', create: 'Record an expense.', delete: 'Delete an expense recorded by mistake (it stays in the log).' } },
+  franchise: { about: 'Centres run by franchise partners: their terms and the royalty they owe on the fees they receive.', actions: { read: 'See the franchise terms and the royalty statement (a franchise’s own staff: their centre’s).', update: 'Make a centre a franchise and set its partner and royalty.', create: 'Record a royalty payment from a partner.', delete: 'Delete a royalty payment recorded by mistake (it stays in the log).' } },
 }
 
 /** Rule: nobody can act on an area they cannot see. Any tick in an area brings that area's "See" with it. */
@@ -104,7 +106,7 @@ export type RoleDef = { key: string; name: string; description: string; kind: Ro
 const p = (r: Resource, ...a: Action[]) => a.map((x) => `${r}:${x}` as Perm)
 /** Shared by every branch (the branch list, roles, courses, global rules), so only head office holds these. */
 const HEAD_OFFICE: Perm[] = [...p('branch', 'read', 'create', 'update', 'delete'), ...p('role', 'read', 'update'), ...p('catalog', 'update'), ...p('setting', 'update'), ...p('weblead', 'assign'),
-  ...p('teaching', 'approve'), ...p('certificate', 'delete'), ...p('recycle', 'read', 'update', 'delete')]
+  ...p('teaching', 'approve'), ...p('certificate', 'delete'), ...p('recycle', 'read', 'update', 'delete'), ...p('franchise', 'update', 'create', 'delete')]
 /** A branch manager runs the branch but does not teach (is not listed as a trainer). */
 const NOT_MANAGER: Perm[] = [...HEAD_OFFICE, ...p('teaching', 'read')]
 export const DEFAULT_ROLES: RoleDef[] = [

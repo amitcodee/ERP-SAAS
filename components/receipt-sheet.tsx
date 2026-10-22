@@ -90,7 +90,9 @@ export function ReceiptSheet({ r, qr, verifyUrl , brand }: { r: ReceiptView; qr:
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <BrandMark brand={brand} height={40} />
             <div className="rc-org">
-              <strong>{r.branchName}</strong>
+              {/* a franchise centre receives the fees in its partner's name */}
+              <strong>{r.franchisePartner ?? r.branchName}</strong>
+              {r.franchisePartner && <div>{r.branchName} · a franchise of {brand.legalName}</div>}
               {r.branchAddress}
               {(r.branchPhone || r.gstin) && <div>{[r.branchPhone && `Ph: ${r.branchPhone}`, r.gstin && `GSTIN: ${r.gstin}`].filter(Boolean).join('  ·  ')}</div>}
             </div>

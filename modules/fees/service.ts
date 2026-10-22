@@ -620,6 +620,8 @@ export type ReceiptView = {
   slips: { id: string; mime: string; fileName: string }[]
   studentName: string; phone: string; regNo: string; course: string
   branchName: string; branchAddress: string | null; branchPhone: string | null; gstin: string | null
+  /** A franchise centre: the partner's legal name, printed as the receiving business (migration 0115). */
+  franchisePartner: string | null
   charged: number; discounted: number; paidToDate: number; balanceAfter: number; receivedBy: string | null
   /** The payment was reversed (wrong entry / refund): the receipt is CANCELLED. */
   reversal: Reversal | null
@@ -631,12 +633,12 @@ export async function getReceipt(tx: Tx, actor: Actor, receiptNo: string): Promi
   const res = await tx.execute<{
     receipt_no: string; payment_id: string; amount: number; paid_at: string; mode: string; txn_ref: string | null; manual_slip_no: string | null
     name: string; phone: string; reg_no: string; course: string
-    bname: string; baddr: string | null; bphone: string | null; gstin: string | null; received_by: string | null
+    bname: string; baddr: string | null; bphone: string | null; gstin: string | null; received_by: string | null; partner: string | null
     charged: number; discounted: number; paid_to_date: number; balance_after: number; reversal: Reversal | null
   }>(sql`
     select rc.receipt_no, pay.id as payment_id, pay.amount, pay.paid_at::text, m.value as mode, pay.txn_ref, pay.manual_slip_no,
       trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name, p.phone, r.reg_no, coalesce(c.title, r.custom_course_title, d.name) as course,
-      b.name as bname, b.address as baddr, b.phone as bphone, b.gstin, u.name as received_by,
+      b.name as bname, b.address as baddr, b.phone as bphone, b.gstin, u.name as received_by, case when b.kind = 'franchise' then b.partner_name end as partner,
       coalesce(sum(l.amount) filter (where l.entry_type = 'charge'), 0)::int as charged,
       coalesce(-sum(l.amount) filter (where l.entry_type = 'discount'), 0)::int as discounted,
       coalesce(-sum(l.amount) filter (where l.entry_type in ('payment', 'adjustment', 'refund')), 0)::int as paid_to_date, -- as v_fee_balance: a refund lowers it
@@ -653,14 +655,14 @@ export async function getReceipt(tx: Tx, actor: Actor, receiptNo: string): Promi
     join fee_ledger pl on pl.ref_id = pay.id and pl.entry_type = 'payment'
     join fee_ledger l on l.registration_id = r.id and l.seq <= pl.seq
     where rc.receipt_no = ${receiptNo}
-    group by rc.receipt_no, pay.id, pay.amount, pay.paid_at, m.value, pay.txn_ref, pay.manual_slip_no, p.first_name, p.last_name, p.phone, r.reg_no, c.title, r.custom_course_title, d.name, b.name, b.address, b.phone, b.gstin, u.name`);
+    group by rc.receipt_no, pay.id, pay.amount, pay.paid_at, m.value, pay.txn_ref, pay.manual_slip_no, p.first_name, p.last_name, p.phone, r.reg_no, c.title, r.custom_course_title, d.name, b.name, b.address, b.phone, b.gstin, b.kind, b.partner_name, u.name`);
   const r = res.rows[0];
   if (!r) throw new Error('Receipt not found');
   const slips = r.manual_slip_no ? await tx.select({ id: registrationDocuments.id, mime: registrationDocuments.mime, fileName: registrationDocuments.fileName }).from(registrationDocuments).where(and(eq(registrationDocuments.paymentId, r.payment_id), eq(registrationDocuments.kind, 'payment_slip'))).orderBy(registrationDocuments.uploadedAt) : []
   return {
     receiptNo: r.receipt_no, token: receiptToken(r.receipt_no, r.payment_id, r.amount), paidAt: r.paid_at, amount: r.amount, mode: r.mode, txnRef: r.txn_ref, paperSlip: !!r.manual_slip_no, slips,
     studentName: r.name, phone: r.phone, regNo: r.reg_no, course: r.course,
-    branchName: r.bname, branchAddress: r.baddr, branchPhone: r.bphone, gstin: r.gstin,
+    branchName: r.bname, branchAddress: r.baddr, branchPhone: r.bphone, gstin: r.gstin, franchisePartner: r.partner,
     charged: r.charged, discounted: r.discounted, paidToDate: r.paid_to_date, balanceAfter: r.balance_after, receivedBy: r.received_by,
     reversal: r.reversal ? { ...r.reversal, at: new Date(r.reversal.at).toISOString() } : null,
   };

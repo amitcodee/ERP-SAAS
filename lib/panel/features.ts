@@ -5,13 +5,14 @@
 // institute made before this (no saved choice) keeps everything on.
 import type { ModuleKey } from './modules'
 
-export type FeatureKey = 'calling' | 'webleads' | 'helpdesk' | 'teaching' | 'internships' | 'letters' | 'events' | 'whatsapp' | 'expenses' | 'import'
+export type FeatureKey = 'franchise' | 'calling' | 'webleads' | 'helpdesk' | 'teaching' | 'internships' | 'letters' | 'events' | 'whatsapp' | 'expenses' | 'import'
 
 export const FEATURES: { key: FeatureKey; label: string; about: string; modules: ModuleKey[]; starts: boolean }[] = [
   { key: 'webleads', label: 'Website & online form leads', about: 'Leads from your website and the online admission form, with the ad they came from.', modules: ['Web Leads'], starts: true },
   { key: 'calling', label: 'Calling team', about: 'Telecallers: walk-in and phone calls, leads handed out to callers, lead categories, a calendar and leaderboards.', modules: ['Random Call', 'My Leads', 'Lead Distribution', 'Lead Categories', 'Enquiry Update', 'Calendar', 'Leaderboards'], starts: false },
   { key: 'teaching', label: 'Trainers’ classes', about: 'Trainers mark attendance, tick the syllabus, give marks and help students with projects.', modules: ['My Classes', 'Project Help'], starts: true },
   { key: 'helpdesk', label: 'Student help desk & notices', about: 'Students ask questions from their portal; you answer them and post notices.', modules: ['Help Desk', 'My Tickets', 'Announcements'], starts: true },
+  { key: 'franchise', label: 'Franchises', about: 'Centres run by franchise partners: their receipts in the partner’s name, the royalty they owe and what they paid. Switched on by itself when you make the first franchise.', modules: ['Franchises'], starts: false },
   { key: 'expenses', label: 'Expenses & profit', about: 'What each branch spends, and the profit against fees received.', modules: ['Expenses'], starts: true },
   { key: 'internships', label: 'Internships', about: 'Students’ internship requests and completion letters.', modules: ['Internship Requests', 'Internship Complete'], starts: false },
   { key: 'letters', label: 'Letters', about: 'Offer, experience and other letters printed on your letterhead.', modules: ['Letter Templates'], starts: false },

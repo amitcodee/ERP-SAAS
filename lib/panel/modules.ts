@@ -4,7 +4,7 @@ import type { Action, Resource } from '@/lib/auth/permissions'
 type Ok = (a: Action, r: Resource) => boolean
 export type ModuleKey =
   | 'Dashboard' | 'Overdues' | 'My Tickets' | 'My Classes' | 'Project Help' | 'Random Call' | 'Leads' | 'Web Leads' | 'Lead Categories' | 'Enquiry' | 'Registration' | 'Enquiry Update' | 'My Leads' | 'Lead Distribution' | 'Transfers' | 'Shared Students'
-  | 'Fees' | 'Expenses' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
+  | 'Fees' | 'Expenses' | 'Franchises' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
 
 /** The menu's groups, in order. */
 export const GROUPS = ['Overview', 'Admissions', 'Students & classes', 'Fees & money', 'Certificates', 'Events', 'Reports', 'Setup', 'Security & records']
@@ -42,6 +42,8 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   { key: 'Collection', path: '/collection', group: 'Fees & money', allowed: (ok) => ok('read', 'fee') },
   // what the branch spends, and the profit: fees received less expenses, month by month
   { key: 'Expenses', path: '/expenses', group: 'Fees & money', allowed: (ok) => ok('read', 'expense') },
+  // centres run by franchise partners: their terms, the royalty they owe and what they paid
+  { key: 'Franchises', path: '/franchises', group: 'Fees & money', allowed: (ok) => ok('read', 'franchise') },
   // Documents: certificates, from the request to the certificate in the student's hand.
   { key: 'Certificate Requests', path: '/certificate-requests', group: 'Certificates', allowed: (ok) => ok('read', 'certificate') },
   { key: 'Issue Certificate', path: '/issue-certificate', group: 'Certificates', allowed: (ok) => ok('read', 'certificate') },
@@ -109,6 +111,7 @@ export const ABOUT: Record<ModuleKey, string> = {
   Leaderboards: 'Who leads: counselors by conversion, trainers and students by score.',
   Calendar: 'Calls, follow-ups, visits and admissions day by day.',
   Fees: 'Each student’s fee plan, payments, receipts and discounts.',
+  Franchises: 'Centres run by franchise partners: their terms, the royalty on the fees they receive, and what they have paid.',
   Expenses: 'What the branch spends (rent, salaries, bills…) and the profit: fees received less expenses.',
   Students: 'Students’ certificates, documents and portal login; batches and attendance.',
   Courses: 'The course list every enquiry, registration and batch picks from.',

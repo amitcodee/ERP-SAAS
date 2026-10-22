@@ -43,7 +43,7 @@ async function embedDataImage(doc: PDFDocument, src: string | null): Promise<PDF
 }
 
 /** A5 landscape fee receipt, same content as the printable page, under the institute's logo (or its name). */
-export async function receiptPdf(r: ReceiptView, verifyUrl: string, brand: Pick<Brand, 'name' | 'logo'>): Promise<Uint8Array> {
+export async function receiptPdf(r: ReceiptView, verifyUrl: string, brand: Pick<Brand, 'name' | 'legalName' | 'logo'>): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
   doc.setTitle(`Receipt ${r.receiptNo}`); doc.setAuthor(brand.name); doc.setCreator(PRODUCT.name)
   const page = doc.addPage([210 * MM, 148 * MM])
@@ -71,9 +71,11 @@ export async function receiptPdf(r: ReceiptView, verifyUrl: string, brand: Pick<
   text(page, online ? 'E-RECEIPT' : 'FEE RECEIPT', R, y, bold, 14, { align: 'right' })
   text(page, online ? 'ONLINE PAYMENT' : channel === 'cheque' ? 'OFFLINE - CHEQUE / DRAFT' : 'OFFLINE - CASH', R, y + 13, bold, 7, { align: 'right', color: online ? rgb(0.11, 0.31, 0.85) : grey })
   y -= 14
-  text(page, r.branchName, L, y, bold, 10)
+  text(page, r.franchisePartner ?? r.branchName, L, y, bold, 10, { maxWidth: 110 * MM })
   text(page, `No. ${r.receiptNo}`, R, y, reg, 10, { align: 'right' })
   y -= 12
+  // a franchise centre receives the fees in its partner's name
+  if (r.franchisePartner) { text(page, `${r.branchName} · a franchise of ${brand.legalName}`, L, y, reg, 8.5, { color: grey, maxWidth: 110 * MM }); y -= 11 }
   if (r.branchAddress) { text(page, r.branchAddress, L, y, reg, 8.5, { color: grey, maxWidth: 110 * MM }) }
   text(page, `Date: ${new Date(r.paidAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })}`, R, y, reg, 10, { align: 'right' })
   y -= 11
