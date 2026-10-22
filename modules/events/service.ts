@@ -13,7 +13,7 @@ import { z } from 'zod'
 import { assertCan, can } from '@/lib/auth/permissions'
 import { audit } from '@/lib/audit'
 import { fmtCertDate } from '@/lib/cert-art'
-import { BRAND_LOGO, FONT_KEYS, type Design, type DesignField } from '@/lib/cert-design'
+import { BRAND_LOGO, SIGN_AUTHORISED, SIGN_HEAD, FONT_KEYS, type Design, type DesignField } from '@/lib/cert-design'
 import { brandIn } from '@/lib/brand'
 import { certificateDesigns, eventParticipants, events, type EventKind, type QuizQuestion } from '@/lib/db/schema'
 import { withOrgSystem, type Actor, type Tx } from '@/lib/db/withTenant'
@@ -33,7 +33,7 @@ export const MAX_IMPORT_BYTES = 6 * 1024 * 1024
 const num = z.number().finite().min(-1000).max(1000)
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Colours are #rrggbb')
 // a picture inside the design, or one of the panel's own files (never a path that climbs out of public/)
-const src = z.string().max(MAX_DESIGN_BYTES).refine((s) => s === BRAND_LOGO || /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(s) || (/^\/[\w-]+(\/[\w-]+(\.[\w-]+)*)*\.(png|jpe?g)$/.test(s) && !s.includes('..')), 'A picture must be PNG or JPEG')
+const src = z.string().max(MAX_DESIGN_BYTES).refine((s) => s === BRAND_LOGO || s === SIGN_AUTHORISED || s === SIGN_HEAD || /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(s) || (/^\/[\w-]+(\/[\w-]+(\.[\w-]+)*)*\.(png|jpe?g)$/.test(s) && !s.includes('..')), 'A picture must be PNG or JPEG')
 const box = { id: z.string().min(1).max(40), x: num, y: num, w: num, h: num, opacity: z.number().min(0).max(1).optional(), locked: z.boolean().optional() }
 const paint = { fill: color.nullish(), stroke: color.nullish(), sw: z.number().min(0).max(30).optional() }
 const elInput = z.discriminatedUnion('t', [
@@ -71,8 +71,7 @@ export async function getDesign(tx: Tx, actor: Actor, id: string): Promise<Desig
 
 /** Adds (no id) or changes a design. A new one belongs to the branch being worked in (head office with none: to all). */
 export async function saveDesign(tx: Tx, actor: Actor, id: string | null, input: DesignInput) {
-  assertCan(actor, 'update', 'certdesign')
-  await assertModule(tx, 'events', 'Certificate designs')
+  assertCan(actor, 'update', 'certdesign') // every plan: an institute designs its own certificates (events are the paid module)
   const v = designInput.parse(input)
   if (JSON.stringify(v.design).length > MAX_DESIGN_BYTES) throw new Error('The design is too big (its pictures weigh over 8 MB): use smaller pictures')
   const design = v.design as Design
@@ -349,7 +348,7 @@ export async function joinEventIn(tx: Tx, token: string, input: JoinInput, ip: s
 
 // ---- The certificate -------------------------------------------------------------------------------------------------
 
-export type EventCertificate = { name: string; certNo: string; event: string; design: Design; values: Record<DesignField, string> }
+export type EventCertificate = { name: string; certNo: string; event: string; design: Design; values: Partial<Record<DesignField, string>> } // an event fills its own fields; course ones stay empty
 
 /** A participant's certificate (its design and what fills it), by the code of its page; null when there is none. */
 export async function eventCertificate(orgId: string, hash: string): Promise<EventCertificate | null> {

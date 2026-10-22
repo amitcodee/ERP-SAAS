@@ -20,7 +20,7 @@ Status keys: **done** (built and tested this round), **next** (planned, in order
 | Trial or plan over: closed until paid (owner sees only Plan & billing; staff and students see "paused"); paying opens it at once; nothing is deleted | **done** |
 | The platform activates an institute by hand: until a date (bank transfer, cash) or with no end (partners), closes, blocks, rejects, extends a trial | **done** |
 | The owner gets an e-mail when approved | **done** |
-| The platform gets an e-mail when someone signs up | next |
+| The platform gets an e-mail when someone signs up | **done** |
 | The site's trial wording follows the platform's setting (home, pricing, sign-up, FAQ) | **done** |
 
 ## 2. Simple for a small institute
@@ -52,8 +52,8 @@ certificates; partners are invited by e-mail.
 ## 5. Their own brand
 
 Name, legal name, colour, logo and accreditations are set in Set Up and used on receipts, certificates, ID cards, the
-portal and e-mails. **Next:** their own domain from Settings (the database supports it; there is no screen), and a
-gallery of starting certificate designs.
+portal and e-mails. **Done:** course certificates in the institute's own design (every plan), a tab icon per institute.
+**Next:** their own domain from Settings (the database supports it; there is no screen).
 
 ## 6. Big institutes
 

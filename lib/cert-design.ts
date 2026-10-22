@@ -15,7 +15,7 @@ export type DesignEl =
   | (Box & Paint & { t: 'ellipse' })
   | (Box & Paint & { t: 'poly'; sides: number; r?: number; rot?: number }) // a regular polygon in its box: 3 a triangle, 6 a hexagon
   | (Box & { t: 'line'; stroke: string; sw: number; dash?: boolean }) // from (x, y) to (x + w, y + h)
-  | (Box & { t: 'image'; src: string; stretch?: boolean }) // src: a data: URL (PNG / JPEG), a file of the panel, or BRAND_LOGO
+  | (Box & { t: 'image'; src: string; stretch?: boolean }) // src: a data: URL (PNG / JPEG), a file of the panel, BRAND_LOGO or a SIGN_*
   | (Box & { t: 'qr'; color: string }) // the code that opens the certificate's own page
 
 export type Design = { page: 'landscape' | 'portrait'; bg: string; els: DesignEl[] }
@@ -23,7 +23,11 @@ export type Design = { page: 'landscape' | 'portrait'; bg: string; els: DesignEl
 export const BRAND_LOGO = 'brand:logo'
 export const pageSize = (d: Pick<Design, 'page'>) => (d.page === 'portrait' ? { W: 210, H: 297 } : { W: 297, H: 210 })
 
-/** What a design can print, filled for each participant. */
+/** Images that stand for the signatures set in Settings → Certificates (course certificates), drawn when it is made. */
+export const SIGN_AUTHORISED = 'sign:authorised'
+export const SIGN_HEAD = 'sign:head'
+
+/** What a design can print, filled for each participant (an event) or student (a course certificate). */
 export const DESIGN_FIELDS = {
   name: { label: 'Participant name', sample: 'Aman Gill' },
   institute: { label: 'Institute name', sample: 'Your institute' },
@@ -38,6 +42,16 @@ export const DESIGN_FIELDS = {
   cert_no: { label: 'Certificate number', sample: 'EV-26-000123' },
   issued: { label: 'Date issued', sample: '20 Oct 2026' },
   branch: { label: 'Branch', sample: 'Jalandhar' },
+  // course certificates
+  course: { label: 'Course (course certificates)', sample: 'Advanced Diploma in Web Development' },
+  duration: { label: 'Course duration', sample: '6 months' },
+  reg_no: { label: 'Registration number', sample: 'REG-2026-MAIN-0042' },
+  father: { label: 'Father’s / guardian’s name', sample: 'Harpreet Singh' },
+  joined: { label: 'Course started', sample: '1 Apr 2026' },
+  ended: { label: 'Course completed', sample: '30 Sep 2026' },
+  tools: { label: 'Modules / tools learnt', sample: 'HTML, CSS, JavaScript, React' },
+  authorised_title: { label: 'Authorised signatory’s title', sample: 'Director' },
+  head_title: { label: 'Head of department’s title', sample: 'Head, Computer Science' },
 } as const
 export type DesignField = keyof typeof DESIGN_FIELDS
 export const SAMPLE_VALUES = Object.fromEntries(Object.entries(DESIGN_FIELDS).map(([k, v]) => [k, v.sample])) as Record<DesignField, string>
@@ -285,6 +299,32 @@ export const PRESETS: Preset[] = [
           T(197, 175, 60, '{{speaker}}', 'medium', 3.6, SOFT), L(197, 178, 60, 0, GOLD, 0.3), T(197, 184, 60, 'SIGNATURE', 'semibold', 3, GOLD, 'center', { track: 0.2 }),
           QR(270, 16, 13, GOLD),
           T(20, 196, 140, 'No. {{cert_no}}', 'regular', 2.6, '#8c8466', 'left'),
+        ],
+      }
+    },
+  },
+  {
+    key: 'course', name: 'Course completion', about: 'For course certificates: the course, its dates and duration, the registration number, both signatures and the QR code.',
+    make: () => {
+      const NAVY = '#10186a', GOLD = '#b8902f', INK = '#1f2440', SOFT = '#5b6280'
+      const SIG = (x: number, src: string): DesignEl => ({ id: id(), t: 'image', x, y: 150, w: 50, h: 14, src })
+      return {
+        page: 'landscape', bg: '#ffffff', els: [
+          R(7, 7, 283, 196, { stroke: NAVY, sw: 1.4 }),
+          R(10.5, 10.5, 276, 189, { stroke: GOLD, sw: 0.5 }),
+          LOGO(118.5, 16, 60),
+          T(23.5, 52, 250, 'CERTIFICATE OF COMPLETION', 'extrabold', 13, NAVY, 'center', { track: 0.06 }),
+          T(23.5, 64, 250, 'This is to certify that', 'regular', 4.2, SOFT),
+          T(33.5, 84, 230, '{{name}}', 'script', 17, INK),
+          L(88.5, 89, 120, 0, GOLD, 0.4),
+          T(28.5, 99, 240, '[son / daughter of {{father}}, ]registration no. {{reg_no}}, has completed the course', 'regular', 4, SOFT, 'center', { h: 6 }),
+          T(28.5, 112, 240, '{{course}}', 'bold', 7.5, NAVY),
+          T(28.5, 122, 240, '[{{duration}}, ]from {{joined}} to {{ended}}[, at our {{branch}} branch]', 'regular', 4, SOFT, 'center', { h: 6 }),
+          T(28.5, 131, 240, '[Modules: {{tools}}]', 'regular', 3.3, SOFT, 'center', { h: 8, lineHeight: 1.4 }),
+          SIG(40, SIGN_AUTHORISED), L(40, 166, 50, 0, '#9aa5b1', 0.35), T(40, 171.5, 50, '{{authorised_title}}', 'semibold', 3.2, INK),
+          SIG(207, SIGN_HEAD), L(207, 166, 50, 0, '#9aa5b1', 0.35), T(207, 171.5, 50, '{{head_title}}', 'semibold', 3.2, INK),
+          QR(140.5, 150, 16, INK),
+          T(98.5, 186, 100, 'Certificate No. {{cert_no}} · Issued {{issued}}', 'regular', 2.7, '#8090a0'),
         ],
       }
     },

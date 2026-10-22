@@ -1436,6 +1436,20 @@ export async function saveGradesAction(config: z.input<typeof gradesSettings>) {
   })
 }
 
+// ---- The design course certificates are drawn with (modules/certificates/course-design.ts)
+export async function saveCourseDesignAction(designId: string | null) {
+  return run(async () => {
+    const a = await headOffice()
+    const id = designId === null ? null : z.string().uuid().parse(designId)
+    if (id) {
+      const [d] = await withOrgSystem(a.orgId, async (tx) => (await tx.execute(sql`select 1 from certificate_designs where id = ${id} and is_active`)).rows)
+      if (!d) throw new Error('That design is not there any more')
+    }
+    await saveConfig(a.orgId, 'course_certificate', { designId: id }, {}, a.userId)
+    await auditSettings(a, 'course_certificate'); settingsSaved()
+  })
+}
+
 // ---- Feature packs on / off (lib/panel/features.ts)
 export async function saveFeaturesAction(off: string[]) {
   return run(async () => {

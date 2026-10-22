@@ -45,7 +45,7 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   // Documents: certificates, from the request to the certificate in the student's hand.
   { key: 'Certificate Requests', path: '/certificate-requests', group: 'Certificates', allowed: (ok) => ok('read', 'certificate') },
   { key: 'Issue Certificate', path: '/issue-certificate', group: 'Certificates', allowed: (ok) => ok('read', 'certificate') },
-  { key: 'Certificate Designs', path: '/certificate-designs', group: 'Certificates', allowed: (ok) => ok('read', 'certdesign'), planModule: 'events' },
+  { key: 'Certificate Designs', path: '/certificate-designs', group: 'Certificates', allowed: (ok) => ok('read', 'certdesign') }, // every plan
   { key: 'Internship Requests', path: '/internships', group: 'Certificates', allowed: (ok) => ok('read', 'internship') },
   { key: 'Internship Complete', path: '/internship-complete', group: 'Certificates', allowed: (ok) => ok('read', 'internship') },
   { key: 'Letter Templates', path: '/letter-templates', group: 'Certificates', allowed: (ok) => ok('update', 'setting') },

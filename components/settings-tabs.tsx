@@ -8,7 +8,7 @@ import { LayoutGrid } from 'lucide-react'
 import { Award, BadgeCheck, BellRing, Check, ClipboardList, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
 import {
   createApiKeyAction, createWebhookAction, deleteWebhookAction, revokeApiKeyAction, runJobNowAction, saveBranchEmailAction, saveEmailSettingsAction, saveJobsAction, saveNumberingAction, saveRemindersAction,
-  saveAdmissionFormAction, saveFeaturesAction, saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
+  saveAdmissionFormAction, saveCourseDesignAction, saveFeaturesAction, saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
 } from '@/app/actions'
 import { IntegrationsPanel } from '@/components/integrations-panel'
 import { WaCampaignsTab } from '@/components/wa-campaigns'
@@ -47,6 +47,7 @@ export type SettingsData = {
     grades: GradesConfig
     admissionForm: AdmissionFormConfig
     featuresOff: string[]
+    courseDesign: { designId: string | null; designs: { id: string; name: string; portrait: boolean }[] }
     jobs: JobsConfig
     jobInfo: Record<string, { label: string; what: string }>
     runs: { id: string; job: string; startedAt: string; finishedAt: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }[]
@@ -141,6 +142,7 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
       <div className="set-body" aria-label={active.label}>
         {current === 'rules' && <RulesTab rules={data.rules} canEdit={data.canEdit} />}
         {current === 'certificates' && signatures}
+        {current === 'certificates' && data.admin && <CourseDesignPicker d={data.admin.courseDesign} />}
         {current === 'branch-email' && data.branchEmail && <EmailTab key={`branch-${data.branchEmail.branchName}`} d={data.branchEmail} branch={data.branchEmail.branchName} />}
         {current === 'email' && data.admin && <EmailTab key="central" d={data.admin.email} />}
         {current === 'messaging' && data.admin && <MessagingTab wa={data.admin.whatsapp} sms={data.admin.sms} />}
@@ -200,6 +202,36 @@ function GradesTab({ cfg }: { cfg: GradesConfig }) {
       </div>
       <Err msg={error || why || ''} />
       <div className="modal-actions"><button type="button" className="button primary" disabled={pending || !!why} onClick={save}>{pending ? 'Saving…' : 'Save grades'}</button></div>
+    </Section>
+  )
+}
+
+// ---- Course certificate design
+
+/** Which design course certificates are drawn with: the built-in layout, or one made in Certificate Designs. */
+function CourseDesignPicker({ d }: { d: NonNullable<SettingsData['admin']>['courseDesign'] }) {
+  const notify = useNotify()
+  const router = useRouter()
+  const [v, setV] = useState(d.designId ?? '')
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  const save = () => start(async () => {
+    const r = await saveCourseDesignAction(v || null)
+    if (!r.ok) return setError(r.error)
+    setError(''); notify(v ? 'Course certificates now use your design' : 'Course certificates use the built-in layout'); router.refresh()
+  })
+  return (
+    <Section title="Course certificate design" about="Draw your own course certificate in Certificate Designs (start from “Course completion”), then choose it here. It prints the student’s details, both signatures above and the QR code that proves it is genuine. Certificates already issued change too: they are drawn when opened.">
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <select value={v} onChange={(e) => setV(e.target.value)} aria-label="Course certificate design" style={{ minWidth: 260 }}>
+          <option value="">The built-in layout</option>
+          {d.designs.map((x) => <option key={x.id} value={x.id}>{x.name}{x.portrait ? ' (portrait)' : ''}</option>)}
+        </select>
+        <a className="filter-button" href="/certificate-designs">Open Certificate Designs</a>
+      </div>
+      {!d.designs.length && <p className="section-hint" style={{ margin: '8px 0 0' }}>No designs yet: make one in Certificate Designs first.</p>}
+      <Err msg={error} />
+      <div className="modal-actions"><button type="button" className="button primary" disabled={pending || v === (d.designId ?? '')} onClick={save}>{pending ? 'Saving…' : 'Use this'}</button></div>
     </Section>
   )
 }

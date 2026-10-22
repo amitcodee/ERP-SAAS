@@ -193,10 +193,10 @@ export async function layoutPdf(title: string, ops: CertOp[], portrait = false, 
  * The certificate as a PDF, in the same two designs as the printable page: the course completion certificate
  * (kind 'course') or the project completion certificate (kind 'project'). A revoked one carries a REVOKED watermark.
  */
-export async function certificatePdf(v: CertPdfData, _hash: string, _verifyUrl: string, kind: 'course' | 'project' = 'course', ops: CertOp[] = [], author = ''): Promise<Uint8Array> {
+export async function certificatePdf(v: CertPdfData, _hash: string, _verifyUrl: string, kind: 'course' | 'project' = 'course', ops: CertOp[] = [], author = '', portrait = false): Promise<Uint8Array> {
   const doc = await PDFDocument.create()
   doc.setTitle(`${kind === 'project' ? 'Project certificate' : 'Certificate'} ${v.certNo}`); doc.setAuthor(author); doc.setCreator(PRODUCT.name)
-  const page = doc.addPage([297 * MM, 210 * MM])
+  const page = doc.addPage(portrait ? [210 * MM, 297 * MM] : [297 * MM, 210 * MM]) // the institute's own design may be portrait
   const { width: W, height: H } = page.getSize()
   await drawCertOps(doc, page, ops)
   if (v.revoked) {

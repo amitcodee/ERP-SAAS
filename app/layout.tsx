@@ -19,23 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const META: Metadata = {
   description: 'Admissions, fees, classes and certificates for institutes.',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
+  // the institute's initials in its colour (app/icon.svg/route.ts)
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }] },
 }
 
 export const viewport: Viewport = {

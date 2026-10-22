@@ -38,7 +38,15 @@ export function arcLetters(text: string, cx: number, cy: number, r: number, from
   })
 }
 
-export const fmtCertDate = (iso: string | null) => (iso ? new Date(iso.length > 10 ? iso : `${iso}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '')
+// "30 Sep 2026" in India's time (written out: the en-IN locale now says "Sept", which looks wrong on a certificate)
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+export const fmtCertDate = (iso: string | null) => {
+  if (!iso) return ''
+  const d = new Date(iso.length > 10 ? iso : `${iso}T00:00:00+05:30`)
+  if (Number.isNaN(d.getTime())) return ''
+  const ist = new Date(d.getTime() + 330 * 60_000)
+  return `${ist.getUTCDate()} ${MONTHS[ist.getUTCMonth()]} ${ist.getUTCFullYear()}`
+}
 export const durationText = (weeks: number | null, hours: number | null) => {
   const w = weeks ? (weeks % 4 === 0 && weeks >= 8 ? `${weeks / 4} months` : `${weeks} weeks`) : null
   return [w, hours ? `${hours} hours` : null].filter(Boolean).join(' · ')

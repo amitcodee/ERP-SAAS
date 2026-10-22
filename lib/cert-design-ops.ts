@@ -16,7 +16,8 @@ function dashed(x1: number, y1: number, x2: number, y2: number, sw: number) {
 
 /** The design's ops for these details; qr: what the QR codes open (the certificate's own page); brand: the institute
  * whose certificate it is (its name fills {{institute}}, its logo BRAND_LOGO; without one that image is left out). */
-export function designOps(design: Design, values: Record<string, string>, qr: string, brand: { name: string; logo: string | null }): CertOp[] {
+/** images: what the SIGN_* images stand for (course certificates: the signatures of Settings → Certificates). */
+export function designOps(design: Design, values: Record<string, string>, qr: string, brand: { name: string; logo: string | null }, images: Record<string, string | null> = {}): CertOp[] {
   values = { ...values, institute: brand.name }
   const { W, H } = pageSize(design)
   const ops: CertOp[] = [{ k: 'path', d: `M0,0 H${W} V${H} H0 Z`, fill: design.bg || '#ffffff' }]
@@ -30,7 +31,7 @@ export function designOps(design: Design, values: Record<string, string>, qr: st
     } else if (e.t === 'line') {
       ops.push({ k: 'path', d: e.dash ? dashed(e.x, e.y, e.x + e.w, e.y + e.h, e.sw) : `M${e.x},${e.y} L${e.x + e.w},${e.y + e.h}`, stroke: e.stroke, sw: e.sw, opacity, round: true })
     } else if (e.t === 'image') {
-      const src = e.src === BRAND_LOGO ? brand.logo : e.src
+      const src = e.src === BRAND_LOGO ? brand.logo : e.src.startsWith('sign:') ? images[e.src] ?? null : e.src
       if (!src) continue
       ops.push({ k: 'img', x: e.x, y: e.y, w: e.w, h: e.h, src, ...(e.stretch ? { stretch: true } : {}), ...(opacity !== undefined ? { opacity } : {}) })
     } else if (e.t === 'qr') {

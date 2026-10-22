@@ -17,12 +17,12 @@ const SERIF = '"Cambria", "Georgia", "Times New Roman", serif'
 /** The certificate fonts for the page (used only where a text is written as text: a letter the fonts lack). */
 export const CERT_FONT_FACES = (Object.keys(CERT_FONT_FILES) as CertFont[]).map((f) => `@font-face { font-family: ${CERT_FONT_FAMILY[f]}; font-weight: ${CERT_FONT_WEIGHT[f]}; src: url(/fonts/pdf/${CERT_FONT_FILES[f]}.ttf) format('truetype'); font-display: block }`).join(' ')
 
-export function CertificateSheet({ v, hash, verifyUrl, kind, ops }: { v: CertData; hash: string; verifyUrl: string; kind: CertKind; ops: CertOp[] }) {
+export function CertificateSheet({ v, hash, verifyUrl, kind, ops, portrait }: { v: CertData; hash: string; verifyUrl: string; kind: CertKind; ops: CertOp[]; portrait?: boolean }) {
   const pdf = `/verify/${hash}/certificate/pdf${kind === 'project' ? '?kind=project' : ''}`
   return (
     <main style={{ background: '#e5e7eb', minHeight: '100vh', padding: '20px 12px', display: 'grid', justifyItems: 'center', gap: 16 }}>
       <style>{`
-        @page { size: A4 landscape; margin: 0 }
+        @page { size: A4 ${portrait ? 'portrait' : 'landscape'}; margin: 0 }
         @media print { html, body { background: #fff !important } main { padding: 0 !important; background: #fff !important } .no-print { display: none !important } .sheet { box-shadow: none !important } }
         .sheet { position: relative; width: 297mm; height: 210mm; max-width: 100%; background: #fff; box-shadow: 0 10px 40px #0003; overflow: hidden; box-sizing: border-box; color: #2f3440; font-family: ${SERIF} }
         .sheet svg.art { position: absolute; inset: 0; width: 100%; height: 100% }
@@ -39,7 +39,7 @@ export function CertificateSheet({ v, hash, verifyUrl, kind, ops }: { v: CertDat
         )}
         <PrintButton pdfHref={pdf} />
       </div>
-      <LayoutSheet ops={ops} revoked={v.revoked} label={kind === 'project' ? 'Project completion certificate' : 'Course completion certificate'} />
+      <LayoutSheet ops={ops} revoked={v.revoked} portrait={portrait} label={kind === 'project' ? 'Project completion certificate' : 'Course completion certificate'} />
       <div className="no-print" style={{ fontSize: 12, color: '#6b7280' }}>Verify: {verifyUrl}</div>
     </main>
   )

@@ -4,7 +4,7 @@
 // The database stays the guard for writes (a closed institute is read-only); this decides what the screens show.
 export type Gate = 'pending' | 'closed'
 
-const PENDING_OK = ['/setup', '/settings', '/account', '/branches', '/users', '/courses', '/course-categories', '/roles', '/billing']
+const PENDING_OK = ['/setup', '/settings', '/account', '/branches', '/users', '/courses', '/course-categories', '/roles', '/certificate-designs', '/billing']
 const CLOSED_OK = ['/settings', '/account', '/billing']
 
 const under = (path: string, roots: string[]) => roots.some((r) => path === r || path.startsWith(`${r}/`))

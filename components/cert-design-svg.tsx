@@ -69,7 +69,10 @@ export function ElDrawing({ e, values }: { e: DesignEl; values: Record<string, s
       return <path d={d} fill={e.fill ?? 'none'} stroke={e.stroke ?? undefined} strokeWidth={e.stroke ? e.sw : undefined} opacity={op} />
     }
     case 'line': return <line x1={e.x} y1={e.y} x2={e.x + e.w} y2={e.y + e.h} stroke={e.stroke} strokeWidth={e.sw} strokeLinecap="round" strokeDasharray={e.dash ? `${Math.max(1, e.sw * 4)} ${Math.max(1, e.sw * 4) * 0.8}` : undefined} opacity={op} />
-    case 'image': return <image href={e.src === BRAND_LOGO ? brand.logo ?? '' : e.src} x={e.x} y={e.y} width={Math.max(0.1, e.w)} height={Math.max(0.1, e.h)} preserveAspectRatio={e.stretch ? 'none' : 'xMidYMax meet'} opacity={op} />
+    // a signature stands in as a light box until the certificate is made with the real one
+    // a signature, or the logo of an institute that has none yet, stands in as a light box
+    case 'image': if (e.src.startsWith('sign:') || (e.src === BRAND_LOGO && !brand.logo)) return <g opacity={op}><rect x={e.x} y={e.y} width={Math.max(0.1, e.w)} height={Math.max(0.1, e.h)} fill="#f1f3f9" stroke="#c7cbe0" strokeWidth={0.3} strokeDasharray="1 1" /><text x={e.x + e.w / 2} y={e.y + e.h / 2 + 1.2} fontSize={3.2} textAnchor="middle" fill="#8a90ad">{e.src === 'sign:head' ? 'Head’s signature' : e.src === BRAND_LOGO ? 'Your logo' : 'Signature'}</text></g>
+      return <image href={e.src === BRAND_LOGO ? brand.logo! : e.src} x={e.x} y={e.y} width={Math.max(0.1, e.w)} height={Math.max(0.1, e.h)} preserveAspectRatio={e.stretch ? 'none' : 'xMidYMax meet'} opacity={op} />
     case 'qr': { const s = Math.min(e.w, e.h); return <path d={qrD('https://example.com/e/c/sample-certificate', e.x, e.y, s)} fill={e.color} /> }
     case 'text': {
       const content = values ? fillDesignText(e.text, values).trim() : e.text

@@ -2,7 +2,7 @@ import { clientIpFrom } from '@/lib/client-ip'
 import { underLimit } from '@/lib/redis'
 import { appOrigin } from '@/lib/app-url'
 import { orgBrand } from '@/lib/brand'
-import { courseCertOps } from '@/lib/cert-course'
+import { courseCertificateOps } from '@/modules/certificates/course-design'
 import { projectCertOps } from '@/lib/cert-project'
 import { courseCertInput, projectCertInput } from '@/lib/cert-course-input'
 import { certificatePdf } from '@/lib/pdf'
@@ -24,7 +24,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ hash: st
   const kind = new URL(req.url).searchParams.get('kind') === 'project' && v.projectCertificate ? 'project' : 'course'
   const verifyUrl = `${await appOrigin(org.id)}/verify/${hash}`
   const brand = await orgBrand(org.id)
-  const pdf = await certificatePdf(v, hash, verifyUrl, kind, kind === 'course' ? courseCertOps(courseCertInput(v, verifyUrl, brand)) : projectCertOps(projectCertInput(v, brand)), brand.name)
+  // the course certificate in the institute's own design when it chose one (Settings → Certificates)
+  const drawn = kind === 'course' ? await courseCertificateOps(org.id, courseCertInput(v, verifyUrl, brand)) : { ops: projectCertOps(projectCertInput(v, brand)), portrait: false }
+  const pdf = await certificatePdf(v, hash, verifyUrl, kind, drawn.ops, brand.name, drawn.portrait)
   return new Response(new Uint8Array(pdf), {
     headers: {
       'Content-Type': 'application/pdf',

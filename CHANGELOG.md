@@ -2,6 +2,21 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 2): course certificates in your own design (2026-10-22)
+
+- **Course certificates in the institute's own design.** Certificate Designs is on every plan (it was tied to the paid
+  events module). Designs can print a course certificate's details ({{course}}, {{duration}}, {{reg_no}},
+  {{father}}, {{joined}}, {{ended}}, {{tools}}, the signatories' titles) and place both signatures of Settings →
+  Certificates; a new "Course completion" starting design has them all. Settings → Certificates → Course certificate
+  design picks it; the certificate page and its PDF (portrait or landscape) draw with it, else the built-in layout
+  (also when the chosen design is archived). Certificates already issued follow: they are drawn when opened.
+- While an institute waits for approval its owner can also prepare certificate designs.
+- The platform's admins get an e-mail for every new institute (with "waiting for your approval").
+- Fixes: a browser-tab icon for every institute (its initials in its colour; the old icons had gone with the rebrand,
+  so every page asked for missing files); designs of an institute without a logo show a "Your logo" box instead of a
+  broken image; certificate dates read "30 Sep 2026" (the en-IN locale now writes "Sept").
+- `scripts/course-design-test.ts`.
+
 ## Phase 6 (part 1): approval, a short trial, closed until paid; a simpler menu (2026-10-22)
 
 - **The platform approves new institutes.** Console → Settings: "Wait for my approval" and the trial's length

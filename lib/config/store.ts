@@ -57,6 +57,8 @@ export type ConfigMap = {
   payments: { config: PaymentsConfig; secrets: PaymentsSecrets }
   grades: { config: GradesConfig; secrets: Record<string, never> }
   admission_form: { config: AdmissionFormConfig; secrets: Record<string, never> }
+  /** The design course certificates are drawn with (Certificate Designs), or null: the built-in layout. */
+  course_certificate: { config: { designId: string | null }; secrets: Record<string, never> }
   /** The feature packs switched off (lib/panel/features.ts). */
   features: { config: { off: string[] }; secrets: Record<string, never> }
 }
@@ -85,6 +87,7 @@ export const DEFAULTS: { [K in ConfigKey]: ConfigMap[K]['config'] } = {
   payments: { enabled: false, provider: 'razorpay', keyId: '' },
   grades: DEFAULT_GRADES,
   features: { off: [] },
+  course_certificate: { designId: null },
   admission_form: { enabled: false, heading: 'Apply for admission', intro: '', thanks: 'Thank you! Our team will call you shortly.', askEmail: true, askLocation: true, askMessage: true },
 }
 

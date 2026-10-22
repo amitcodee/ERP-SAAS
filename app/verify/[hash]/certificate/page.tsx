@@ -3,7 +3,7 @@ import { CertificateSheet } from '@/components/certificate-sheet'
 import { appOrigin } from '@/lib/app-url'
 import { orgBrand } from '@/lib/brand'
 import { courseCertInput, projectCertInput } from '@/lib/cert-course-input'
-import { courseCertOps } from '@/lib/cert-course'
+import { courseCertificateOps } from '@/modules/certificates/course-design'
 import { projectCertOps } from '@/lib/cert-project'
 import { verifyCertificate } from '@/modules/certificates/service'
 import { requireRequestOrg } from '@/lib/tenant/request'
@@ -20,6 +20,6 @@ export default async function CertificatePage({ params, searchParams }: { params
   const kind = (await searchParams).kind === 'project' && v.projectCertificate ? 'project' : 'course'
   const verifyUrl = `${await appOrigin(org.id)}/verify/${hash}`
   const brand = await orgBrand(org.id)
-  const ops = kind === 'course' ? courseCertOps(courseCertInput(v, verifyUrl, brand)) : projectCertOps(projectCertInput(v, brand))
-  return <CertificateSheet v={v} hash={hash} kind={kind} ops={ops} verifyUrl={verifyUrl} />
+  const drawn = kind === 'course' ? await courseCertificateOps(org.id, courseCertInput(v, verifyUrl, brand)) : { ops: projectCertOps(projectCertInput(v, brand)), portrait: false }
+  return <CertificateSheet v={v} hash={hash} kind={kind} ops={drawn.ops} portrait={drawn.portrait} verifyUrl={verifyUrl} />
 }

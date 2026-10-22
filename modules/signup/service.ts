@@ -109,6 +109,28 @@ export async function resendSignupCode(id: string): Promise<{ ok: boolean; error
 
 export type VerifyResult = { ok: true; org: Provisioned } | { ok: false; error: string; restart?: boolean }
 
+/** The platform's admins hear of every new institute (to approve it, when approval is on). Best effort. */
+async function tellPlatform(slug: string) {
+  const m = platformMailer()
+  if (!m) return
+  const { admins, org, approval } = await withPlatform(async (tx) => ({
+    admins: (await tx.execute<{ email: string }>(sql`select email from platform_users where is_active`)).rows,
+    org: (await tx.execute<{ name: string; email: string | null }>(sql`
+      select o.name, s.email from organisations o left join signups s on s.org_id = o.id where o.slug = ${slug} order by s.created_at desc limit 1`)).rows[0],
+    approval: (await onboardingRulesIn(tx)).approval,
+  }))
+  const root = process.env.ROOT_DOMAIN?.toLowerCase()
+  const console_ = root ? `https://admin.${root}/` : ''
+  for (const a of admins) {
+    await m.send({ channel: 'email', to: a.email, template: 'platform_signup', subject: `New institute: ${org?.name ?? slug}${approval ? ' (waiting for your approval)' : ''}`,
+      body: `${org?.name ?? slug} (${slug}) signed up${org?.email ? `, owner ${org.email}` : ''}.${approval ? ' It waits for your approval: Console → Organisations.' : ' Its free trial has started.'}${console_ ? `
+
+${console_}` : ''}
+
+${PRODUCT.name}` })
+  }
+}
+
 /** Step 2: the code. Right: the institute is made (one transaction with marking the sign-up done). */
 export async function verifySignup(id: string, code: string): Promise<VerifyResult> {
   if (!/^\d{6}$/.test(code.trim())) return { ok: false, error: 'Enter the 6-digit code from the e-mail' }
@@ -135,7 +157,7 @@ export async function verifySignup(id: string, code: string): Promise<VerifyResu
     await tx.execute(sql`update signups set completed_at = now(), org_id = ${org.orgId}, password_hash = '', code_hash = '' where id = ${id}`)
     return { ok: true, org }
   })
-  if (out.ok) { forgetHosts(); log.info('signup.done', { orgId: out.org.orgId, slug: out.org.slug }) }
+  if (out.ok) { forgetHosts(); log.info('signup.done', { orgId: out.org.orgId, slug: out.org.slug }); await tellPlatform(out.org.slug).catch((e) => log.warn('signup.notify_failed', { error: String(e) })) }
   return out
 }
 

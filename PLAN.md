@@ -249,8 +249,8 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
    signature):
    - the CSS variables come from the org;
    - the e-mail layout, receipt, ID card, verify pages and login are themed.
-2. [ ] Course and project certificates are drawn by the canvas designer (not done: Phase 3 made the fixed layouts
-   neutral; only event certificates use designs. Now Phase 6 step 3). The current layouts become two built-in
+2. [~] Course and project certificates are drawn by the canvas designer: course certificates done (Phase 6 part 2);
+   project certificates still use their fixed layout. The current layouts become two built-in
    neutral templates.
 3. [x] Letters:
    - companies, letterhead and stamp become org data;

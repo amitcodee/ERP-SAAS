@@ -43,7 +43,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
 
   let admin: SettingsData['admin'] = null
   if (headOffice) {
-    const [email, whatsapp, sms, reminders, jobs, pay, grades, admissionForm, features] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs'), getConfig(b.actor.orgId, 'payments'), getConfig(b.actor.orgId, 'grades'), getConfig(b.actor.orgId, 'admission_form'), getConfig(b.actor.orgId, 'features')])
+    const [email, whatsapp, sms, reminders, jobs, pay, grades, admissionForm, features, courseCert] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs'), getConfig(b.actor.orgId, 'payments'), getConfig(b.actor.orgId, 'grades'), getConfig(b.actor.orgId, 'admission_form'), getConfig(b.actor.orgId, 'features'), getConfig(b.actor.orgId, 'course_certificate')])
     const data = await withHeadOffice(b.actor, async (tx) => ({
       webhooks: await listWebhooks(tx),
       keys: await listApiKeys(tx),
@@ -52,6 +52,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       onlinePayments: await listOnlinePayments(tx, 50),
       billing: await billingOverview(tx), plan: await orgPlan(tx), usage: await orgUsage(tx),
       branches: (await tx.execute<{ id: string; name: string; code: string }>(sql`select id, name, code from branches where is_active order by name`)).rows,
+      designs: (await tx.execute<{ id: string; name: string; page: string }>(sql`select id, name, design->>'page' as page from certificate_designs where is_active order by name`)).rows,
       runs: (await tx.execute<{ id: string; job: string; started_at: string; finished_at: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }>(sql`
         select id, job, started_at::text, finished_at::text, ok, error, summary from job_runs order by started_at desc limit 30`)).rows,
     }))
@@ -71,6 +72,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       grades: grades.config,
       admissionForm: admissionForm.config,
       featuresOff: features.config.off,
+      courseDesign: { designId: courseCert.config.designId, designs: data.designs.map((d) => ({ id: d.id, name: d.name, portrait: d.page === 'portrait' })) },
       jobs: jobs.config,
       jobInfo: Object.fromEntries(Object.entries(JOBS).map(([k, j]) => [k, { label: j.label, what: j.what }])),
       runs: data.runs.map((r) => ({ id: r.id, job: r.job, startedAt: r.started_at, finishedAt: r.finished_at, ok: r.ok, error: r.error, summary: r.summary })),
