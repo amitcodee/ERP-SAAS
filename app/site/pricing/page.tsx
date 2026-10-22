@@ -1,3 +1,4 @@
+import { onboardingRules } from '@/modules/platform/rules'
 import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { SitePage } from '@/components/site/shell'
@@ -11,9 +12,10 @@ const inr = (paise: number) => '₹' + (paise / 100).toLocaleString('en-IN')
 
 // The plans, from the plans table (the platform console edits them). Prices are before GST.
 export default async function Pricing() {
+  const { trialDays } = await onboardingRules()
   const plans = await publicPlans()
   return (
-    <SitePage eyebrow="Pricing" title="Simple plans that grow with you" intro="Every plan starts with a 14-day free trial of everything. Prices are per institute, before 18% GST.">
+    <SitePage eyebrow="Pricing" title="Simple plans that grow with you" intro={`Every plan starts with a ${trialDays}-day free trial of everything. Prices are per institute, before 18% GST.`}>
       <div className="site-plans">
         {plans.map((p) => {
           const custom = p.priceMonthly === 0 && p.key !== 'free'

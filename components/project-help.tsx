@@ -18,7 +18,7 @@ export function ProjectHelp({ rows, kinds }: { rows: HelpRequest[]; kinds: Recor
   const mine = rows.filter((r) => r.mineChosen && r.status === 'assigned').length
   return (
     <section className="page-container table-page">
-      <div className="page-heading"><div><p className="eyebrow">Teaching / Project Help</p><h1>Project Help</h1><p className="subheading">Students of every branch ask for help with a project, a topic or their career. Offer to help; if several trainers offer, the student picks one.</p></div></div>
+      <div className="page-heading"><div><p className="eyebrow">Students &amp; classes / Project help</p><h1>Project Help</h1><p className="subheading">Students of every branch ask for help with a project, a topic or their career. Offer to help; if several trainers offer, the student picks one.</p></div></div>
       <div className="cd-tabs" role="tablist" style={{ marginBottom: 14 }}>
         <button type="button" role="tab" aria-selected={view === 'open'} className={view === 'open' ? 'on' : ''} onClick={() => setView('open')}>Open requests<b>{rows.filter((r) => r.status === 'open').length}</b></button>
         <button type="button" role="tab" aria-selected={view === 'mine'} className={view === 'mine' ? 'on' : ''} onClick={() => setView('mine')}>My offers & students<b>{mine || rows.filter((r) => r.iOffered || r.mineChosen).length}</b></button>

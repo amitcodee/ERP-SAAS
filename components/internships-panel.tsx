@@ -58,7 +58,7 @@ export function InternshipsPanel({ page, data, fromReg, templates, companies, fi
     <section className="page-container table-page col-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Documents / {page === 'requests' ? 'Internship Requests' : 'Internship Complete'}</p>
+          <p className="eyebrow">Certificates / {page === 'requests' ? 'Internship Requests' : 'Internship Complete'}</p>
           <h1>{page === 'requests' ? 'Internship requests' : 'Internship complete'}</h1>
           <p className="subheading">{page === 'requests'
             ? 'Add an intern and their selection letter is ready to issue, made from the standard letter with their details filled in. When the internship ends, ask for the completion certificate here.'

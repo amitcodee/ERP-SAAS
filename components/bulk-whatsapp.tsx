@@ -89,7 +89,7 @@ export function BulkWhatsApp(p: Props) {
     <section className="page-container table-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Management / Bulk WhatsApp</p>
+          <p className="eyebrow">Setup / WhatsApp campaigns</p>
           <h1>Bulk WhatsApp</h1>
           <p className="subheading">Send a WhatsApp campaign to students or leads{p.branches ? ' of every branch, or one' : ` of ${p.branchName}`}. Pick the campaign, pick who gets it, check the list and send. Messages go out through AiSensy within minutes; one per mobile number.</p>
         </div>

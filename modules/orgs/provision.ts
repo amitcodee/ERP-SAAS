@@ -1,6 +1,7 @@
 // A new organisation (institute), ready to sign in to: the org row, its roles (from DEFAULT_ROLES), the standard
 // lists (sources, payment modes, class modes, …), a first branch and the owner's head-office login. One transaction:
 // a failure leaves nothing behind. Used by the platform console (and, in Phase 2, self sign-up and its onboarding).
+import { NEW_ORG_OFF } from '@/lib/panel/features'
 import { randomBytes } from 'crypto'
 import { sql } from 'drizzle-orm'
 import { z } from 'zod'
@@ -27,7 +28,7 @@ export const newOrgInput = z.object({
   ownerEmail: z.string().trim().toLowerCase().email('Enter a valid e-mail'),
   ownerPassword: z.string().min(10).max(200).optional(), // none: a temporary one, changed at first sign-in
   ownerPasswordHash: z.string().startsWith('$argon2').optional(), // already hashed (self sign-up keeps only the hash)
-  status: z.enum(['trial', 'active']).default('trial'),
+  status: z.enum(['pending', 'trial', 'active']).default('trial'), // pending: waits for the platform's approval
   planKey: z.string().default('starter'),
   trialDays: z.number().int().min(1).max(90).default(14),
   timezone: z.string().default('Asia/Kolkata'),
@@ -72,6 +73,8 @@ export async function provisionOrgIn(tx: Tx, raw: NewOrgInput): Promise<Provisio
   for (const [kind, values] of Object.entries(STARTER_LOOKUPS)) {
     await tx.insert(lookups).values(values.map((value, i) => ({ kind: kind as keyof typeof STARTER_LOOKUPS, value, sortOrder: i })))
   }
+  // a new institute starts simple: the extra feature packs off until it switches them on (Settings → Features)
+  await tx.execute(sql`insert into app_config (key, config) values ('features', ${JSON.stringify({ off: NEW_ORG_OFF })}::jsonb)`)
   const [b] = await tx.insert(branches).values({ code: v.branch.code, name: v.branch.name }).returning({ id: branches.id })
   const [u] = await tx.insert(users).values({ name: v.ownerName, email: v.ownerEmail, branchId: null, passwordHash, mustChangePassword: !chosen }).returning({ id: users.id })
   await tx.insert(userRoles).values({ userId: u.id, role: 'super_admin' })

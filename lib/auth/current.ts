@@ -4,12 +4,20 @@ import { redirect } from 'next/navigation'
 import { loadUserState, type WorkBranch } from '@/modules/auth/account'
 import { openSupport } from '@/modules/platform/service'
 import { requestOrg } from '../tenant/request'
-import type { Actor } from '../db/withTenant'
-import { actingBranch } from './acting'
+import { actingBranch, UUID } from './acting'
+import { cached } from '../cache'
+import { withOrgSystem, type Actor } from '../db/withTenant'
+import { sql } from 'drizzle-orm'
 import { primaryRole, readSession, SESSION_COOKIE, type Session } from './session'
 import { sessionValidity } from './validity'
 
 export const ACTING_BRANCH_COOKIE = 'tc_branch'
+
+/** The institute's only active branch, or null when it has none or several (kept a minute; a write empties it). */
+const soleBranch = (orgId: string) => cached(orgId, 'sole-branch', () => withOrgSystem(orgId, async (tx) => {
+  const rows = (await tx.execute<{ id: string }>(sql`select id from branches where is_active limit 2`)).rows
+  return rows.length === 1 ? rows[0].id : null
+}))
 
 export async function getSession(): Promise<Session | null> {
   return readSession((await cookies()).get(SESSION_COOKIE)?.value)
@@ -45,7 +53,10 @@ export async function getActor(opts: { allowMustChange?: boolean } = {}): Promis
   const roles = state!.roles
   const role = primaryRole(roles) // from the LIVE roles: granting or removing super admin applies at once
   // the branch from the LIVE state: a move by head office applies at once, not when the session runs out
-  const { branchId, ownOnly } = actingBranch(state!, role, (await cookies()).get(ACTING_BRANCH_COOKIE)?.value)
+  // head office of an institute with a single branch works in it directly: there is nothing to choose
+  let picked = (await cookies()).get(ACTING_BRANCH_COOKIE)?.value
+  if (role === 'super_admin' && !(picked && UUID.test(picked))) picked = (await soleBranch(org.id)) ?? picked
+  const { branchId, ownOnly } = actingBranch(state!, role, picked)
   if (role !== 'super_admin' && !branchId) redirect('/api/logout') // a staff role needs a home branch
   // the session's own branch fields are as old as the sign-in: hand on the live ones
   const live = { branchId: role === 'super_admin' ? session.branchId : state!.homeBranchId, branchName: role === 'super_admin' ? session.branchName : state!.branches.find((b) => b.id === state!.homeBranchId)?.name ?? null }

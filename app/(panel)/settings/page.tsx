@@ -43,7 +43,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
 
   let admin: SettingsData['admin'] = null
   if (headOffice) {
-    const [email, whatsapp, sms, reminders, jobs, pay, grades, admissionForm] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs'), getConfig(b.actor.orgId, 'payments'), getConfig(b.actor.orgId, 'grades'), getConfig(b.actor.orgId, 'admission_form')])
+    const [email, whatsapp, sms, reminders, jobs, pay, grades, admissionForm, features] = await Promise.all([getConfig(b.actor.orgId, 'email'), getConfig(b.actor.orgId, 'whatsapp'), getConfig(b.actor.orgId, 'sms'), getConfig(b.actor.orgId, 'reminders'), getConfig(b.actor.orgId, 'jobs'), getConfig(b.actor.orgId, 'payments'), getConfig(b.actor.orgId, 'grades'), getConfig(b.actor.orgId, 'admission_form'), getConfig(b.actor.orgId, 'features')])
     const data = await withHeadOffice(b.actor, async (tx) => ({
       webhooks: await listWebhooks(tx),
       keys: await listApiKeys(tx),
@@ -70,6 +70,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       reminders: reminders.config,
       grades: grades.config,
       admissionForm: admissionForm.config,
+      featuresOff: features.config.off,
       jobs: jobs.config,
       jobInfo: Object.fromEntries(Object.entries(JOBS).map(([k, j]) => [k, { label: j.label, what: j.what }])),
       runs: data.runs.map((r) => ({ id: r.id, job: r.job, startedAt: r.started_at, finishedAt: r.finished_at, ok: r.ok, error: r.error, summary: r.summary })),

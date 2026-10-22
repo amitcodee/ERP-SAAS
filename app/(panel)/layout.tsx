@@ -15,6 +15,8 @@ import { onboardingState } from '@/modules/onboarding/service'
 import { liveAnnouncementsIn } from '@/modules/platform/console'
 import { orgBrand } from '@/lib/brand'
 import Link from 'next/link'
+import { GateFrame } from '@/components/gate-frame'
+import { requestOrg } from '@/lib/tenant/request'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +26,8 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   if (b.mustChange) return <ForcedChangeScreen name={b.session.name} />
   if (b.session.role === 'student') redirect('/') // students have their own portal
   const a = b.actor, today = todayIST()
+  // waiting for the platform's approval, or closed until paid: GateFrame shows only what may be used then
+  const org = await requestOrg()
   const [askEmail, birthdays, support, setup, notices, brand] = await Promise.all([
     // a branch with no mail server of its own works only once it is set up: its staff are told on every page
     needsBranchEmail(a),
@@ -47,6 +51,14 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <strong>{n.title}</strong> {n.body}
         </div>
       ))}
+      {/* waiting for approval, or paused: said on the pages head office may still use */}
+      {(org?.status === 'pending' || org?.status === 'read_only') && (
+        <div role="status" style={{ margin: '0 28px 12px', padding: '10px 16px', borderRadius: 12, fontSize: 13, background: '#fff7e6', border: '1px solid #f5c26b' }}>
+          {org.status === 'pending'
+            ? <><strong>Waiting for approval.</strong> You can finish Set Up and choose a plan meanwhile; you will get an e-mail when it is approved, and your free trial starts then.</>
+            : <><strong>{brand.name} is paused.</strong> Choose a plan and pay in <Link href="/settings?tab=billing">Plan &amp; billing</Link> to open everything again. Nothing has been deleted.</>}
+        </div>
+      )}
       {support && <SupportBanner s={support} isSupport={!!a.impersonatorId} />}
       {setup && !setup.complete && !setup.dismissed && (
         <div role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '0 28px 12px', padding: '10px 16px', borderRadius: 12, background: '#eef0ff', border: '1px solid #c9ccf5', fontSize: 13 }}>
@@ -54,7 +66,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
           <Link href="/setup" className="filter-button">Continue</Link>
         </div>
       )}
-      {children}
+      <GateFrame status={org?.status ?? 'active'} isHeadOffice={b.isSuper} name={brand.name}>{children}</GateFrame>
       {birthdays.length > 0 && <BirthdayToast people={birthdays} today={today} showBranch={b.isSuper && !b.actor.branchId} />}
       {askEmail && <BranchEmailPrompt branchName={b.user.branchName} canSetUp={canManageBranchEmail(b.actor)} />}
     </PanelShell>

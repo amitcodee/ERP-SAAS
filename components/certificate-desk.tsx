@@ -65,7 +65,7 @@ export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
     <section className="page-container table-page col-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Documents / {isIssue ? 'Issue Certificate' : 'Certificate Requests'}</p>
+          <p className="eyebrow">Certificates / {isIssue ? 'Issue Certificate' : 'Certificate Requests'}</p>
           <h1>{isIssue ? 'Issue certificate' : 'Certificate requests'}</h1>
           <p className="subheading">{isIssue
             ? 'Students whose course is complete and whose certificate request accounts has approved. Issue the certificate here; issued certificates stay listed for printing and verification.'

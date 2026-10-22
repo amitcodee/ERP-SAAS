@@ -3,6 +3,7 @@
 // "find my institute". The services commit their own transactions: each run uses its own names and cancels the
 // institute it made at the end (jobs and lists skip cancelled ones).
 import { sql } from 'drizzle-orm'
+import { onboardingRules } from '../modules/platform/rules'
 import { pool } from '../lib/db/client'
 import { readSession, readWelcomeLink, signWelcomeLink } from '../lib/auth/session'
 import { withPlatform } from '../lib/db/withTenant'
@@ -68,8 +69,10 @@ async function main() {
 
     // ---- the institute ----------------------------------------------------------------------------------------------------
     const org = await orgForHost(classifyHost(`${SLUG}.localhost`))
-    const [o] = await withPlatform(async (tx) => (await tx.execute<{ status: string; plan_key: string; name: string }>(sql`select status, plan_key, name from organisations where id = ${orgId}`)).rows)
-    check('the institute is on a trial of the chosen plan, at its address', org?.id === orgId && o.status === 'trial' && o.plan_key === 'growth' && o.name === 'Signup Test Academy')
+    const [o] = await withPlatform(async (tx) => (await tx.execute<{ status: string; plan_key: string; name: string; trial: boolean }>(sql`select status, plan_key, name, trial_ends_at is not null as trial from organisations where id = ${orgId}`)).rows)
+    const rules = await onboardingRules()
+    check(rules.approval ? 'the institute waits for the platform’s approval (no trial yet), on the chosen plan, at its address' : 'the institute is on a trial of the chosen plan, at its address',
+      org?.id === orgId && o.status === (rules.approval ? 'pending' : 'trial') && o.trial === !rules.approval && o.plan_key === 'growth' && o.name === 'Signup Test Academy')
     const signedIn = await login(org!, EMAIL, PASSWORD, { ip: IP, userAgent: 'signup-test' })
     check('the owner signs in with the password chosen at sign-up, as head office, no change forced', signedIn.ok && signedIn.session.role === 'super_admin' && signedIn.session.org === orgId)
 

@@ -47,7 +47,7 @@ export function SetupWizard({ state, branding, catalogues, gst, modes }: { state
   return (
     <section className="page-container">
       <div className="page-heading">
-        <div><p className="eyebrow">Administration / Set Up</p><h1>Set up your institute</h1><p className="subheading">{state.settled} of {state.steps.length} done. Each step is ticked as soon as it is really done, here or on its own screen.</p></div>
+        <div><p className="eyebrow">Setup / Set Up</p><h1>Set up your institute</h1><p className="subheading">{state.settled} of {state.steps.length} done. Each step is ticked as soon as it is really done, here or on its own screen.</p></div>
         {state.complete && !state.dismissed && <button type="button" className="button primary" disabled={pending} onClick={() => act(() => setupStepAction('dismiss', 'done'), 'All set')}>Finish</button>}
       </div>
       <div style={{ display: 'grid', gap: 12 }}>

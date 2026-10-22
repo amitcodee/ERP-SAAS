@@ -22,7 +22,7 @@ export function RecycleBin({ rows, days, kinds, canRestore, canPurge, everyBranc
   const act = (fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) => start(async () => { const r = await fn(); notify(r.ok ? ok : (r as { error: string }).error); setConfirm(null); if (r.ok) router.refresh() })
   return (
     <section className="page-container table-page">
-      <div className="page-heading"><div><p className="eyebrow">Administration / Recycle Bin</p><h1>Recycle Bin</h1>
+      <div className="page-heading"><div><p className="eyebrow">Security &amp; records / Recycle bin</p><h1>Recycle Bin</h1>
         <p className="subheading">Everything deleted in the last {days} days, {everyBranch ? 'from every branch' : 'in this branch'}. Restore puts it back where it was. After {days} days it is removed for good by itself (Settings → Scheduled jobs). Payments, receipts and issued certificates are never deleted.</p></div></div>
       <div className="bin-kinds">
         <button type="button" className={!kind ? 'on' : ''} onClick={() => setKind('')}>All <b>{rows.length}</b></button>

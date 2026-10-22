@@ -27,7 +27,7 @@ const AUDIENCES = [
 
 
 const GUIDES = [
-  { title: 'Take a new enquiry', menu: 'Visited Enquiry', steps: ['Open Visited Enquiry from the menu', 'Add the person, the course they want and a follow-up date', 'Record each follow-up in Enquiry Update'] },
+  { title: 'Take a new enquiry', menu: 'Enquiries', steps: ['Open Enquiries from the menu', 'Add the person, the course they want and a follow-up date', 'Record each follow-up from Find an enquiry'] },
   { title: 'Register a student', menu: 'Registration', steps: ['Open Registration and pick the enquiry (or enter the details)', 'Set the course, total fee and payment plan', 'Save: the registration number and ID card are ready'] },
   { title: 'Collect a fee', menu: 'Fees', steps: ['Open Fees and find the student', 'Record payment: amount, mode and proof', 'Print or share the receipt that is created'] },
   { title: 'Mark today’s class', menu: 'My Classes', steps: ['Open My Classes and choose the batch', 'Tick the topics taught and who was present', 'Save the class'] },

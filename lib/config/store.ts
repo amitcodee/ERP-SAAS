@@ -57,6 +57,8 @@ export type ConfigMap = {
   payments: { config: PaymentsConfig; secrets: PaymentsSecrets }
   grades: { config: GradesConfig; secrets: Record<string, never> }
   admission_form: { config: AdmissionFormConfig; secrets: Record<string, never> }
+  /** The feature packs switched off (lib/panel/features.ts). */
+  features: { config: { off: string[] }; secrets: Record<string, never> }
 }
 export type ConfigKey = keyof ConfigMap
 
@@ -82,6 +84,7 @@ export const DEFAULTS: { [K in ConfigKey]: ConfigMap[K]['config'] } = {
   jobs: { scheduler: 'panel', reminders: { enabled: true, time: '09:00' }, reconcile: { enabled: true, time: '02:00' }, purge: { enabled: true, time: '03:00' }, escalations: { enabled: true, time: '10:00' } },
   payments: { enabled: false, provider: 'razorpay', keyId: '' },
   grades: DEFAULT_GRADES,
+  features: { off: [] },
   admission_form: { enabled: false, heading: 'Apply for admission', intro: '', thanks: 'Thank you! Our team will call you shortly.', askEmail: true, askLocation: true, askMessage: true },
 }
 

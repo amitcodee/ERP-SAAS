@@ -61,7 +61,7 @@ export function CoursesPanel({ rows, catalogs, canCreate, canEdit, isSuper, canS
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Management / Courses</p><h1>Course catalogue</h1><p className="subheading">The single list every enquiry, registration and batch picks from.{isSuper ? (waiting ? ` ${waiting} course${waiting === 1 ? '' : 's'} added by branches wait${waiting === 1 ? 's' : ''} for your approval (at the top).` : '') : canCreate ? ' A course you add waits for head office to approve it before it can be used.' : ''}</p></div>
+        <div><p className="eyebrow">Setup / Courses</p><h1>Course catalogue</h1><p className="subheading">The single list every enquiry, registration and batch picks from.{isSuper ? (waiting ? ` ${waiting} course${waiting === 1 ? '' : 's'} added by branches wait${waiting === 1 ? 's' : ''} for your approval (at the top).` : '') : canCreate ? ' A course you add waits for head office to approve it before it can be used.' : ''}</p></div>
         <div className="heading-actions">{canCreate && <button className="button primary" onClick={() => { setNewSkills(''); setAdding(true) }}><Plus size={17} /> Add course</button>}</div>
       </div>
       {syllabusChanges.length > 0 && (

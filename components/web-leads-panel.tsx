@@ -78,7 +78,7 @@ export function WebLeadsPanel({ rows, total, sites, branches, canAssign, canOpen
     <section className="page-container table-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Overview / Web Leads</p><h1>Web Leads</h1>
+          <p className="eyebrow">Admissions / Web leads</p><h1>Web Leads</h1>
           <p className="subheading">{isHeadOffice
             ? 'Forms sent on the institute websites. A website set on a branch (Branches) sends its leads straight to that branch; the others wait here for you to send them on.'
             : 'Forms sent on your branch website. Each one is also on the Leads page, ready to call.'}</p>

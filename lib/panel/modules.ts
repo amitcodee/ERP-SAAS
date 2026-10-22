@@ -6,72 +6,75 @@ export type ModuleKey =
   | 'Dashboard' | 'Overdues' | 'My Tickets' | 'My Classes' | 'Project Help' | 'Random Call' | 'Leads' | 'Web Leads' | 'Lead Categories' | 'Enquiry' | 'Registration' | 'Enquiry Update' | 'My Leads' | 'Lead Distribution' | 'Transfers' | 'Shared Students'
   | 'Fees' | 'Expenses' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
 
+/** The menu's groups, in order. */
+export const GROUPS = ['Overview', 'Admissions', 'Students & classes', 'Fees & money', 'Certificates', 'Events', 'Reports', 'Setup', 'Security & records']
+
 export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (ok: Ok) => boolean; planModule?: string }[] = [
   { key: 'Dashboard', path: '/dashboard', group: 'Overview', allowed: () => true },
   // leads past their follow-up date and fees past their installment date, escalated to the branch manager and head office
   { key: 'Overdues', path: '/overdues', group: 'Overview', allowed: (ok) => ok('read', 'enquiry') || ok('read', 'call') || ok('read', 'fee') },
-  // students' questions first, for head office (every branch's tickets) and branch managers only
-  { key: 'Help Desk', path: '/help-desk', group: 'Overview', allowed: (ok) => ok('read', 'helpdesk') },
+  { key: 'Calendar', path: '/calendar', group: 'Overview', allowed: (ok) => ok('read', 'call') || ok('read', 'enquiry') || ok('read', 'registration') || ok('read', 'fee') },
   // every staff member: internal tickets they raised (to the branch manager or head office) and tickets given to them
   { key: 'My Tickets', path: '/my-tickets', group: 'Overview', allowed: () => true },
-  // the trainer's own panel, and students' project / study help from every branch
-  { key: 'My Classes', path: '/my-classes', group: 'Overview', allowed: (ok) => ok('read', 'teaching') },
-  { key: 'Project Help', path: '/project-help', group: 'Overview', allowed: (ok) => ok('read', 'teaching') },
-  { key: 'Random Call', path: '/calls', group: 'Overview', allowed: (ok) => ok('read', 'call') },
-  { key: 'Leads', path: '/leads', group: 'Overview', allowed: (ok) => ok('read', 'enquiry') },
-  { key: 'Web Leads', path: '/web-leads', group: 'Overview', allowed: (ok) => ok('read', 'weblead') },
-  { key: 'Lead Categories', path: '/lead-categories', group: 'Overview', allowed: (ok) => ok('read', 'enquiry') || ok('read', 'call') },
+  { key: 'Leads', path: '/leads', group: 'Admissions', allowed: (ok) => ok('read', 'enquiry') },
+  { key: 'Web Leads', path: '/web-leads', group: 'Admissions', allowed: (ok) => ok('read', 'weblead') },
+  { key: 'Random Call', path: '/calls', group: 'Admissions', allowed: (ok) => ok('read', 'call') },
   { key: 'My Leads', path: '/my-leads', group: 'Admissions', allowed: (ok) => ok('read', 'lead') },
   { key: 'Lead Distribution', path: '/lead-distribution', group: 'Admissions', allowed: (ok) => ok('assign', 'lead') },
+  { key: 'Lead Categories', path: '/lead-categories', group: 'Admissions', allowed: (ok) => ok('read', 'enquiry') || ok('read', 'call') },
   { key: 'Enquiry', path: '/enquiries', group: 'Admissions', allowed: (ok) => ok('read', 'enquiry') },
-  { key: 'Registration', path: '/registrations', group: 'Admissions', allowed: (ok) => ok('read', 'registration') },
   { key: 'Enquiry Update', path: '/enquiries/update', group: 'Admissions', allowed: (ok) => ok('read', 'enquiry') },
+  { key: 'Registration', path: '/registrations', group: 'Admissions', allowed: (ok) => ok('read', 'registration') },
   // students moving between branches: asked by the branch they leave, accepted by the branch they go to
   { key: 'Transfers', path: '/transfers', group: 'Admissions', allowed: (ok) => ok('read', 'registration') },
   // students of one branch taking some classes in another: asked by their branch, accepted into a batch by the other
   { key: 'Shared Students', path: '/shared-students', group: 'Admissions', allowed: (ok) => ok('read', 'registration') || ok('update', 'batch') },
+  { key: 'Students', path: '/students', group: 'Students & classes', allowed: (ok) => ok('read', 'certificate') || ok('read', 'batch') },
+  // the trainer's own panel, and students' project / study help from every branch
+  { key: 'My Classes', path: '/my-classes', group: 'Students & classes', allowed: (ok) => ok('read', 'teaching') },
+  { key: 'Project Help', path: '/project-help', group: 'Students & classes', allowed: (ok) => ok('read', 'teaching') },
+  // students' questions first, for head office (every branch's tickets) and branch managers only
+  { key: 'Help Desk', path: '/help-desk', group: 'Students & classes', allowed: (ok) => ok('read', 'helpdesk') },
+  // the student portal's help tickets, answered by the branch; and the notice board students see
+  { key: 'Announcements', path: '/announcements', group: 'Students & classes', allowed: (ok) => ok('read', 'registration') },
+  { key: 'Fees', path: '/fees', group: 'Fees & money', allowed: (ok) => ok('read', 'fee') },
+  // Reports: the numbers, charts and the day-by-day calendar of the admissions work.
+  { key: 'Collection', path: '/collection', group: 'Fees & money', allowed: (ok) => ok('read', 'fee') },
+  // what the branch spends, and the profit: fees received less expenses, month by month
+  { key: 'Expenses', path: '/expenses', group: 'Fees & money', allowed: (ok) => ok('read', 'expense') },
   // Documents: certificates, from the request to the certificate in the student's hand.
-  { key: 'Certificate Requests', path: '/certificate-requests', group: 'Documents', allowed: (ok) => ok('read', 'certificate') },
-  { key: 'Issue Certificate', path: '/issue-certificate', group: 'Documents', allowed: (ok) => ok('read', 'certificate') },
-  { key: 'Internship Requests', path: '/internships', group: 'Documents', allowed: (ok) => ok('read', 'internship') },
-  { key: 'Internship Complete', path: '/internship-complete', group: 'Documents', allowed: (ok) => ok('read', 'internship') },
-  { key: 'Letter Templates', path: '/letter-templates', group: 'Documents', allowed: (ok) => ok('update', 'setting') },
+  { key: 'Certificate Requests', path: '/certificate-requests', group: 'Certificates', allowed: (ok) => ok('read', 'certificate') },
+  { key: 'Issue Certificate', path: '/issue-certificate', group: 'Certificates', allowed: (ok) => ok('read', 'certificate') },
+  { key: 'Certificate Designs', path: '/certificate-designs', group: 'Certificates', allowed: (ok) => ok('read', 'certdesign'), planModule: 'events' },
+  { key: 'Internship Requests', path: '/internships', group: 'Certificates', allowed: (ok) => ok('read', 'internship') },
+  { key: 'Internship Complete', path: '/internship-complete', group: 'Certificates', allowed: (ok) => ok('read', 'internship') },
+  { key: 'Letter Templates', path: '/letter-templates', group: 'Certificates', allowed: (ok) => ok('update', 'setting') },
   // Events: seminars, workshops and webinars with a sign-up link / QR code, an optional quiz and e-mailed certificates
   { key: 'Seminars & Workshops', path: '/events', group: 'Events', allowed: (ok) => ok('read', 'event'), planModule: 'events' },
-  { key: 'Certificate Designs', path: '/certificate-designs', group: 'Events', allowed: (ok) => ok('read', 'certdesign'), planModule: 'events' },
-  // Reports: the numbers, charts and the day-by-day calendar of the admissions work.
-  { key: 'Collection', path: '/collection', group: 'Reports', allowed: (ok) => ok('read', 'fee') },
   { key: 'Reports', path: '/reports', group: 'Reports', allowed: (ok) => ok('read', 'report') },
   { key: 'Graphs', path: '/graphs', group: 'Reports', allowed: (ok) => ok('read', 'report') },
   // who leads the board: telecallers / counselors (conversion), trainers (index) and students (ranking)
   { key: 'Leaderboards', path: '/leaderboards', group: 'Reports', allowed: (ok) => ok('read', 'report') || ok('read', 'enquiry') || ok('read', 'lead') || ok('read', 'teaching') },
-  { key: 'Calendar', path: '/calendar', group: 'Reports', allowed: (ok) => ok('read', 'call') || ok('read', 'enquiry') || ok('read', 'registration') || ok('read', 'fee') },
-  { key: 'Fees', path: '/fees', group: 'Management', allowed: (ok) => ok('read', 'fee') },
-  // what the branch spends, and the profit: fees received less expenses, month by month
-  { key: 'Expenses', path: '/expenses', group: 'Management', allowed: (ok) => ok('read', 'expense') },
-  { key: 'Students', path: '/students', group: 'Management', allowed: (ok) => ok('read', 'certificate') || ok('read', 'batch') },
-  { key: 'Courses', path: '/courses', group: 'Management', allowed: (ok) => ok('read', 'catalog') },
-  { key: 'Course Categories', path: '/course-categories', group: 'Management', allowed: (ok) => ok('read', 'catalog') },
-  // the student portal's help tickets, answered by the branch; and the notice board students see
-  { key: 'Announcements', path: '/announcements', group: 'Management', allowed: (ok) => ok('read', 'registration') },
-  // the words of the birthday e-mail and card, help desk and trainer e-mails, ready-made announcements
-  { key: 'Message Templates', path: '/message-templates', group: 'Management', allowed: (ok) => ok('read', 'template') },
-  // a WhatsApp campaign (made in AiSensy, listed in Settings) sent to students or leads picked by a filter
-  { key: 'Bulk WhatsApp', path: '/whatsapp', group: 'Management', allowed: (ok) => ok('read', 'broadcast') },
-  { key: 'Users & Staff', path: '/users', group: 'Administration', allowed: (ok) => ok('read', 'user') },
-  { key: 'Roles & Permissions', path: '/roles', group: 'Administration', allowed: (ok) => ok('read', 'role') },
-  { key: 'Branches', path: '/branches', group: 'Administration', allowed: (ok) => ok('read', 'branch') },
-  { key: 'Logs', path: '/logs', group: 'Administration', allowed: (ok) => ok('read', 'audit') },
-  { key: 'Sign-in Security', path: '/login-logs', group: 'Administration', allowed: (ok) => ok('update', 'setting') },
-  { key: 'Recycle Bin', path: '/recycle-bin', group: 'Administration', allowed: (ok) => ok('read', 'recycle') },
-  // head office: a branch's students and payments from the institute's old system (phpMyAdmin CSV), re-runnable to sync
-  { key: 'Old System Import', path: '/import-old', group: 'Administration', allowed: (ok) => ok('create', 'branch') },
-  { key: 'Settings', path: '/settings', group: 'Administration', allowed: () => true },
   // head office: the first steps of a new institute (modules/onboarding)
-  { key: 'Set Up', path: '/setup', group: 'Administration', allowed: (ok) => ok('update', 'setting') && ok('create', 'branch') },
+  { key: 'Set Up', path: '/setup', group: 'Setup', allowed: (ok) => ok('update', 'setting') && ok('create', 'branch') },
+  { key: 'Courses', path: '/courses', group: 'Setup', allowed: (ok) => ok('read', 'catalog') },
+  { key: 'Course Categories', path: '/course-categories', group: 'Setup', allowed: (ok) => ok('read', 'catalog') },
+  { key: 'Users & Staff', path: '/users', group: 'Setup', allowed: (ok) => ok('read', 'user') },
+  { key: 'Roles & Permissions', path: '/roles', group: 'Setup', allowed: (ok) => ok('read', 'role') },
+  { key: 'Branches', path: '/branches', group: 'Setup', allowed: (ok) => ok('read', 'branch') },
+  // the words of the birthday e-mail and card, help desk and trainer e-mails, ready-made announcements
+  { key: 'Message Templates', path: '/message-templates', group: 'Setup', allowed: (ok) => ok('read', 'template') },
+  // a WhatsApp campaign (made in AiSensy, listed in Settings) sent to students or leads picked by a filter
+  { key: 'Bulk WhatsApp', path: '/whatsapp', group: 'Setup', allowed: (ok) => ok('read', 'broadcast') },
+  { key: 'Settings', path: '/settings', group: 'Setup', allowed: () => true },
+  { key: 'Logs', path: '/logs', group: 'Security & records', allowed: (ok) => ok('read', 'audit') },
+  { key: 'Sign-in Security', path: '/login-logs', group: 'Security & records', allowed: (ok) => ok('update', 'setting') },
+  { key: 'Recycle Bin', path: '/recycle-bin', group: 'Security & records', allowed: (ok) => ok('read', 'recycle') },
+  // head office: a branch's students and payments from the institute's old system (phpMyAdmin CSV), re-runnable to sync
+  { key: 'Old System Import', path: '/import-old', group: 'Security & records', allowed: (ok) => ok('create', 'branch') },
 ]
 /** What the menu and the breadcrumb show, where it differs from the key. */
-export const LABEL: Partial<Record<ModuleKey, string>> = { Enquiry: 'Visited Enquiry', Collection: 'Collections' }
+export const LABEL: Partial<Record<ModuleKey, string>> = { Enquiry: 'Enquiries', 'Enquiry Update': 'Find an enquiry', 'Random Call': 'Calls', Collection: 'Collections', 'Old System Import': 'Import' }
 export const labelOf = (k: ModuleKey) => LABEL[k] ?? k
 /** What each page is for, shown as a tooltip on the menu. */
 export const ABOUT: Record<ModuleKey, string> = {

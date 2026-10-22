@@ -4,10 +4,11 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, openSync } from 'node:fs'
 
-const PORT = 3300
+// E2E_PORT: another port when 3300 is taken (another project's server); APP_URL follows it, so links point here
+const PORT = Number(process.env.E2E_PORT ?? 3300)
 // No real e-mail from test runs: blank values win over .env.local, so the app behaves as if no mail server is set
 // (and branches may work without their own mail server).
-const env = { ...process.env, NEXT_DIST_DIR: '.next-build', BASE_URL: `http://localhost:${PORT}`, EMAIL_USER: '', EMAIL_PASS: '', SENDGRID_API_KEY: '', BRANCH_EMAIL_OPTIONAL: '1', BILLING_FAKE: '1', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '' }
+const env = { ...process.env, NEXT_DIST_DIR: '.next-build', BASE_URL: `http://localhost:${PORT}`, APP_URL: `http://localhost:${PORT}`, EMAIL_USER: '', EMAIL_PASS: '', SENDGRID_API_KEY: '', BRANCH_EMAIL_OPTIONAL: '1', BILLING_FAKE: '1', RAZORPAY_KEY_ID: '', RAZORPAY_KEY_SECRET: '' }
 const sh = (cmd, opts = {}) => spawnSync(cmd, { shell: true, stdio: 'inherit', env, ...opts })
 
 // something already answering on the port would be tested instead of this build: stop rather than mislead
@@ -35,7 +36,7 @@ for (let i = 0; i < 40 && !up; i++) {
   up = await fetch(`http://localhost:${PORT}/api/health`).then((r) => r.ok, () => false)
   if (!up) await new Promise((r) => setTimeout(r, 1500))
 }
-if (!up) { console.error('[e2e] server did not start (is the dev database running? is port 3300 free?)'); stop(); process.exit(1) }
+if (!up) { console.error(`[e2e] server did not start (is the dev database running? is port ${PORT} free?)`); stop(); process.exit(1) }
 
 const code = sh('pnpm exec dotenv -e .env.local -- tsx scripts/e2e.ts').status ?? 1
 stop()

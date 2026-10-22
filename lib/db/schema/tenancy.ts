@@ -31,7 +31,7 @@ export const plans = pgTable(
 /** null = no limit */
 export type PlanLimits = { branches?: number | null; staff?: number | null; activeStudents?: number | null; storageMb?: number | null; messagesPerMonth?: number | null }
 
-export const ORG_STATUSES = ['trial', 'active', 'past_due', 'read_only', 'suspended', 'cancelled'] as const
+export const ORG_STATUSES = ['pending', 'trial', 'active', 'past_due', 'read_only', 'suspended', 'cancelled'] as const
 export type OrgStatus = (typeof ORG_STATUSES)[number]
 
 export const organisations = pgTable(
@@ -63,7 +63,7 @@ export const organisations = pgTable(
   },
   () => [
     uniqueIndex('organisations_slug_uq').on(sql`slug`),
-    check('organisations_status_ck', sql`status IN ('trial', 'active', 'past_due', 'read_only', 'suspended', 'cancelled')`),
+    check('organisations_status_ck', sql`status IN ('pending', 'trial', 'active', 'past_due', 'read_only', 'suspended', 'cancelled')`),
     check('organisations_slug_ck', sql`slug ~ '^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$'`),
   ],
 )

@@ -72,7 +72,7 @@ export function AttendancePanel({
     <section className="page-container table-page">
       {top}
       <div className="page-heading">
-        <div><p className="eyebrow">Management / Students</p><h1>Batches &amp; attendance</h1><p className="subheading">Attendance % feeds the certificate check automatically.</p></div>
+        <div><p className="eyebrow">Students &amp; classes / Students</p><h1>Batches &amp; attendance</h1><p className="subheading">Attendance % feeds the certificate check automatically.</p></div>
         <div className="heading-actions">{canCreateBatch && <AddButton needsBranch={needsBranch} branches={catalogs.branches} onGo={() => setAdding(true)}><Plus size={17} /> New batch</AddButton>}</div>
       </div>
       {requestsIn.length > 0 && (

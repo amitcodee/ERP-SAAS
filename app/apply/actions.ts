@@ -14,6 +14,7 @@ export async function submitApplicationAction(input: ApplyInput): Promise<{ ok: 
   const who = ip && ip.includes(':') ? ip.split(':').slice(0, 4).join(':') : ip ?? 'unknown'
   if (!(await underLimit(`apply:${who}`, 8, 3600))) return { ok: false, error: 'Too many forms from this connection: please try again later, or call the institute.' }
   const org = await requireRequestOrg()
+  if (!['trial', 'active', 'past_due'].includes(org.status)) return { ok: false, error: 'Admissions are not open online right now. Please call the institute.' }
   if (!(await underLimit(`apply-all:${org.id}`, 600, 3600))) return { ok: false, error: 'Too many forms right now: please try again in a little while.' }
   try {
     return { ok: true, data: await submitApplication(org.id, input, h.get('host') ?? '') }

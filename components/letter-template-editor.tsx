@@ -54,7 +54,7 @@ export function LetterTemplateEditor({ kind, template, templates, companies, com
     <section className="page-container table-page col-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Documents / Letter Templates</p>
+          <p className="eyebrow">Certificates / Letter Templates</p>
           <h1>Letter templates</h1>
           <p className="subheading">The wording of the internship letters, for each company interns are taken on by. Each <code>{'{{variable}}'}</code> is replaced by the intern&apos;s details when a letter is made. A change applies to letters issued after you save; letters already issued keep their wording.</p>
         </div>

@@ -165,8 +165,18 @@ async function setTempPassword(email: string, pw: string) {
   if (r.rowCount !== 1) throw new Error(`no login for ${email}`)
 }
 
+/** Local only: new institutes wait for approval and get a 2-day trial (the defaults), whatever an earlier run left. */
+async function setOnboardingRules() {
+  const url = process.env.DATABASE_URL ?? ''
+  if (!/127.0.0.1|localhost/.test(url)) throw new Error('refusing to change the platform settings on a non-local database')
+  const c = new pg.Client({ connectionString: url }); await c.connect()
+  await c.query(`insert into platform_config (key, config) values ('onboarding', '{"trialDays": 2, "approval": true}') on conflict (key) do update set config = excluded.config`)
+  await c.end()
+}
+
 async function main() {
   await resetDevAdmin()
+  await setOnboardingRules()
   const browser = await chromium.launch({ channel: 'chrome', headless: true })
   const creds: Record<string, { email: string; pw: string }> = {}
   let receiptHref = '', certHash = ''
@@ -296,7 +306,7 @@ async function main() {
     const co = await login(browser, creds.counselor.email, creds.counselor.pw, 'counselor')
     const cp = co.page
     await ok('counselor menu shows admissions and fees but NOT users / reports', async () => {
-      await nav(cp, 'Random Call').waitFor(); await nav(cp, 'Visited Enquiry').waitFor(); await nav(cp, 'Fees').waitFor() // counselors take payments
+      await nav(cp, 'Calls').waitFor(); await nav(cp, 'Enquiries').waitFor(); await nav(cp, 'Fees').waitFor() // counselors take payments
       for (const hidden of ['Users & Staff', 'Reports']) if (await nav(cp, hidden).count()) throw new Error(`${hidden} should be hidden`)
       // every section is its own page; opening one that is not yours by address sends you back to your dashboard
       await cp.goto(`${BASE}/roles`); await cp.waitForURL((u) => u.pathname === '/dashboard')
@@ -304,7 +314,7 @@ async function main() {
     }, cp)
 
     await ok('log a random call', async () => {
-      await go(cp, 'Random Call')
+      await go(cp, 'Calls')
       await cp.getByRole('button', { name: 'Log call' }).click()
       const m = cp.locator('.modal-card')
       await m.getByLabel('First name').fill(CALLER.first); await m.getByLabel('Last name').fill(CALLER.last)
@@ -325,7 +335,7 @@ async function main() {
     }, cp)
 
     await ok('add a direct enquiry for the student', async () => {
-      await go(cp, 'Visited Enquiry')
+      await go(cp, 'Enquiries')
       await cp.getByRole('button', { name: 'Add visited enquiry' }).click()
       const m = cp.locator('.modal-card')
       await m.getByLabel('First name').fill(STUDENT.first); await m.getByLabel('Last name').fill(STUDENT.last)
@@ -355,7 +365,7 @@ async function main() {
     }, cp)
 
     await ok('Enquiry Update: move to Follow-up (needs a date)', async () => {
-      await go(cp, 'Enquiry Update')
+      await go(cp, 'Find an enquiry')
       const row = cp.locator('tr', { hasText: STUDENT.phone }).first()
       await row.getByRole('button', { name: /^Edit/ }).click()
       const m = cp.locator('.modal-card')
@@ -504,9 +514,9 @@ async function main() {
     const ac = await login(browser, creds.accountant.email, creds.accountant.pw, 'accountant')
     const ap = ac.page
     await ok('accountant sees Fees and (read-only) Enquiries, but not Random Call / Users / Roles', async () => {
-      await nav(ap, 'Fees').waitFor(); await nav(ap, 'Visited Enquiry').waitFor()
-      for (const hidden of ['Random Call', 'Users & Staff', 'Roles & Permissions', 'Lead Distribution']) if (await nav(ap, hidden).count()) throw new Error(`${hidden} should be hidden`)
-      await go(ap, 'Visited Enquiry')
+      await nav(ap, 'Fees').waitFor(); await nav(ap, 'Enquiries').waitFor()
+      for (const hidden of ['Calls', 'Users & Staff', 'Roles & Permissions', 'Lead Distribution']) if (await nav(ap, hidden).count()) throw new Error(`${hidden} should be hidden`)
+      await go(ap, 'Enquiries')
       if (await ap.getByRole('button', { name: 'Add visited enquiry' }).count()) throw new Error('accountant must not add enquiries')
     }, ap)
 
@@ -758,7 +768,7 @@ async function main() {
       await page.getByRole('button', { name: 'Change password' }).click(); await expectText(page, 'do not match')
       await page.getByLabel('New password', { exact: true }).fill('Longenough-123'); await page.getByLabel('Repeat new password').fill('Longenough-123')
       await page.getByRole('button', { name: 'Change password' }).click()
-      await nav(page, 'Random Call').waitFor({ state: 'visible' })
+      await nav(page, 'Calls').waitFor({ state: 'visible' })
       ;(globalThis as any).__fd = { ctx: fresh, page }
     })
 
@@ -783,7 +793,7 @@ async function main() {
       const c2 = await browser.newContext(); const p2 = await c2.newPage(); p2.setDefaultTimeout(20000)
       await p2.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
       await p2.getByLabel('Email').fill(`frontdesk.${RUN}@e2e.test`); await p2.locator('input[name="password"]').fill('Longenough-123')
-      await p2.getByRole('button', { name: 'Sign in' }).click(); await p2.waitForURL(SIGNED_IN); await nav(p2, 'Random Call').waitFor({ state: 'visible' })
+      await p2.getByRole('button', { name: 'Sign in' }).click(); await p2.waitForURL(SIGNED_IN); await nav(p2, 'Calls').waitFor({ state: 'visible' })
       await sp.locator('tr', { hasText: `frontdesk.${RUN}@e2e.test` }).getByRole('button', { name: 'Reset password' }).click()
       resetPw = (await sp.locator('.modal-card code').first().innerText()).trim(); await sp.getByRole('button', { name: 'Done' }).click()
       await p2.reload(); await p2.waitForURL(/\/login/)
@@ -794,7 +804,7 @@ async function main() {
     await ok('names with HTML/script are shown as plain text and never executed (XSS probe)', async () => {
       const dialogs: string[] = []
       cp.on('dialog', (d) => { dialogs.push(d.message()); void d.dismiss() })
-      await cp.reload({ waitUntil: 'networkidle' }); await go(cp, 'Visited Enquiry')
+      await cp.reload({ waitUntil: 'networkidle' }); await go(cp, 'Enquiries')
       await cp.getByRole('button', { name: 'Add visited enquiry' }).click()
       const m = cp.locator('.modal-card'); const evil = '<img src=x onerror="window.__xss=1;alert(1)">'
       await m.getByLabel('First name').fill(evil); await m.getByLabel('Contact no.').fill(`96${RUN}22`.slice(0, 10))
@@ -837,7 +847,12 @@ async function main() {
         await setSignupCode(email, '424242')
         await w.getByLabel('Code').fill('424242'); await w.getByRole('button', { name: 'Confirm' }).click()
         await w.waitForURL((u) => u.hostname === `${slug}.localhost`, { timeout: 30000 })
+        await expectText(w, 'Waiting for approval')
+      }, w)
+      await ok('while it waits for approval: Set Up and Plan & billing only, the rest of the panel says it waits', async () => {
         await expectText(w, 'Set up your institute'); await expectText(w, '0 of 7 done')
+        await w.goto(new URL('/enquiries', w.url()).href); await expectText(w, 'We check every new institute')
+        await w.getByRole('link', { name: 'Continue Set Up' }).click(); await expectText(w, 'Set up your institute')
       }, w)
       await ok('set up: a ready-made course list in one click ticks the step', async () => {
         await w.getByRole('button', { name: /3\. Courses/ }).click()
@@ -850,6 +865,20 @@ async function main() {
         await w.getByRole('button', { name: /^Pay ₹/ }).click()
         await expectText(w, 'Test payment page'); await w.getByRole('button', { name: 'Pay (test)' }).click()
         await expectText(w, 'Payment received'); await expectText(w, /INV\/\d{4}-\d{2}\/\d{5}/)
+      }, w)
+      await ok('the platform admin sees it waiting and approves it in the console; it runs at once (already paid)', async () => {
+        const PBASE = BASE.replace('//localhost', '//admin.localhost')
+        const pEmail = `approver.${RUN}@e2e.test`, pPw = `Approver-${RUN}-pass`
+        await setPlatformUser(pEmail, pPw)
+        const pctx = await browser.newContext(); const pp = await pctx.newPage(); pp.setDefaultTimeout(20000)
+        try {
+          await pp.goto(`${PBASE}/login`); await pp.getByLabel('E-mail').fill(pEmail); await pp.getByLabel('Password').fill(pPw)
+          await pp.getByRole('button', { name: 'Sign in' }).click()
+          await expectText(pp, 'Waiting for your approval')
+          await pp.getByRole('link', { name: `E2E Academy ${RUN}` }).click()
+          await pp.getByRole('button', { name: 'Approve' }).click(); await expectText(pp, 'Approved: active (already paid)')
+        } finally { await pctx.close() }
+        await w.goto(new URL('/dashboard', w.url()).href); await expectText(w, /Good (morning|afternoon|evening)/)
       }, w)
       // ---- the online admission form (/apply), on the institute's address and inside its own website ----
       const IBASE = new URL(w.url()).origin

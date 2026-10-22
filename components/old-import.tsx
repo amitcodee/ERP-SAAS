@@ -51,7 +51,7 @@ export function OldImport({ branches }: { branches: Branch[] }) {
     <section className="page-container">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Administration / Old System Import</p>
+          <p className="eyebrow">Security &amp; records / Import</p>
           <h1>Old System Import</h1>
           <p className="subheading">Bring a branch’s students and payments over from your old system. Every student keeps their old registration number, new admissions carry on after the highest one, and running it again later brings over only what is new — so it keeps the panel in step until the old system is switched off.</p>
         </div>

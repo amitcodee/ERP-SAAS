@@ -67,7 +67,7 @@ export function FeesPanel({
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Management / Fees</p><h1>Fee management</h1><p className="subheading">Balance is always calculated from the ledger, never typed in.</p></div>
+        <div><p className="eyebrow">Fees &amp; money / Fees</p><h1>Fee management</h1><p className="subheading">Balance is always calculated from the ledger, never typed in.</p></div>
       </div>
       <div className="table-summary">
         <div><strong className="text-green">{inr(summary.collected)}</strong><span>Collected</span></div>

@@ -32,7 +32,7 @@ export function CourseCategoriesPanel({ rows, isSuper, canAdd }: { rows: Categor
     <section className="page-container table-page col-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Management / Course Categories</p>
+          <p className="eyebrow">Setup / Course categories</p>
           <h1>Course categories</h1>
           <p className="subheading">Every course belongs to a category. Each category has a head — the instructor whose signature can go on the certificates of its courses.{isSuper ? ' Categories asked for by a branch wait here for your approval.' : ' A category you add waits for head office to approve it before courses can use it.'}</p>
         </div>

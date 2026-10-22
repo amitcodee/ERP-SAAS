@@ -45,6 +45,7 @@ import { branches } from '@/lib/db/schema'
 import { appOrigin } from '@/lib/app-url'
 import { openFeePayment, startFeePayment } from '@/modules/fees/online'
 import { gradesProblem } from '@/lib/grades'
+import { FEATURES } from '@/lib/panel/features'
 import { addExpense, deleteExpense, type ExpenseInput } from '@/modules/expenses/service'
 import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
@@ -1432,6 +1433,16 @@ export async function saveGradesAction(config: z.input<typeof gradesSettings>) {
     if (why) throw new Error(why)
     await saveConfig(a.orgId, 'grades', { ...v, bands: [...v.bands].sort((x, y) => y.min - x.min) }, {}, a.userId)
     await auditSettings(a, 'grades'); settingsSaved()
+  })
+}
+
+// ---- Feature packs on / off (lib/panel/features.ts)
+export async function saveFeaturesAction(off: string[]) {
+  return run(async () => {
+    const a = await headOffice()
+    const known = new Set(FEATURES.map((f) => f.key as string))
+    await saveConfig(a.orgId, 'features', { off: [...new Set(z.array(z.string()).max(30).parse(off))].filter((k) => known.has(k)) }, {}, a.userId)
+    await auditSettings(a, 'features'); settingsSaved()
   })
 }
 

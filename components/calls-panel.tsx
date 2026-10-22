@@ -125,7 +125,7 @@ export function CallsPanel({ rows, total, summary, catalogs, branches, canCreate
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Overview / Random call</p><h1>Random calls</h1><p className="subheading">Log every call and its follow-ups. Open View to add a follow-up or mark the visit.</p></div>
+        <div><p className="eyebrow">Admissions / Calls</p><h1>Random calls</h1><p className="subheading">Log every call and its follow-ups. Open View to add a follow-up or mark the visit.</p></div>
         <div className="heading-actions">{canCreate && <AddButton needsBranch={needsBranch} branches={catalogs.branches} onGo={() => setAdding(true)}><Plus size={17} /> Log call</AddButton>}</div>
       </div>
       <div className="table-summary">

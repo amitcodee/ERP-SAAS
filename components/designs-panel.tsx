@@ -46,7 +46,7 @@ export function DesignsPanel({ designs, canEdit, branchName, isHeadOffice }: { d
       <style>{CSS}</style>
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Events / Certificate Designs</p>
+          <p className="eyebrow">Certificates / Certificate designs</p>
           <h1>Certificate Designs</h1>
           <p className="subheading">Design the certificates seminars, workshops and other events give out. Start from a template, a blank page, or a certificate picture (yours, or one from the internet) and put the participant’s details on it. Each person’s name, score and certificate number are filled in for them.</p>
         </div>

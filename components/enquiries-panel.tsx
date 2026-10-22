@@ -140,7 +140,7 @@ export function EnquiriesPanel({
     <section className="page-container table-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{mode === 'leads' ? 'Overview / Leads' : `Admissions / ${mode === 'update' ? 'Enquiry update' : mode === 'mine' ? 'My leads' : 'Visited enquiries'}`}</p>
+          <p className="eyebrow">{mode === 'leads' ? 'Admissions / Leads' : `Admissions / ${mode === 'update' ? 'Find an enquiry' : mode === 'mine' ? 'My leads' : 'Enquiries'}`}</p>
           <h1>{mode === 'update' ? 'Enquiry update' : mode === 'mine' ? 'My leads' : mode === 'leads' ? 'Leads' : 'Visited enquiries'}</h1>
           <p className="subheading">{mode === 'update' ? 'Search by phone number, then update the status.' : mode === 'mine' ? 'Leads assigned to you (any branch). Call, then record the outcome.' : mode === 'leads' ? 'People who reached you through the website, e-mail or another source and have not visited yet. Open View to add a follow-up or mark the visit.' : 'People who came to the office. Open View to see every follow-up and add the next one until they register.'}</p>
         </div>

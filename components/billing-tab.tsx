@@ -20,7 +20,7 @@ type Q = { amount: number; discount: number; credit: number; gst: number; total:
 const inr = (paise: number) => '₹' + (paise / 100).toLocaleString('en-IN', { minimumFractionDigits: paise % 100 ? 2 : 0 })
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—')
 const STATUS: Record<string, string> = {
-  trial: 'Free trial', active: 'Active', past_due: 'Payment due: everything still works for a few days', read_only: 'Read-only: pay to make changes again', suspended: 'Suspended', cancelled: 'Cancelled',
+  pending: 'Waiting for approval: your trial starts once approved', trial: 'Free trial', active: 'Active', past_due: 'Payment due: everything still works for a few days', read_only: 'Paused: pay to open it again (nothing is deleted)', suspended: 'Suspended', cancelled: 'Cancelled',
 }
 
 export function BillingTab({ d }: { d: BillingTabData }) {

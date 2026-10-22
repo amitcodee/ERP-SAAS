@@ -41,7 +41,7 @@ export function TrainerPanel({ batches, name }: { batches: Batch[]; name: string
 
   return (
     <section className="page-container tp">
-      <div className="page-heading"><div><p className="eyebrow">Teaching / My Classes</p><h1>My Classes</h1><p className="subheading">Hello {name.split(' ')[0]}: mark today&apos;s class, tick the syllabus, give marks and share notes.</p></div></div>
+      <div className="page-heading"><div><p className="eyebrow">Students &amp; classes / My classes</p><h1>My Classes</h1><p className="subheading">Hello {name.split(' ')[0]}: mark today&apos;s class, tick the syllabus, give marks and share notes.</p></div></div>
       {!batches.length ? <NoBatch /> : (
         <>
           <div className="tp-batches">

@@ -214,7 +214,8 @@ function code() {
   // each reads or writes platform tables (plans, sign-ups, organisations, billing) or the find-my-institute function or
   // a ping; billing and dunning step into one org's own context only to write its audit log
   const PLATFORM_OK = ['lib/db/withTenant.ts', 'lib/app-url.ts', 'lib/ip-geo.ts', 'lib/tenant/orgs.ts', 'lib/tenant/resolve.ts', 'modules/orgs/provision.ts', 'modules/platform/service.ts',
-    'modules/plans/service.ts', 'modules/signup/service.ts', 'app/site/status/page.tsx', 'modules/billing/service.ts', 'modules/billing/dunning.ts', 'modules/platform/console.ts']
+    'modules/plans/service.ts', 'modules/signup/service.ts', 'app/site/status/page.tsx', 'modules/billing/service.ts', 'modules/billing/dunning.ts', 'modules/platform/console.ts',
+    'modules/platform/rules.ts' /* the platform's onboarding settings row only; saved from the console */]
   const plat = all.filter((f) => !PLATFORM_OK.includes(f) && /withPlatform\(/.test(readFileSync(f, 'utf8')))
   check('the platform context (withPlatform) only in the audited files', !plat.length, list(plat))
   return { RAW_OK, PLATFORM_OK }

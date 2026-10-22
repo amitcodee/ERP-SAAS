@@ -10,7 +10,8 @@ import { userMessage } from '@/lib/errors'
 import { requirePlatform } from '@/lib/platform/current'
 import { underLimit } from '@/lib/redis'
 import { requestHost } from '@/lib/tenant/request'
-import { announcementInput, couponInput, createAnnouncement, createCoupon, endAnnouncement, extendTrial, planInput, savePlan, setCouponActive, setFeature, setOrgPlan } from '@/modules/platform/console'
+import { activateOrg, approveOrg, announcementInput, couponInput, createAnnouncement, createCoupon, endAnnouncement, extendTrial, planInput, savePlan, setCouponActive, setFeature, setOrgPlan } from '@/modules/platform/console'
+import { rulesInput, saveOnboardingRules } from '@/modules/platform/rules'
 import { assertOwnOpenSession, endSupportByPlatform, platformLogin, setOrgStatus, startSupport } from '@/modules/platform/service'
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string }
@@ -38,6 +39,22 @@ export async function platformLogoutAction() {
 
 export async function setOrgStatusAction(orgId: string, status: 'suspended' | 'active' | 'read_only', reason: string) {
   return run(async () => { const pu = await requirePlatform(); await setOrgStatus(pu, z.string().uuid().parse(orgId), z.enum(['suspended', 'active', 'read_only']).parse(status), reason) })
+}
+
+/** Lets an institute that waits for approval run: its trial starts (or it is active, when it has paid). */
+export async function approveOrgAction(orgId: string) {
+  return run(async () => { const pu = await requirePlatform(); return approveOrg(pu, z.string().uuid().parse(orgId)) })
+}
+/** Active by the platform's hand: until a date (YYYY-MM-DD), or with no end (null). */
+export async function activateOrgAction(orgId: string, until: string | null, reason: string) {
+  return run(async () => {
+    const pu = await requirePlatform()
+    await activateOrg(pu, z.string().uuid().parse(orgId), until === null ? null : z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose a date').parse(until), reason)
+  })
+}
+/** How new institutes start: the trial's length and whether they wait for approval. */
+export async function saveRulesAction(v: z.input<typeof rulesInput>) {
+  return run(async () => { await requirePlatform(); await saveOnboardingRules(v) })
 }
 
 /** Opens a support session and returns the one-time link into the org (5 minutes, once). */

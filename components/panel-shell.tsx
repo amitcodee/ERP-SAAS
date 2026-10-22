@@ -14,7 +14,7 @@ import { logoutAction } from '@/app/login/actions'
 import { TooltipLayer } from '@/components/tooltip-layer'
 import { PageSkeleton } from '@/components/page-skeleton'
 import { GlobalSearch, NotificationBell, ProfileMenu } from '@/components/topbar'
-import { ABOUT, labelOf, MODULES, moduleForPath, type ModuleKey } from '@/lib/panel/modules'
+import { ABOUT, GROUPS, labelOf, MODULES, moduleForPath, type ModuleKey } from '@/lib/panel/modules'
 
 const ICON: Record<ModuleKey, typeof Phone> = {
   Dashboard: LayoutDashboard, 'My Classes': Presentation, 'Project Help': HandHelping, 'Random Call': Phone, Leads: Inbox, 'Web Leads': Globe, 'Lead Categories': Tags, 'My Leads': Phone, 'Lead Distribution': Users, Enquiry: ClipboardList,
@@ -22,7 +22,6 @@ const ICON: Record<ModuleKey, typeof Phone> = {
   Students: GraduationCap, Courses: BookOpen, Reports: Target, Graphs: ChartLine, Leaderboards: Trophy, Transfers: ArrowRightLeft, 'Shared Students': Share2, Overdues: AlarmClock, Calendar: CalendarRange, 'Certificate Requests': FileCheck2, 'Issue Certificate': FileBadge, 'Internship Requests': BriefcaseBusiness, 'Internship Complete': Medal, 'Letter Templates': FilePenLine, 'Course Categories': Layers, 'Help Desk': LifeBuoy, 'My Tickets': Ticket, Announcements: Megaphone, 'Message Templates': MessageSquareText, 'Bulk WhatsApp': Send, 'Seminars & Workshops': Mic, 'Certificate Designs': Palette,
   'Users & Staff': Users, 'Roles & Permissions': ShieldCheck, Branches: Building2, Logs: ScrollText, 'Sign-in Security': ShieldAlert, 'Recycle Bin': Trash2, 'Old System Import': DatabaseZap, Settings, 'Set Up': Rocket,
 }
-const GROUPS = ['Overview', 'Admissions', 'Documents', 'Events', 'Reports', 'Management', 'Administration']
 
 export type ShellUser = {
   id: string; name: string; email: string; initials: string; roleLabel: string
@@ -84,7 +83,8 @@ export function PanelShell({ user, modules, branches, isSuper, actingBranchId, b
           </div>
           <div className="branch-select">
             <div className="branch-icon">{user.branchInitials}</div>
-            {isSuper || branches.length > 1 ? (
+            {/* head office with one branch works in it: nothing to pick */}
+            {branches.length > 1 || (isSuper && !branches.length) ? (
               <div style={{ flex: 1, minWidth: 0 }}>
                 <small>Working in</small>
                 <select aria-label="Working branch" value={actingBranchId ?? ''} onChange={(e) => { void setActingBranchAction(e.target.value) }} style={{ width: '100%', border: 0, background: 'transparent', fontWeight: 600, fontSize: 12 }}>
@@ -93,9 +93,9 @@ export function PanelShell({ user, modules, branches, isSuper, actingBranchId, b
                 </select>
               </div>
             ) : (
-              <div><strong>{user.branchName}</strong><small>{user.branchSub}</small></div>
+              <div><strong>{isSuper && branches.length === 1 ? branches[0].name : user.branchName}</strong><small>{isSuper && branches.length === 1 ? 'Head office' : user.branchSub}</small></div>
             )}
-            {!isSuper && branches.length <= 1 && <ChevronDown size={15} />}
+            {branches.length <= 1 && !isSuper && <ChevronDown size={15} />}
           </div>
           <nav className="nav-list">
             {GROUPS.map((group) => {

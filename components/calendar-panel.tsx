@@ -67,7 +67,7 @@ export function CalendarPanel({ data: c, scope }: { data: CalendarData; scope: s
     <section className="page-container table-page col-page cal-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Reports / Calendar</p>
+          <p className="eyebrow">Overview / Calendar</p>
           <h1>Calendar</h1>
           <p className="subheading">Each day shows what was done (calls, leads, visits, registrations, payments) and what is due (follow-ups, promised visits). See a month, a week, or any range of days; click a day to see every name behind its numbers.{scope ? ` · ${scope}` : ''}</p>
         </div>

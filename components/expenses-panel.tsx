@@ -39,7 +39,7 @@ export function ExpensesPanel(p: Props) {
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Management / Expenses</p><h1>Expenses &amp; profit</h1><p className="subheading">Fees received (payments that stand) less what was spent. Record each expense as it is paid.</p></div>
+        <div><p className="eyebrow">Fees &amp; money / Expenses</p><h1>Expenses &amp; profit</h1><p className="subheading">Fees received (payments that stand) less what was spent. Record each expense as it is paid.</p></div>
         <div className="row-actions" style={{ gap: 8, flexWrap: 'wrap' }}>
           <input type="month" value={p.month} max={p.thisMonth} onChange={(e) => e.target.value && go({ month: e.target.value })} aria-label="Month" />
           {!!p.branches.length && <select value={p.branchId} onChange={(e) => go({ branch: e.target.value })} aria-label="Branch"><option value="">All branches</option>{p.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>}

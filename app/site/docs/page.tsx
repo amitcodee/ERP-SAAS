@@ -8,7 +8,7 @@ const GUIDES = [
     { title: 'Invite your staff', steps: ['Open Users & Staff', 'Add each person with their branch and role', 'They get their sign-in by e-mail'] },
   ] },
   { area: 'Admissions', items: [
-    { title: 'Take a new enquiry', steps: ['Open Visited Enquiry', 'Add the person, the course they want and a follow-up date', 'Record each follow-up in Enquiry Update'] },
+    { title: 'Take a new enquiry', steps: ['Open Enquiries', 'Add the person, the course they want and a follow-up date', 'Record each follow-up from Find an enquiry'] },
     { title: 'Register a student', steps: ['Open Registration and pick the enquiry', 'Set the course, total fee and payment plan', 'Save: the registration number and ID card are ready'] },
   ] },
   { area: 'Fees', items: [

@@ -29,7 +29,7 @@ export function LogsPanel({ rows, total, filters, branches, deleted, canRestore,
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Administration / Logs</p><h1>Logs</h1><p className="subheading">Every action in the panel: who did it, on which record, and when. The log cannot be edited or deleted.</p></div>
+        <div><p className="eyebrow">Security &amp; records / Logs</p><h1>Logs</h1><p className="subheading">Every action in the panel: who did it, on which record, and when. The log cannot be edited or deleted.</p></div>
       </div>
       <div style={{ marginBottom: 14 }}>
         <div className="seg">

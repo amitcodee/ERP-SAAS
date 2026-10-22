@@ -56,7 +56,7 @@ export function LoginSecurityPanel({ initial, rules, locks, stats, ladder }: {
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Administration / Sign-in Security</p><h1>Sign-in security</h1>
+        <div><p className="eyebrow">Security &amp; records / Sign-in security</p><h1>Sign-in security</h1>
           <p className="subheading">Every sign-in attempt with its IP, place and device. {ladder.free + 1}th wrong password locks for {waitText(ladder.waits[0])}, then every {ladder.step} more: {ladder.waits.slice(1).map(waitText).join(', ')}; after that the IP is blocked until you unblock it. A correct password starts the count over.</p></div>
         <div className="heading-actions"><button type="button" className="button primary" onClick={() => setRuleFor({ ip: '', kind: 'block' })}><Ban size={16} /> Block an IP</button><button type="button" className="button secondary" onClick={() => setRuleFor({ ip: '', kind: 'allow' })}><ShieldCheck size={16} /> Trust an IP</button></div>
       </div>

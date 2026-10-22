@@ -59,7 +59,7 @@ async function main() {
       await tx.delete(jobRuns)
       await applyTenant(tx, sup)
       let al = await systemAlerts(tx, sup)
-      check('never-run daily jobs are flagged', al.length === 2 && al.every((x) => /never run/.test(x.text)))
+      check('never-run daily jobs are flagged (an institute older than a day), in words for the institute', al.length === 2 && al.every((x) => /has not run yet/.test(x.text) && !/Coolify/.test(x.text)))
       await tx.insert(jobRuns).values([
         { job: 'reminders', ok: true, startedAt: new Date(), finishedAt: new Date(), summary: {} },
         { job: 'reconcile', ok: false, startedAt: new Date(Date.now() - 4 * 3600000), finishedAt: new Date(), summary: { problemCount: 3 } },

@@ -42,7 +42,7 @@ export function BranchAdmin({ branches, roles, notify }: { branches: BranchOpt[]
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Administration / Branches</p><h1>Branches</h1>
+        <div><p className="eyebrow">Setup / Branches</p><h1>Branches</h1>
           <p className="subheading">Create a branch, then complete its setup: details, a counselor and an accountant. Its logins work only after you activate it.</p></div>
         <div className="heading-actions"><button className="button primary" onClick={() => setAdding((o) => !o)}><Plus size={17} /> Add branch</button></div>
       </div>

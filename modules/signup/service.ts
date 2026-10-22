@@ -15,6 +15,7 @@ import { PRODUCT } from '@/lib/product'
 import { underLimit } from '@/lib/redis'
 import { slugProblem } from '@/lib/tenant/host'
 import { provisionOrgIn, type Provisioned } from '@/modules/orgs/provision'
+import { onboardingRulesIn } from '@/modules/platform/rules'
 import { forgetHosts } from '@/lib/tenant/resolve'
 import { isDisposable, slugBlocked } from './blocklists'
 
@@ -126,7 +127,9 @@ export async function verifySignup(id: string, code: string): Promise<VerifyResu
     // the address may have gone in the meantime (another sign-up confirmed first)
     const [taken] = (await tx.execute(sql`select 1 from organisations where slug = ${s.slug}`)).rows
     if (taken) return { ok: false, error: 'That web address was just taken by someone else: start again with another', restart: true }
-    const org = await provisionOrgIn(tx, { name: s.name, slug: s.slug, ownerName: s.owner_name, ownerEmail: s.email, ownerPasswordHash: s.password_hash, status: 'trial', planKey: s.plan_key })
+    // the platform's rules: a trial of so many days, or (approval on) waiting until the platform approves it
+    const rules = await onboardingRulesIn(tx)
+    const org = await provisionOrgIn(tx, { name: s.name, slug: s.slug, ownerName: s.owner_name, ownerEmail: s.email, ownerPasswordHash: s.password_hash, status: rules.approval ? 'pending' : 'trial', trialDays: rules.trialDays, planKey: s.plan_key })
     // provisionOrgIn ends inside the new org: back to the platform to close the sign-up
     await tx.execute(sql`select set_config('app.platform', 'true', true), set_config('app.org_id', '', true)`)
     await tx.execute(sql`update signups set completed_at = now(), org_id = ${org.orgId}, password_hash = '', code_hash = '' where id = ${id}`)

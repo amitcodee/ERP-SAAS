@@ -53,7 +53,7 @@ export function CollectionPanel({ report: r, today, branchId, modeId, paymentMod
     <section className="page-container table-page col-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Reports / Collections</p>
+          <p className="eyebrow">Fees &amp; money / Collections</p>
           <h1>Fee collection</h1>
           <p className="subheading">{title}{branches.length ? ` · ${branches.find((b) => b.id === branchId)?.name ?? 'All branches'}` : ''}{modeId ? ` · ${paymentModes.find((m) => m.id === modeId)?.value ?? ''}` : ''}</p>
         </div>

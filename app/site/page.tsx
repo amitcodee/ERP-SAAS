@@ -1,3 +1,4 @@
+import { onboardingRules } from '@/modules/platform/rules'
 import Link from 'next/link'
 import { ArrowRight, BadgeCheck, Building2, Check, Monitor, School, Sparkles } from 'lucide-react'
 import { FEATURES, JOURNEY, SECURITY } from '@/components/site/content'
@@ -13,13 +14,16 @@ const FOR = [
 ]
 
 // The platform's home page (the apex domain): what it is, who it is for, a free trial.
-export default function Home() {
+export const dynamic = 'force-dynamic'
+
+export default async function Home() {
+  const { trialDays, approval } = await onboardingRules()
   return (
     <SiteShell>
       <section className="lp-hero">
         <div className="lp-wrap lp-hero-in">
           <div className="lp-hero-copy">
-            <span className="lp-pill"><Sparkles size={14} /> 14-day free trial · no card needed</span>
+            <span className="lp-pill"><Sparkles size={14} /> {trialDays}-day free trial · no card needed</span>
             <h1>Run your institute from the first call to the <span>certificate in hand.</span></h1>
             <p>Leads, admissions, fees, classes and certificates in one place, for every branch, with each person seeing just their part.</p>
             <div className="lp-hero-cta">
@@ -84,7 +88,7 @@ export default function Home() {
       <section className="lp-sec">
         <div className="lp-wrap">
           <div className="lp-cta">
-            <div><h2>Try it with your own institute</h2><p>Set up your branches, courses and fees in an afternoon. Free for 14 days, then pick a plan.</p></div>
+            <div><h2>Try it with your own institute</h2><p>Set up your branches, courses and fees in an afternoon. Free for {trialDays} days{approval ? ' once approved' : ''}, then pick a plan.</p></div>
             <div className="lp-cta-btns"><Link href="/signup" className="lp-btn lp-btn-lime">Start free trial <ArrowRight size={16} /></Link><Link href="/contact" className="lp-btn lp-btn-ghost">Talk to us</Link></div>
           </div>
         </div>

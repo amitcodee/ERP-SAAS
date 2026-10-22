@@ -67,7 +67,7 @@ export function RolesPanel({ roles, canEdit, notify }: { roles: RoleRow[]; canEd
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Administration / Roles &amp; permissions</p>
+        <div><p className="eyebrow">Setup / Roles &amp; permissions</p>
           <h1 className="rp-title">Roles &amp; permissions<button type="button" className="rp-info" aria-expanded={guide} aria-label="How roles and permissions work" title="How this works" onClick={() => setGuide(!guide)}><Info size={18} /></button></h1>
           <p className="subheading">What each role may do. A person with several roles gets all of them. Changes apply immediately.</p></div>
         <div className="heading-actions">{canEdit && <button className="button primary" onClick={() => open({ key: null, name: '', description: '' })}><Plus size={17} /> New role</button>}</div>

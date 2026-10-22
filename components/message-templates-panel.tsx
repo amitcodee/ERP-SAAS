@@ -35,7 +35,7 @@ export function MessageTemplatesPanel({ data, branchName, isSuper }: {
     <section className="page-container table-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Management / Message templates</p>
+          <p className="eyebrow">Setup / Message templates</p>
           <h1>Message templates</h1>
           <p className="subheading">
             {data.scope === 'default'

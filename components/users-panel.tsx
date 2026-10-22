@@ -47,7 +47,7 @@ export function UsersPanel({ rows, roles, branches, isSuper, canCreate, canEdit,
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Administration / Users &amp; staff</p><h1>Users &amp; staff</h1><p className="subheading">A person can hold several roles (e.g. Counselor + Telecaller + Branch Manager) and gets everything those roles allow.</p></div>
+        <div><p className="eyebrow">Setup / Users &amp; staff</p><h1>Users &amp; staff</h1><p className="subheading">A person can hold several roles (e.g. Counselor + Telecaller + Branch Manager) and gets everything those roles allow.</p></div>
         <div className="heading-actions">{canCreate && <button className="button primary" onClick={() => setAdding(true)}><Plus size={17} /> Add staff</button>}</div>
       </div>
       <div className="panel table-panel">

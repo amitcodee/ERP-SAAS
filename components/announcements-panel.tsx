@@ -27,7 +27,7 @@ export function AnnouncementsPanel({ rows, canPost, isSuper, branches, actingBra
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Management / Announcements</p><h1>Announcements</h1><p className="subheading">The notice board on every student&apos;s portal home: holidays, exams, events, fee dates.{isSuper ? ' Post to every branch or to one.' : ' What you post shows to the students of your branch.'}</p></div>
+        <div><p className="eyebrow">Students &amp; classes / Announcements</p><h1>Announcements</h1><p className="subheading">The notice board on every student&apos;s portal home: holidays, exams, events, fee dates.{isSuper ? ' Post to every branch or to one.' : ' What you post shows to the students of your branch.'}</p></div>
         <div className="heading-actions">{canPost && <button className="button primary" onClick={() => setAdding(true)}><Plus size={17} /> New announcement</button>}</div>
       </div>
       <div className="an-list">

@@ -54,7 +54,9 @@ export async function runDunning(now = new Date()): Promise<{ changed: { org: st
       null::text as owner_email, null::text as owner_name
     from organisations o left join subscriptions s on s.org_id = o.id
     where o.status in ('trial', 'active', 'past_due', 'read_only')
-      and (o.trial_ends_at is not null or s.org_id is not null)`)).rows)
+      and (o.trial_ends_at is not null or s.org_id is not null)
+      and not coalesce((o.features->>'billing_exempt')::boolean, false) -- made active by the platform with no end
+  `)).rows)
   const changed: { org: string; from: string; to: string }[] = [], reminded: string[] = []
   for (const d of rows) {
     if (!d.until) continue

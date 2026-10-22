@@ -249,7 +249,8 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
    signature):
    - the CSS variables come from the org;
    - the e-mail layout, receipt, ID card, verify pages and login are themed.
-2. [x] Course and project certificates are drawn by the canvas designer. The current layouts become two built-in
+2. [ ] Course and project certificates are drawn by the canvas designer (not done: Phase 3 made the fixed layouts
+   neutral; only event certificates use designs. Now Phase 6 step 3). The current layouts become two built-in
    neutral templates.
 3. [x] Letters:
    - companies, letterhead and stamp become org data;
@@ -358,7 +359,8 @@ import), brand per institute (name, legal name, colour, logo, accreditations), b
 and numbering, staff with roles (custom roles), certificate designs drawn on the canvas, plans with limits and billing,
 the platform console. What is missing is below, in order. Each step: a `scripts/<area>-test.ts`, e2e steps, Chrome.
 
-1. [ ] **Small institutes: simple by default.**
+1. [x] **Small institutes: simple by default.** (Settings → Features, plain menu, one branch without picking; the
+   Set Up question "one centre or several" is still to do.)
    - One centre: the owner works in it directly (no "All branches (view only)", no branch picker to understand).
    - Modules on / off per institute (Settings → Modules): Help desk, Projects, Seminars & events, Letters, WhatsApp
      campaigns, Lead distribution, Random call, Transfers… A new institute starts with the core (Leads, Admissions,
@@ -386,7 +388,9 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
    - Bulk: add staff and students from a spreadsheet at any time (import is in Set Up only today), bulk certificate
      issue for a batch.
    - Approval rules per institute (discount above X% needs head office), audit and exports per branch.
-5. [ ] **Polish found while using it** (fixed as found, listed in CHANGELOG): links that named another port in
+0. [x] **The platform approves institutes; a short trial; closed until paid; activation by hand** (owner's request,
+   2026-10-22).
+5. [x] **Polish found while using it** (fixed as found, listed in CHANGELOG): links that named another port in
    development; the dashboard warning a new institute about jobs that had not run yet (and naming the platform's
    hosting); the institute's name twice in the home page title.
 

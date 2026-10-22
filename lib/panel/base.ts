@@ -6,11 +6,14 @@ import { redirect } from 'next/navigation'
 import { getActor } from '@/lib/auth/current'
 import { can, type Action, type Resource } from '@/lib/auth/permissions'
 import { cached } from '@/lib/cache'
-import { withTenant } from '@/lib/db/withTenant'
+import { withOrgSystem, withTenant } from '@/lib/db/withTenant'
+import { sql } from 'drizzle-orm'
 import { listBranches, setupOverview } from '@/modules/branches/service'
 import { listRoles } from '@/modules/roles/service'
 import { MODULES, type ModuleKey } from './modules'
 import { orgPlan, planHasModule } from '@/lib/plan/limits'
+import { getConfig } from '@/lib/config/store'
+import { hiddenModules } from './features'
 
 const initials = (n: string) => n.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 
@@ -20,18 +23,25 @@ export const loadPanelBase = cache(async () => {
   const ok = (a: Action, r: Resource) => can(actor, a, r)
   // Kept in the shared cache (lib/cache.ts): each key holds everything that decides what the database shows for it.
   // Branches: head office sees them all, anyone else their own branch (branches_read). Role user counts follow who asks.
-  const [branches, setupPct, roleRows, plan] = await Promise.all([
+  const [branches, setupPct, roleRows, plan, features, branchCount] = await Promise.all([
     cached(actor.orgId, `branches:${isSuper ? '*' : actor.branchId}`, () => withTenant(actor, listBranches)),
     isSuper ? cached(actor.orgId, 'setup-pct', () => withTenant(actor, setupOverview)) : ({} as Record<string, number>),
     cached(actor.orgId, `roles:${actor.userId}:${actor.role}:${actor.branchId}:${!!actor.ownOnly}`, () => withTenant(actor, listRoles)),
     cached(actor.orgId, 'plan', () => withTenant(actor, orgPlan)),
+    getConfig(actor.orgId, 'features'),
+    // the whole institute's, whoever asks (a branch's staff see only their own branch)
+    cached(actor.orgId, 'branch-count', () => withOrgSystem(actor.orgId, async (tx) => (await tx.execute<{ n: number }>(sql`select count(*)::int as n from branches where is_active`)).rows[0].n)),
   ])
   const base = { branches, setupPct, roleRows }
   const acting = base.branches.find((b) => b.id === actor.branchId)
   // the name from the live branch (the session's copy is as old as the sign-in)
   const branchName = isSuper ? acting?.name ?? 'All branches' : acting?.name ?? myBranches.find((b) => b.id === actor.branchId)?.name ?? 'Branch'
   // pages of a paid module show only when the plan includes it (every module during the trial)
-  const modules = MODULES.filter((m) => m.allowed(ok) && (!m.planModule || planHasModule(plan, m.planModule))).map((m) => m.key)
+  // the feature packs the institute switched off are not in the menu (lib/panel/features.ts), nor moving students
+  // between branches while it has only one
+  const hidden = hiddenModules(features.config.off)
+  if (branchCount <= 1) { hidden.add('Transfers'); hidden.add('Shared Students') }
+  const modules = MODULES.filter((m) => m.allowed(ok) && (!m.planModule || planHasModule(plan, m.planModule)) && !hidden.has(m.key)).map((m) => m.key)
   return {
     session: s, actor, mustChange, isSuper, ok, modules, plan,
     roleRows: base.roleRows,

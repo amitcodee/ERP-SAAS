@@ -21,7 +21,7 @@ export function LeadCategoriesPanel({ categories, canEdit, notify }: { categorie
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Overview / Lead categories</p><h1>Lead categories</h1><p className="subheading">Each random call, lead or visited enquiry sits in one category at a time. Open View to see everyone in a category.</p></div>
+        <div><p className="eyebrow">Admissions / Lead categories</p><h1>Lead categories</h1><p className="subheading">Each random call, lead or visited enquiry sits in one category at a time. Open View to see everyone in a category.</p></div>
         <div className="heading-actions">{canEdit && <button className="button primary" onClick={() => setAdding(true)}><Plus size={17} /> Add category</button>}</div>
       </div>
       <div className="table-summary">
@@ -96,7 +96,7 @@ export function LeadCategoryView({ category, members, canBroadcast }: { category
   return (
     <section className="page-container table-page">
       <div className="page-heading">
-        <div><p className="eyebrow">Overview / Lead categories</p><h1>{category.name}</h1><p className="subheading">Every random call, lead and visited enquiry in this category{category.isActive ? '' : ' (the category is switched off)'}.</p></div>
+        <div><p className="eyebrow">Admissions / Lead categories</p><h1>{category.name}</h1><p className="subheading">Every random call, lead and visited enquiry in this category{category.isActive ? '' : ' (the category is switched off)'}.</p></div>
         <div className="heading-actions">{canBroadcast && <Link className="button primary" href={`/whatsapp?category=${category.id}`} prefetch={false}><Send size={16} /> Send WhatsApp</Link>}<Link className="button secondary" href="/lead-categories" prefetch={false}><ArrowLeft size={16} /> All categories</Link></div>
       </div>
       <div className="panel table-panel">

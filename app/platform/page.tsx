@@ -6,13 +6,13 @@ import { metrics } from '@/modules/platform/console'
 
 const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—')
 const inr = (paise: number) => '₹' + Math.round(paise / 100).toLocaleString('en-IN')
-const TONE: Record<string, string> = { active: 'green', trial: 'blue', past_due: 'amber', read_only: 'amber', suspended: 'red', cancelled: 'slate' }
+const TONE: Record<string, string> = { pending: 'amber', active: 'green', trial: 'blue', past_due: 'amber', read_only: 'amber', suspended: 'red', cancelled: 'slate' }
 
 // Every organisation, newest first: its status and plan and how big it is (sizes only, never a record).
 export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   await requirePlatform()
   const { q = '', status = '' } = await searchParams
-  const [orgs, m] = await Promise.all([listOrgs({ q, status }), metrics()])
+  const [orgs, m, waiting] = await Promise.all([listOrgs({ q, status }), metrics(), listOrgs({ q: '', status: 'pending' })])
   return (
     <section className="page-container">
       <div className="page-heading"><div><p className="eyebrow">Platform</p><h1>Organisations</h1><p className="subheading">{orgs.length} shown. Open one to change its status or start a support session.</p></div></div>
@@ -26,6 +26,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
           ['Lost, 30 days', String(m.churn30), 'suspended or cancelled'],
         ].map(([label, value, sub]) => <div key={label} className="panel"><small style={{ color: '#64748b' }}>{label}</small><div style={{ fontSize: 24, fontWeight: 800 }}>{value}</div>{sub && <small style={{ color: '#64748b' }}>{sub}</small>}</div>)}
       </div>
+      {waiting.length > 0 && (
+        <div className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #d97706' }}>
+          <strong>Waiting for your approval ({waiting.length})</strong>
+          <p className="section-hint" style={{ margin: '4px 0 8px' }}>New institutes do not run until you approve them (Settings). Open one to approve it, or to reject it.</p>
+          <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>{waiting.map((o) => <li key={o.id}><Link href={`/orgs/${o.id}`}><strong>{o.name}</strong></Link> <small>({o.slug}, signed up {day(o.createdAt)}, {o.branches} branch{o.branches === 1 ? '' : 'es'}, {o.users} login{o.users === 1 ? '' : 's'})</small></li>)}</ul>
+        </div>
+      )}
       {m.jobFailures.length > 0 && (
         <div className="panel" style={{ marginBottom: 16, borderLeft: '4px solid #dc2626' }}>
           <strong>Daily jobs failing (last 7 days)</strong>

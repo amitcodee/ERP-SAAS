@@ -4,10 +4,11 @@
 // address (?tab=). Head office only, except Business rules and Certificates. Your own password is under My account.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { LayoutGrid } from 'lucide-react'
 import { Award, BadgeCheck, BellRing, Check, ClipboardList, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
 import {
   createApiKeyAction, createWebhookAction, deleteWebhookAction, revokeApiKeyAction, runJobNowAction, saveBranchEmailAction, saveEmailSettingsAction, saveJobsAction, saveNumberingAction, saveRemindersAction,
-  saveAdmissionFormAction, saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
+  saveAdmissionFormAction, saveFeaturesAction, saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
 } from '@/app/actions'
 import { IntegrationsPanel } from '@/components/integrations-panel'
 import { WaCampaignsTab } from '@/components/wa-campaigns'
@@ -18,6 +19,7 @@ import { useBrand } from '@/components/brand-context'
 import type { AdmissionFormConfig, EmailConfig, JobsConfig, PaymentsConfig, RemindersConfig, SmsConfig, WhatsAppConfig } from '@/lib/config/store'
 import type { OnlinePaymentRow } from '@/modules/fees/online'
 import { DEFAULT_GRADES, gradesProblem, type GradesConfig } from '@/lib/grades'
+import { FEATURES } from '@/lib/panel/features'
 import { waBody, WA_EVENT_KEYS, WA_KEYS, WA_MESSAGES } from '@/lib/notify/whatsapp'
 import { DIAL_CODES } from '@/lib/countries'
 import type { ApiKeyRow } from '@/modules/integrations/api'
@@ -44,6 +46,7 @@ export type SettingsData = {
     reminders: RemindersConfig
     grades: GradesConfig
     admissionForm: AdmissionFormConfig
+    featuresOff: string[]
     jobs: JobsConfig
     jobInfo: Record<string, { label: string; what: string }>
     runs: { id: string; job: string; startedAt: string; finishedAt: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }[]
@@ -60,6 +63,7 @@ export type SettingsData = {
 }
 
 const TABS = [
+  { key: 'features', label: 'Features', icon: LayoutGrid, admin: true },
   { key: 'rules', label: 'Business rules', icon: SlidersHorizontal, admin: false },
   { key: 'certificates', label: 'Certificates', icon: BadgeCheck, admin: false },
   { key: 'branch-email', label: 'Branch e-mail', icon: Mail, admin: false },
@@ -130,7 +134,7 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
   const active = TABS.find((t) => t.key === current)!
   return (
     <section className="page-container set-page">
-      <div className="page-heading"><div><p className="eyebrow">Administration / Settings</p><h1>Settings</h1><p className="subheading">How the panel works for every branch. Pick a topic below. Your own password and profile are under My account.</p></div></div>
+      <div className="page-heading"><div><p className="eyebrow">Setup / Settings</p><h1>Settings</h1><p className="subheading">How the panel works for every branch. Pick a topic below. Your own password and profile are under My account.</p></div></div>
       <div className="set-tabs" role="tablist" aria-label="Settings">
         {tabs.map((t) => <button key={t.key} type="button" role="tab" aria-selected={current === t.key} className={current === t.key ? 'on' : ''} onClick={() => go(t.key)}><t.icon size={15} /> {t.label}</button>)}
       </div>
@@ -146,6 +150,7 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
         {current === 'numbering' && data.admin && <NumberingTab rows={data.admin.numbering} />}
         {current === 'reminders' && data.admin && <RemindersTab cfg={data.admin.reminders} ready={{ email: data.admin.email.config.enabled, whatsapp: data.admin.whatsapp.config.enabled, sms: data.admin.sms.config.enabled }} goJobs={() => go('jobs')} goChannels={() => go('messaging')} />}
         {current === 'grades' && data.admin && <GradesTab cfg={data.admin.grades} />}
+        {current === 'features' && data.admin && <FeaturesTab off={data.admin.featuresOff} />}
         {current === 'admission' && data.admin && <AdmissionTab cfg={data.admin.admissionForm} origin={data.admin.origin} branches={data.admin.branches} />}
         {current === 'jobs' && data.admin && <JobsTab cfg={data.admin.jobs} info={data.admin.jobInfo} runs={data.admin.runs} cronSecretSet={data.admin.cronSecretSet} origin={data.admin.origin} />}
         {current === 'integrations' && data.admin && <IntegrationsTab status={data.integrations} hooks={data.admin.webhooks} events={data.admin.events} origin={data.admin.origin} webLeadsOn={data.admin.webLeadsOn} />}
@@ -195,6 +200,33 @@ function GradesTab({ cfg }: { cfg: GradesConfig }) {
       </div>
       <Err msg={error || why || ''} />
       <div className="modal-actions"><button type="button" className="button primary" disabled={pending || !!why} onClick={save}>{pending ? 'Saving…' : 'Save grades'}</button></div>
+    </Section>
+  )
+}
+
+// ---- Features
+
+/** The feature packs: switch on what the institute uses; the menu shows only those (lib/panel/features.ts). */
+function FeaturesTab({ off }: { off: string[] }) {
+  const notify = useNotify()
+  const router = useRouter()
+  const [v, setV] = useState(new Set(off))
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  const save = () => start(async () => {
+    const r = await saveFeaturesAction([...v])
+    if (!r.ok) return setError(r.error)
+    setError(''); notify('Features saved: the menu shows what is on'); router.refresh()
+  })
+  return (
+    <Section title="What your institute uses" about="Leads, enquiries, admissions, fees, students, courses, certificates, reports, staff and branches are always there. Switch on the extras you use; the menu shows only those. Switching one off hides it and deletes nothing.">
+      <div style={{ display: 'grid', gap: 12 }}>
+        {FEATURES.map((f) => (
+          <Toggle key={f.key} label={f.label} hint={f.about} value={!v.has(f.key)} set={(on) => { const n = new Set(v); if (on) n.delete(f.key); else n.add(f.key); setV(n) }} />
+        ))}
+      </div>
+      <Err msg={error} />
+      <div className="modal-actions"><button type="button" className="button primary" disabled={pending} onClick={save}>{pending ? 'Saving…' : 'Save features'}</button></div>
     </Section>
   )
 }

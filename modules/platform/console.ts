@@ -6,7 +6,12 @@ import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { applyOrgSystem, withPlatform, type Tx } from '@/lib/db/withTenant'
 import { forgetHosts } from '@/lib/tenant/resolve'
+import { appOrigin } from '@/lib/app-url'
+import { log } from '@/lib/log'
+import { platformMailer } from '@/lib/notify/providers'
+import { PRODUCT } from '@/lib/product'
 import { PLAN_MODULES } from '@/modules/plans/service'
+import { onboardingRulesIn } from './rules'
 import type { PlatformUser } from './service'
 
 /** A text[] parameter (drizzle spreads a JS array into a list of parameters, so it goes over as JSON). */
@@ -128,6 +133,70 @@ export async function extendTrial(pu: PlatformUser, orgId: string, days: number,
     const until = new Date(from.getTime() + days * 86_400_000)
     await tx.execute(sql`update organisations set status = 'trial', trial_ends_at = ${until} where id = ${orgId}`)
     await auditOrg(tx, orgId, pu, 'trial_extended', { days, until: until.toISOString(), reason })
+  })
+  forgetHosts()
+}
+
+/**
+ * Approves an institute that waits (status pending). Paid already: it is active; else its trial starts now, for the
+ * platform's trial length (modules/platform/rules.ts).
+ */
+export async function approveOrg(pu: PlatformUser, orgId: string) {
+  const out = await withPlatform(async (tx) => {
+    const [o] = (await tx.execute<{ status: string; paid: boolean }>(sql`
+      select o.status, exists (select 1 from subscriptions s where s.org_id = o.id and s.status = 'active' and s.current_period_end > now()) as paid
+      from organisations o where o.id = ${orgId} for update`)).rows
+    if (!o) throw new Error('Organisation not found')
+    if (o.status !== 'pending') throw new Error('It is not waiting for approval')
+    const { trialDays } = await onboardingRulesIn(tx)
+    if (o.paid) await tx.execute(sql`update organisations set status = 'active', trial_ends_at = null where id = ${orgId}`)
+    else await tx.execute(sql`update organisations set status = 'trial', trial_ends_at = now() + make_interval(days => ${trialDays}) where id = ${orgId}`)
+    await auditOrg(tx, orgId, pu, 'approved', { to: o.paid ? 'active' : 'trial', trialDays: o.paid ? null : trialDays })
+    const [owner] = (await tx.execute<{ email: string; name: string; org: string }>(sql`
+      select u.email, u.name, o.name as org from organisations o join users u on u.id = o.owner_user_id where o.id = ${orgId}`)).rows
+    return { status: o.paid ? 'active' : 'trial', trialDays, owner }
+  })
+  forgetHosts()
+  // the owner hears at once (best effort: the approval stands without it)
+  const m = platformMailer()
+  if (m && out.owner) {
+    const link = await appOrigin(orgId).catch(() => '')
+    const r = await m.send({ channel: 'email', to: out.owner.email, template: 'approved', subject: `${out.owner.org} is approved`,
+      body: `Hello ${out.owner.name},
+
+${out.owner.org} has been approved. ${out.status === 'active' ? 'Your plan is active.' : `Your ${out.trialDays}-day free trial starts now; choose a plan in Settings → Plan & billing to carry on after it.`}${link ? `
+
+Sign in: ${link}/login` : ''}
+
+${PRODUCT.name}` })
+    if (!r.ok) log.warn('approve.mail_failed', { orgId, error: r.error })
+  }
+  return { status: out.status, trialDays: out.trialDays }
+}
+
+/**
+ * Makes an institute active by the platform's hand (paid by bank transfer or cash, a deal, a partner): until a date,
+ * which then runs like a paid period (reminder, grace, then closed), or with no end (never billed: features.billing_exempt).
+ */
+export async function activateOrg(pu: PlatformUser, orgId: string, until: string | null, reason: string) {
+  if (reason.trim().length < 3) throw new Error('Give a reason')
+  const end = until ? new Date(`${until}T23:59:59+05:30`) : null
+  if (end && (Number.isNaN(end.getTime()) || end.getTime() < Date.now() + 3600_000)) throw new Error('Choose a date after today')
+  await withPlatform(async (tx) => {
+    const [o] = (await tx.execute<{ status: string; plan_key: string }>(sql`select status, plan_key from organisations where id = ${orgId} for update`)).rows
+    if (!o) throw new Error('Organisation not found')
+    if (o.status === 'cancelled') throw new Error('A cancelled organisation cannot be changed here')
+    if (end) {
+      const interval = end.getTime() - Date.now() > 45 * 86_400_000 ? 'year' : 'month'
+      await tx.execute(sql`
+        insert into subscriptions (org_id, plan_key, interval, status, current_period_start, current_period_end, cancel_at_period_end)
+        values (${orgId}, ${o.plan_key}, ${interval}, 'active', now(), ${end}, false)
+        on conflict (org_id) do update set plan_key = excluded.plan_key, interval = excluded.interval, status = 'active', current_period_start = now(),
+          current_period_end = excluded.current_period_end, cancel_at_period_end = false, reminded_at = null, updated_at = now()`)
+    }
+    await tx.execute(sql`update organisations set status = 'active', trial_ends_at = null,
+      features = case when ${!end}::boolean then features || '{"billing_exempt": true}'::jsonb else features - 'billing_exempt' end where id = ${orgId}`)
+    await auditOrg(tx, orgId, pu, 'activated', { from: o.status, until: end?.toISOString() ?? 'no end', reason: reason.trim() })
   })
   forgetHosts()
 }

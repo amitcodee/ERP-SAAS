@@ -61,7 +61,7 @@ export function HelpDesk({ rows, categories, internalCategories = [], priorities
     <section className="page-container table-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{mode === 'desk' ? 'Management / Help Desk' : 'Overview / My Tickets'}</p>
+          <p className="eyebrow">{mode === 'desk' ? 'Students & classes / Help desk' : 'Overview / My Tickets'}</p>
           <h1>{mode === 'desk' ? 'Help Desk' : 'My Tickets'}</h1>
           <p className="subheading">{mode === 'desk'
             ? 'Students’ questions from their portal and tickets staff raise. Each has a priority with a reply-by time; overdue ones escalate to the branch manager, and a day later to head office.'

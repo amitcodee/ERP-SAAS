@@ -2,6 +2,28 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 1): approval, a short trial, closed until paid; a simpler menu (2026-10-22)
+
+- **The platform approves new institutes.** Console → Settings: "Wait for my approval" and the trial's length
+  (default 2 days). A new institute waits (status `pending`, migration 0114): its owner can sign in, finish Set Up,
+  add branches, courses and staff and choose or pay a plan; nothing else runs, staff and students are told it is being
+  set up, the admission form is closed. Console → Organisations lists those waiting; Approve starts the trial (or makes
+  it active when already paid) and e-mails the owner.
+- **Closed until paid.** A trial or plan that ends closes the institute: head office sees only Plan & billing and its
+  account, everyone else that it is paused; paying opens it at once; nothing is deleted.
+- **The platform activates by hand**: until a date (it then runs like a paid period: reminder, grace, closed) or with no
+  end (never billed); close, block, reject, extend a trial. The site's wording follows the trial's length.
+- **A simpler menu.** Plain groups (Overview, Admissions, Students & classes, Fees & money, Certificates, Events, Reports,
+  Setup, Security & records) and names (Enquiries, Calls, Find an enquiry, Import). Settings → Features switches extra
+  packs on and off (calling team, website leads, trainers' classes, help desk, expenses, internships, letters, events,
+  WhatsApp campaigns, import); a new institute starts with the core and four packs; older institutes keep everything.
+  Transfers and shared students appear once there is a second branch.
+- **One branch: no picking.** Head office of an institute with one branch works in it directly.
+- Fixes: a new institute's dashboard no longer warns about jobs that have not run yet (nor names the platform's hosting);
+  development links use the server's own port; the home page title no longer repeats the institute's name.
+- `scripts/approval-test.ts`, `scripts/features-test.ts`; e2e: waiting for approval, approval in the console (70 steps).
+  `E2E_PORT` runs the browser test on another port. `docs/product-review.md`: what is missing, in order.
+
 ## Phase 4 (part 5): the online admission form (2026-10-22)
 
 - A public admission form on each institute's address (/apply): name, mobile, the centre, the course, and e-mail,

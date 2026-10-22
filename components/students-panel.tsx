@@ -66,7 +66,7 @@ function StudentsList({ rows, total, summary, departments, canCreateLogin, canSe
   return (
     <section className="page-container table-page">
       {top}
-      <div className="page-heading"><div><p className="eyebrow">Management / Students</p><h1>Students &amp; certificates</h1><p className="subheading">A certificate needs zero fee balance, the attendance minimum and an approved capstone. Blockers are shown exactly.</p></div></div>
+      <div className="page-heading"><div><p className="eyebrow">Students &amp; classes / Students</p><h1>Students &amp; certificates</h1><p className="subheading">A certificate needs zero fee balance, the attendance minimum and an approved capstone. Blockers are shown exactly.</p></div></div>
       <div className="table-summary">
         <div><strong>{summary.total.toLocaleString('en-IN')}</strong><span>Registrations</span></div>
         <div><strong className="text-green">{summary.eligible}</strong><span>Eligible now</span></div>
