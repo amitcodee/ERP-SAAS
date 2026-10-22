@@ -40,10 +40,19 @@ export async function appOrigin(orgId: string): Promise<string> {
   // a production build on this machine (the end-to-end run) may use <slug>.localhost; a real server needs ROOT_DOMAIN
   const onThisMachine = !!app && /^(localhost|127\.0\.0\.1)$/.test(new URL(app).hostname)
   if (prod && !onThisMachine) throw new Error('ROOT_DOMAIN is not set: add the domain institutes work under (e.g. example.com) to the server settings')
-  const local = app ? new URL(app) : await requestBase()
+  // in development, the port this server is answering on (APP_URL may name another one, e.g. the e2e build's)
+  const here = prod ? null : await requestHere()
+  const local = here ?? (app ? new URL(app) : await requestBase())
   const port = local.port ? `:${local.port}` : ''
   if (org.slug !== process.env.DEFAULT_ORG_SLUG) return `${local.protocol}//${org.slug}.localhost${port}`
   return local.hostname.endsWith('.localhost') ? `${local.protocol}//localhost${port}` : `${local.protocol}//${local.host}`
+}
+
+/** The request's own local address (<x>.localhost or 127.0.0.1), or null outside a request or on another host. */
+async function requestHere(): Promise<URL | null> {
+  const h = await headers().catch(() => null)
+  const host = h?.get('host')
+  return host && /^(localhost|127\.0\.0\.1|[a-z0-9-]+\.localhost)(:\d+)?$/i.test(host) ? new URL(`http://${host}`) : null
 }
 
 async function requestBase(): Promise<URL> {

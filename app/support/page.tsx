@@ -1,6 +1,6 @@
 import { BrandMark } from '@/components/brand-mark'
 import { orgBrand } from '@/lib/brand'
-import { requestOrg, requireRequestOrg } from '@/lib/tenant/request'
+import { requireRequestOrg } from '@/lib/tenant/request'
 import Link from 'next/link'
 import { FEATURES, JOURNEY, SECURITY } from '@/components/site/content'
 import { LANDING_CSS } from '@/components/site/landing-css'
@@ -11,10 +11,8 @@ import {
 // The public home page: what a visitor who is not signed in sees at the panel's address (and /support). Who it is for,
 // the journey from the first call to the certificate, what it does, how it keeps data safe, certificate checks, step-by-
 // step help and answers. Server-rendered, no script; the "screens" are illustrations, not live data.
-export async function generateMetadata() {
-  const org = await requestOrg()
-  return { title: `${org?.name ?? 'Institute'} | sign in, help & certificate check` }
-}
+// the layout adds the institute's name after it
+export const metadata = { title: 'Sign in, help & certificate check' }
 
 const AUDIENCES = [
   { icon: Users, tag: 'Staff', title: 'Run your branch', href: '/login', cta: 'Staff sign in',

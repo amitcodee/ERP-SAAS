@@ -350,6 +350,46 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
   - a "migrating from your old software" guide;
   - `HANDOVER.md`.
 
+## Phase 6: one product for every institute, from one room to a franchise chain
+
+Written 2026-10-22 after using the product as a newly signed-up institute. Already there: self sign-up on the public
+site, the institute's own address (<slug>.<root>), Set Up (brand, first branch, courses, fees, staff, e-mail,
+import), brand per institute (name, legal name, colour, logo, accreditations), branches with their own codes, GSTIN
+and numbering, staff with roles (custom roles), certificate designs drawn on the canvas, plans with limits and billing,
+the platform console. What is missing is below, in order. Each step: a `scripts/<area>-test.ts`, e2e steps, Chrome.
+
+1. [ ] **Small institutes: simple by default.**
+   - One centre: the owner works in it directly (no "All branches (view only)", no branch picker to understand).
+   - Modules on / off per institute (Settings → Modules): Help desk, Projects, Seminars & events, Letters, WhatsApp
+     campaigns, Lead distribution, Random call, Transfers… A new institute starts with the core (Leads, Admissions,
+     Fees, Classes, Certificates) and turns the rest on; the menu shows only what is on.
+   - Set Up asks "one centre or several / franchises?" and opens the matching modules.
+2. [ ] **Franchises.**
+   - A branch is the institute's own or a franchise. A franchise has its partner (legal name, GSTIN, owner, agreement
+     dates) and its terms: a royalty percent of fees collected, or a fixed monthly fee.
+   - A franchise partner login sees only its own centres (one or several), never head office or other partners.
+   - Receipts of a franchise are printed in the partner's legal name and GSTIN, "a franchise of <brand>".
+   - Head office invites a partner by e-mail; the partner fills in its centre; head office activates it.
+   - Courses and fees come from head office; a franchise may charge within a minimum and maximum head office sets.
+   - Certificates are issued in the brand's name; head office approves them (the requests flow).
+   - Every month: the royalty statement per franchise (fees collected × percent, or the fixed fee), what was paid,
+     what is due; a league table of centres.
+3. [ ] **Their own brand, everywhere.**
+   - Their own domain (admissions.acme.com) from Settings, with the DNS record to add and a check (custom_domains
+     exists; there is no screen yet).
+   - Certificate templates: a small gallery of starting designs (course, internship, workshop, merit) to copy and
+     change; the logo, colour, signatures and seal filled in from the brand.
+   - E-mails, receipts, ID cards, the student portal and the public pages in their colour and logo (done), checked
+     end to end for a new institute.
+4. [ ] **Big institutes.**
+   - Regions / zones above branches (a zonal manager sees the branches of their zone).
+   - Bulk: add staff and students from a spreadsheet at any time (import is in Set Up only today), bulk certificate
+     issue for a batch.
+   - Approval rules per institute (discount above X% needs head office), audit and exports per branch.
+5. [ ] **Polish found while using it** (fixed as found, listed in CHANGELOG): links that named another port in
+   development; the dashboard warning a new institute about jobs that had not run yet (and naming the platform's
+   hosting); the institute's name twice in the home page title.
+
 ## Decisions for the owner (defaults used until told otherwise)
 
 | Question | Default |
