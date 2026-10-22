@@ -2,6 +2,19 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 4 (part 5): the online admission form (2026-10-22)
+
+- A public admission form on each institute's address (/apply): name, mobile, the centre, the course, and e-mail,
+  area and a question when the institute asks for them. Settings → Admission form switches it on, words it and gives
+  the link (for ads, social posts, a QR code) and one line of code for the institute's own website
+  (/apply/embed.js places /apply/embed in a frame that sizes itself; only that page may be framed by other sites).
+- Each form sent arrives as a website lead and becomes a Lead of the centre chosen (Web Leads: "chosen on the form"),
+  thanked as usual. The ad or post it came from (utm_source / medium / campaign, gclid, fbclid, referrer) is kept,
+  shown in Web Leads and written in the lead's history; on a website it is remembered for the visit.
+  `?branch=CODE` / `data-branch` picks the centre already.
+- Against robots: limits per connection and per institute, a signed ticket (not within 3 seconds, not after 12 hours)
+  and a hidden field. `scripts/apply-test.ts`; three e2e steps (Settings, /apply, embedded in another site).
+
 ## Phase 4 (part 4): expenses and profit (2026-10-21)
 
 - Management → Expenses: record what a branch spends (date, head, amount, paid to, how, note), and see the profit:

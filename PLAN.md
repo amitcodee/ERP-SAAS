@@ -245,30 +245,31 @@ that org only. Certificate hashes include `org_id`.
 
 The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kept in `docs/rebrand-inventory.md`
 (written at the start of Phase 3).
-1. [ ] Branding per org (`organisations.branding`: logo, colours, legal name, tagline, accreditations image,
+1. [x] Branding per org (`organisations.branding`: logo, colours, legal name, tagline, accreditations image,
    signature):
    - the CSS variables come from the org;
    - the e-mail layout, receipt, ID card, verify pages and login are themed.
-2. [ ] Course and project certificates are drawn by the canvas designer. The current layouts become two built-in
+2. [x] Course and project certificates are drawn by the canvas designer. The current layouts become two built-in
    neutral templates.
-3. [ ] Letters:
+3. [x] Letters:
    - companies, letterhead and stamp become org data;
    - the standard letter texts lose their fixed details;
    - the HR contact comes from the org.
-4. [ ] WhatsApp template names, e-mail subjects and sign-offs come from the org's name. Hard-coded `techcadd`
+4. [x] WhatsApp template names, e-mail subjects and sign-offs come from the org's name. Hard-coded `techcadd`
    prefixes and regex strips go.
-5. [ ] ID-card terms, campuses and contacts, plus the receipt policy wording, become org settings with neutral
+5. [x] ID-card terms, campuses and contacts, plus the receipt policy wording, become org settings with neutral
    defaults.
-6. [ ] Seeds:
+6. [x] Seeds:
    - the branch, letter-company and lookup inserts in migrations 0023, 0024 and 0089 are scoped to the sample org
      only;
    - the demo seed becomes "Sample Institute";
    - webhook headers become `X-Signature`/`X-Event`.
-7. [ ] Tests that assert techcadd values are updated to the neutral defaults.
+7. [x] Tests that assert techcadd values are updated to the neutral defaults.
 
 ## Phase 4: new features (in this order, each with a `scripts/<area>-test.ts` and e2e steps)
 
-1. Online admission form and lead capture (hosted and embeddable, UTM capture).
+1. [x] Online admission form and lead capture (hosted /apply and embeddable /apply/embed.js, UTM capture).
+   [ ] An application fee through the same online payment.
 2. Lead integrations:
    - Meta Lead Ads, Google Ads lead forms;
    - JustDial / Sulekha mail parsing;

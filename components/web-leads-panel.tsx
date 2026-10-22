@@ -14,7 +14,7 @@ import type { WebLeadRow, WebSite } from '@/modules/web-leads/service'
 
 type Branch = { id: string; code: string; name: string }
 const fmtTime = (iso: string) => new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })
-const MATCHED: Record<string, string> = { website: 'by its website', location: 'by place', manual: 'by head office' }
+const MATCHED: Record<string, string> = { website: 'by its website', location: 'by place', manual: 'by head office', form: 'chosen on the form' }
 
 export function WebLeadsPanel({ rows, total, sites, branches, canAssign, canOpenLead, canEditLead, isHeadOffice, catalogs, notify }: {
   rows: WebLeadRow[]; total: number; sites: WebSite[]; branches: Branch[]; canAssign: boolean; canOpenLead: boolean; canEditLead: boolean; isHeadOffice: boolean; catalogs: Catalogs; notify: (m: string) => void
@@ -132,6 +132,7 @@ export function WebLeadsPanel({ rows, total, sites, branches, canAssign, canOpen
                     {/* the website as a badge; point at it for the full address of the page the form was on */}
                     <span className="wl-site" title={r.sourceUrl ?? `https://${r.siteHost}`}><Globe size={12} /> {r.siteHost}</span>
                     {r.sourceUrl && <a href={r.sourceUrl} target="_blank" rel="noreferrer noopener" title={r.sourceUrl} className="wl-path">{pagePath(r.sourceUrl)} <ExternalLink size={11} /></a>}
+                    {r.campaign && <small style={{ display: 'block' }} title="The ad or post it came from (utm_source / medium / campaign)">{r.campaign}</small>}
                   </td>
                   <td>
                     {r.branchName ? <><strong>{r.branchName}</strong><small style={{ display: 'block' }}>{MATCHED[r.matchedBy ?? ''] ?? ''}</small></>
@@ -190,6 +191,7 @@ function ViewModal({ r, branches, canAssign, canOpenLead, pick, setPick, sending
     ['Course', r.course ?? '—'], ['Place', r.location ?? '—'],
     ['Website', <span key="w" className="wl-site" title={r.sourceUrl ?? r.siteHost}><Globe size={12} /> {r.siteHost}</span>],
     ['Page', r.sourceUrl ? <a key="p" href={r.sourceUrl} target="_blank" rel="noreferrer noopener" className="wl-url">{r.sourceUrl} <ExternalLink size={11} /></a> : '—'],
+    ['Campaign', r.campaign ?? '—'],
     ['Branch', r.branchName ? `${r.branchName} (${MATCHED[r.matchedBy ?? ''] ?? 'set'})` : 'Not set yet — waiting for head office'],
     ['Lead', r.enquiryNo ? (canOpenLead ? <Link key="l" href={`/enquiries/update?q=${encodeURIComponent(r.enquiryNo)}`} className="id-text">{r.enquiryNo}</Link> : r.enquiryNo) : 'Not a lead yet'],
   ]

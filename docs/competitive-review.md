@@ -39,8 +39,8 @@ with webhooks.
 3. **Exams and report cards** — report cards done (grade rules per institute, overall result, batch rank, print /
    PDF). Still to come: online tests on the quiz engine with a question bank, and an exam schedule.
 4. **Expenses and P&L-lite** — done: expenses by branch and head, and the profit against fees received, by month.
-5. **Online admission form**: a hosted, embeddable form (with UTM capture) that makes a lead, optionally with an
-   application fee through the same online payment.
+5. **Online admission form** — done: a hosted form (/apply) and the same form in the institute's own website (one
+   script line), with UTM capture; each form is a Lead of the centre chosen. Still to come: an application fee.
 6. **Lead scoring and routing**, then live-class links and assignments.
 
 Each comes with a `scripts/<area>-test.ts`, as the rest of the system does.

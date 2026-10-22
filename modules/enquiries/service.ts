@@ -36,6 +36,8 @@ const leadColumns = (l: z.infer<typeof leadInput>, visitedAt: Date | null = null
 
 /** A website form, as a Lead of a branch. `byUser` = who sent it there (null: placed on arrival, by the website's address). */
 export type WebEnquiry = { name: string; phone: string; email?: string | null; course?: string | null; location?: string | null; message?: string | null; sourceUrl?: string | null; siteHost: string
+  /** The ad or post it came from (utm_source / medium / campaign), e.g. "facebook / paid / summer-batch". */
+  campaign?: string | null
   /** When the form was sent on the website: the lead is dated by it, so Leads lists it in the same order as Web Leads. */
   submittedAt?: Date | null }
 
@@ -52,7 +54,7 @@ export async function placeWebEnquiry(tx: Tx, branchId: string, w: WebEnquiry, b
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`weblead:${branchId}:${normalizePhone(w.phone)}`}))`)
   const [first, ...rest] = w.name.trim().split(/\s+/)
   const { person } = await upsertPerson(tx, branchId, { firstName: first.slice(0, 100), lastName: rest.join(' ').slice(0, 100) || null, phone: w.phone, email: w.email ?? null })
-  const note = [`Website form: ${w.siteHost}`, w.course && `Course: ${w.course}`, w.message && `Message: ${w.message}`, w.sourceUrl && `Page: ${w.sourceUrl}`].filter(Boolean).join('\n')
+  const note = [`Website form: ${w.siteHost}`, w.course && `Course: ${w.course}`, w.message && `Message: ${w.message}`, w.sourceUrl && `Page: ${w.sourceUrl}`, w.campaign && `Campaign: ${w.campaign}`].filter(Boolean).join('\n')
 
   const [open] = await tx.select({ id: enquiries.id, status: enquiries.status }).from(enquiries)
     .where(and(eq(enquiries.branchId, branchId), eq(enquiries.personId, person.id), sql`${enquiries.status} not in ('joined', 'not_joined', 'dead')`)).orderBy(desc(enquiries.createdAt)).limit(1)

@@ -1435,6 +1435,23 @@ export async function saveGradesAction(config: z.input<typeof gradesSettings>) {
   })
 }
 
+// ---- The public admission form (modules/web-leads/apply.ts)
+const admissionFormSettings = z.object({
+  enabled: z.boolean(),
+  heading: z.string().trim().max(80),
+  intro: z.string().trim().max(600),
+  thanks: z.string().trim().max(300),
+  askEmail: z.boolean(), askLocation: z.boolean(), askMessage: z.boolean(),
+})
+export async function saveAdmissionFormAction(config: z.input<typeof admissionFormSettings>) {
+  return run(async () => {
+    const a = await headOffice()
+    const v = admissionFormSettings.parse(config)
+    await saveConfig(a.orgId, 'admission_form', { ...v, heading: v.heading || 'Apply for admission', thanks: v.thanks || 'Thank you! Our team will call you shortly.' }, {}, a.userId)
+    await auditSettings(a, 'admission_form'); settingsSaved()
+  })
+}
+
 // ---- Parents' links (modules/portal/parent.ts): made by the office, opened by the parent with no account
 export async function createParentLinkAction(registrationId: string) {
   return run(async () => {

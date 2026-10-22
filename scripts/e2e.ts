@@ -3,6 +3,7 @@
 //   3. run:            pnpm test:e2e         (BASE_URL=http://localhost:3300 by default)
 // Creates its own branch/users/students with a unique suffix, so it can be re-run any number of times.
 import { mkdirSync } from 'fs'
+import { createServer } from 'http'
 import { hash } from '@node-rs/argon2'
 import pg from 'pg'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
@@ -850,6 +851,42 @@ async function main() {
         await expectText(w, 'Test payment page'); await w.getByRole('button', { name: 'Pay (test)' }).click()
         await expectText(w, 'Payment received'); await expectText(w, /INV\/\d{4}-\d{2}\/\d{5}/)
       }, w)
+      // ---- the online admission form (/apply), on the institute's address and inside its own website ----
+      const IBASE = new URL(w.url()).origin
+      await ok('admission form: switched on in Settings, with its link and the website code', async () => {
+        await w.goto(`${IBASE}/settings?tab=admission`); await expectText(w, 'Online admission form')
+        await w.getByRole('switch', { name: 'Take admission forms online' }).click()
+        await w.getByRole('button', { name: 'Save admission form' }).click(); await toast(w, 'Admission form saved')
+        await expectText(w, `${IBASE}/apply/embed.js`)
+      }, w)
+      const vctx = await browser.newContext(); const v = await vctx.newPage(); v.setDefaultTimeout(20000)
+      const fillForm = async (f: Page | ReturnType<Page['frameLocator']>, name: string, phone: string) => {
+        await f.getByLabel('Full name').fill(name); await f.getByLabel('Mobile number').fill(phone)
+        const centre = f.getByLabel('Centre')
+        if (await centre.count()) await centre.selectOption({ index: 1 })
+        await v.waitForTimeout(3500) // the form refuses what is sent within 3 seconds of opening (robots)
+        await f.getByRole('button', { name: 'Send' }).click()
+        await f.getByText('Form received').waitFor()
+      }
+      await ok('a visitor from an Instagram ad applies on /apply; the lead shows in Web Leads with its campaign', async () => {
+        await v.goto(`${IBASE}/apply?utm_source=instagram&utm_medium=paid&utm_campaign=e2e-${RUN}`); await expectText(v, 'Apply for admission')
+        await fillForm(v, `Apply Visitor ${RUN}`, `96${RUN}33`.slice(0, 10))
+        await w.goto(`${IBASE}/web-leads`); await expectText(w, `Apply Visitor ${RUN}`); await expectText(w, `instagram / paid / e2e-${RUN}`)
+      }, v)
+      await ok('the same form inside another website (one script line): framed, sent, counted for that website', async () => {
+        // the institute's website, served for real on this machine: Chrome does not let a page it counts as public (one
+        // made up by page.route) load scripts from *.localhost (Local Network Access); a real site and institute are both public
+        const site = createServer((_q, r) => { r.writeHead(200, { 'content-type': 'text/html' }); r.end(`<!doctype html><title>Acme</title><h1>Admissions</h1><script src="${IBASE}/apply/embed.js" async></script>`) })
+        await new Promise<void>((done) => site.listen(3301, done))
+        try {
+          await v.goto('http://acme-site.localhost:3301/admissions?utm_source=google&utm_medium=cpc&utm_campaign=brand')
+          const frame = v.frameLocator('iframe[title="Admission form"]')
+          await frame.getByText('Apply for admission').waitFor()
+          await fillForm(frame, `Embed Visitor ${RUN}`, `95${RUN}44`.slice(0, 10))
+        } finally { site.close() }
+        await w.goto(`${IBASE}/web-leads`); await expectText(w, `Embed Visitor ${RUN}`); await expectText(w, 'acme-site.localhost'); await expectText(w, 'google / cpc / brand')
+      }, v)
+      await vctx.close()
       await ctx.close()
     }
 

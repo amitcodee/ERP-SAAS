@@ -71,12 +71,19 @@ export const NO_MOBILE = 'No valid mobile number, so it could not be made a lead
  * Makes the stored website lead a Lead of `branchId`, or records why it cannot be one. Making the lead runs in its own
  * savepoint: if it fails, the website lead is still kept (with the reason) and head office can send it again.
  */
-async function placeIn(tx: Tx, lead: LeadRow, branchId: string, by: 'website' | 'location' | 'manual', byUser: string | null) {
+/** Where an ad or post sent the visitor, from the utm_* fields a form passed on: "facebook / paid / summer-batch". */
+export function campaignOf(payload: unknown): string | null {
+  const p = (payload && typeof payload === 'object' ? payload : {}) as Record<string, unknown>
+  const parts = ['utm_source', 'utm_medium', 'utm_campaign'].map((k) => (typeof p[k] === 'string' ? (p[k] as string).trim().slice(0, 80) : '')).filter(Boolean)
+  return parts.length ? parts.join(' / ') : null
+}
+
+async function placeIn(tx: Tx, lead: LeadRow, branchId: string, by: 'website' | 'location' | 'manual' | 'form', byUser: string | null) {
   let placed: Awaited<ReturnType<typeof placeWebEnquiry>> | null = null
   let problem: string | null = isMobile(lead.phone) ? null : NO_MOBILE
   if (!problem) {
     try {
-      placed = await tx.transaction((sp) => placeWebEnquiry(sp as Tx, branchId, { name: lead.name, phone: lead.phone!, email: lead.email, course: lead.course, location: lead.location, message: lead.message, sourceUrl: lead.sourceUrl, siteHost: lead.siteHost, submittedAt: lead.submittedAt }, byUser))
+      placed = await tx.transaction((sp) => placeWebEnquiry(sp as Tx, branchId, { name: lead.name, phone: lead.phone!, email: lead.email, course: lead.course, location: lead.location, message: lead.message, sourceUrl: lead.sourceUrl, siteHost: lead.siteHost, submittedAt: lead.submittedAt, campaign: campaignOf(lead.payload) }, byUser))
     } catch (e) {
       log.error('weblead.place_failed', { id: lead.id, error: e })
       problem = 'It could not be made a lead (a server error). Head office can send it again.'
@@ -87,10 +94,11 @@ async function placeIn(tx: Tx, lead: LeadRow, branchId: string, by: 'website' | 
 }
 
 /**
- * One website lead arriving (webhook or import). Runs as the org's system (withOrgSystem). Safe to send twice: with the
- * website's own id (externalId) the second copy is ignored.
+ * One website lead arriving (webhook, import, or the institute's own admission form). Runs as the org's system
+ * (withOrgSystem). Safe to send twice: with the website's own id (externalId) the second copy is ignored.
+ * `branchId`: the branch the visitor chose on the admission form, which then decides (an inactive one is ignored).
  */
-export async function ingestWebLead(tx: Tx, raw: WebLeadInput) {
+export async function ingestWebLead(tx: Tx, raw: WebLeadInput, opts: { branchId?: string | null } = {}) {
   const input = webLeadInput.parse(raw)
   const host = siteHostOf(input.site) ?? siteHostOf(input.sourceUrl)
   if (!host) throw new Error('site (the website address) or sourceUrl is required')
@@ -104,7 +112,8 @@ export async function ingestWebLead(tx: Tx, raw: WebLeadInput) {
     ...(submittedAt && !Number.isNaN(submittedAt.getTime()) ? { submittedAt } : {}),
   }).onConflictDoNothing().returning()
   if (!lead) return { status: 'duplicate' as const, site: host }
-  const match = await matchBranch(tx, host, lead.location)
+  const [chosen] = opts.branchId ? await tx.select({ id: branches.id }).from(branches).where(and(eq(branches.id, opts.branchId), eq(branches.isActive, true))) : []
+  const match = chosen ? { branchId: chosen.id, by: 'form' as const } : await matchBranch(tx, host, lead.location)
   if (!match) return { status: 'waiting' as const, id: lead.id, site: host }
   const { placed, problem } = await placeIn(tx, lead, match.branchId, match.by, null)
   const status = placed ? (placed.existing ? 'added_to_existing' as const : 'placed' as const) : problem === NO_MOBILE ? 'invalid_phone' as const : 'not_placed' as const
@@ -121,7 +130,7 @@ export async function claimSiteLeads(tx: Tx, branchId: string, host: string, byU
 export type WebLeadRow = {
   id: string; siteHost: string; sourceUrl: string | null; name: string; phone: string | null; email: string | null; course: string | null
   location: string | null; message: string | null; submittedAt: string; branchId: string | null; branchName: string | null
-  matchedBy: string | null; enquiryId: string | null; enquiryNo: string | null; problem: string | null
+  matchedBy: string | null; enquiryId: string | null; enquiryNo: string | null; problem: string | null; campaign: string | null
 }
 export type WebSite = { host: string; total: number; waiting: number; branchName: string | null }
 
@@ -145,7 +154,7 @@ export async function listWebLeads(tx: Tx, actor: Actor, opts: { site?: string; 
   const where = and(...parts)
   const rows = await tx.execute<Record<string, never>>(sql`
     select web_leads.id, web_leads.site_host, web_leads.source_url, web_leads.name, web_leads.phone, web_leads.email, web_leads.course, web_leads.location,
-      web_leads.message, web_leads.submitted_at, web_leads.branch_id, b.name as branch_name, web_leads.matched_by, web_leads.enquiry_id, e.enquiry_no, web_leads.problem
+      web_leads.message, web_leads.submitted_at, web_leads.branch_id, b.name as branch_name, web_leads.matched_by, web_leads.enquiry_id, e.enquiry_no, web_leads.problem, web_leads.payload
     from web_leads left join branches b on b.id = web_leads.branch_id left join enquiries e on e.id = web_leads.enquiry_id
     where ${where}
     order by web_leads.submitted_at desc, web_leads.created_at desc
@@ -160,7 +169,7 @@ export async function listWebLeads(tx: Tx, actor: Actor, opts: { site?: string; 
     rows: rows.rows.map((r): WebLeadRow => ({
       id: r.id, siteHost: r.site_host, sourceUrl: r.source_url, name: r.name, phone: r.phone, email: r.email, course: r.course, location: r.location,
       message: r.message, submittedAt: new Date(r.submitted_at).toISOString(), branchId: r.branch_id, branchName: r.branch_name, matchedBy: r.matched_by,
-      enquiryId: r.enquiry_id, enquiryNo: r.enquiry_no, problem: r.problem,
+      enquiryId: r.enquiry_id, enquiryNo: r.enquiry_no, problem: r.problem, campaign: campaignOf(r.payload),
     })),
     sites: sites.rows.map((s): WebSite => ({ host: s.host, total: s.total, waiting: s.waiting, branchName: s.branch_name })),
   }

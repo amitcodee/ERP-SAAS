@@ -6,7 +6,7 @@ import { classifyHost, sessionFitsHost } from '@/lib/tenant/host'
 // own scripts), so a script slipped into a page by an attacker would not. Inline style attributes stay allowed (the UI
 // uses them; they cannot run code). 'wasm-unsafe-eval' lets the photo check on the registration page run its face
 // detector (WebAssembly, served from this origin); dev mode (React refresh) also needs 'unsafe-eval' and a websocket.
-function csp(nonce: string) {
+function csp(nonce: string, framed = false) {
   const dev = process.env.NODE_ENV !== 'production'
   return [
     "default-src 'self'",
@@ -18,14 +18,14 @@ function csp(nonce: string) {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    framed ? 'frame-ancestors *' : "frame-ancestors 'none'",
   ].join('; ')
 }
 
 /** Continues to the page with the nonce'd policy on both the request (Next.js reads the nonce from it) and the response. */
-function withCsp(req: NextRequest, res?: (headers: Headers) => NextResponse) {
+function withCsp(req: NextRequest, res?: (headers: Headers) => NextResponse, framed = false) {
   const nonce = btoa(crypto.randomUUID())
-  const policy = csp(nonce)
+  const policy = csp(nonce, framed)
   const headers = new Headers(req.headers)
   headers.set('x-nonce', nonce)
   headers.set('Content-Security-Policy', policy)
@@ -35,7 +35,7 @@ function withCsp(req: NextRequest, res?: (headers: Headers) => NextResponse) {
 }
 
 // Route guard: everything except /login, /login/* (forgot / reset password), /support (public help page), /verify/* (public certificate check),
-// /e/* (public event sign-up and event certificates),
+// /e/* (public event sign-up and event certificates), /apply (the admission form),
 // webhooks and static assets needs a valid session.
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -60,6 +60,10 @@ export async function proxy(req: NextRequest) {
   if (sitePath) return new NextResponse('Not found', { status: 404 })
   if (pathname === '/verify' || pathname.startsWith('/verify/')) return withCsp(req) // public certificate and receipt checks, and the search
   if (pathname.startsWith('/e/')) return withCsp(req) // public event sign-up (seminars, workshops) and event certificates
+  // the public admission form: on the institute's address, and (this page alone may be framed) inside its own website
+  if (pathname === '/apply/embed.js') return NextResponse.next()
+  if (pathname === '/apply/embed') return withCsp(req, undefined, true)
+  if (pathname === '/apply') return withCsp(req)
   if (pathname.startsWith('/p/')) return withCsp(req) // a parent's private link (the token is the key) and their after-payment page
   // back from the payment page (signed by the provider: it completes the payment even if the session ran out meanwhile)
   if (pathname === '/billing/return' || pathname === '/billing/fake-pay' || pathname === '/pay/fees/return') return withCsp(req)

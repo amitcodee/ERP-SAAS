@@ -188,7 +188,7 @@ const PUBLIC_ACTIONS: Record<string, string> = {
   startQuizAction: 'signs a start time for an event quiz (HMAC, no database); the answers are checked against the org of the host',
 }
 /** Routes with nothing to protect. */
-const PUBLIC_OK = ['app/api/health/route.ts', 'app/api/logout/route.ts', 'app/api/face-wasm/[file]/route.ts']
+const PUBLIC_OK = ['app/api/health/route.ts', 'app/api/logout/route.ts', 'app/api/face-wasm/[file]/route.ts', 'app/apply/embed.js/route.ts' /* the same static script for every institute */]
 
 function code() {
   const all = ['app', 'lib', 'modules', 'components'].flatMap(files).map(rel)

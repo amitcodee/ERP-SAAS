@@ -43,6 +43,8 @@ export type RemindersConfig = {
 /** Students paying their fees online (the portal's Pay online), through the institute's own Razorpay account. */
 export type PaymentsConfig = { enabled: boolean; provider: 'razorpay'; keyId: string }
 export type PaymentsSecrets = { keySecret?: string; webhookSecret?: string }
+/** The public admission form (/apply, and /apply/embed on the institute's own website): modules/web-leads/apply.ts. */
+export type AdmissionFormConfig = { enabled: boolean; heading: string; intro: string; thanks: string; askEmail: boolean; askLocation: boolean; askMessage: boolean }
 export type JobKey = 'reminders' | 'reconcile' | 'purge' | 'escalations'
 export type JobsConfig = Record<JobKey, { enabled: boolean; time: string }> & { scheduler: 'panel' | 'external' }
 
@@ -54,6 +56,7 @@ export type ConfigMap = {
   jobs: { config: JobsConfig; secrets: Record<string, never> }
   payments: { config: PaymentsConfig; secrets: PaymentsSecrets }
   grades: { config: GradesConfig; secrets: Record<string, never> }
+  admission_form: { config: AdmissionFormConfig; secrets: Record<string, never> }
 }
 export type ConfigKey = keyof ConfigMap
 
@@ -79,6 +82,7 @@ export const DEFAULTS: { [K in ConfigKey]: ConfigMap[K]['config'] } = {
   jobs: { scheduler: 'panel', reminders: { enabled: true, time: '09:00' }, reconcile: { enabled: true, time: '02:00' }, purge: { enabled: true, time: '03:00' }, escalations: { enabled: true, time: '10:00' } },
   payments: { enabled: false, provider: 'razorpay', keyId: '' },
   grades: DEFAULT_GRADES,
+  admission_form: { enabled: false, heading: 'Apply for admission', intro: '', thanks: 'Thank you! Our team will call you shortly.', askEmail: true, askLocation: true, askMessage: true },
 }
 
 export type Loaded<K extends ConfigKey> = ConfigMap[K] & { saved: boolean; updatedAt: string | null }

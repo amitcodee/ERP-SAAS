@@ -41,6 +41,12 @@ const nextConfig = {
         ],
       },
       {
+        // The admission form inside an institute's own website (/apply/embed): any site may frame this page alone. A
+        // later rule wins, so this replaces the policy above; frame-ancestors also overrides X-Frame-Options in browsers.
+        source: '/apply/embed',
+        headers: [{ key: 'Content-Security-Policy', value: CSP.replace("frame-ancestors 'none'", 'frame-ancestors *') }],
+      },
+      {
         // Uploaded files: later rules win, so this replaces the page CSP. Sandboxed, nothing else may load.
         source: '/documents/:path*',
         headers: [{ key: 'Content-Security-Policy', value: "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'" }],

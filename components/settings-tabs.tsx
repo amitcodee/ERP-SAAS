@@ -1,13 +1,13 @@
 'use client'
 // Settings, one topic per tab: Business rules · Certificates · Branch e-mail (the branch's own mail server) · E-mail · WhatsApp & SMS · WhatsApp campaigns (Bulk WhatsApp) · Numbering · Reminders · Scheduled jobs ·
-// Integrations (webhooks for n8n / Zapier / Make) · API access (keys for Power BI, Excel, n8n). The tab sits in the
+// Admission form (the public /apply) · Integrations (webhooks for n8n / Zapier / Make) · API access (keys for Power BI, Excel, n8n). The tab sits in the
 // address (?tab=). Head office only, except Business rules and Certificates. Your own password is under My account.
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Award, BadgeCheck, BellRing, Check, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
+import { Award, BadgeCheck, BellRing, Check, ClipboardList, Clock3, Copy, CreditCard, Hash, KeyRound, Mail, Megaphone, MessageCircle, Plug, Plus, Send, SlidersHorizontal, Smartphone, Trash2, Wallet, Webhook, X } from 'lucide-react'
 import {
   createApiKeyAction, createWebhookAction, deleteWebhookAction, revokeApiKeyAction, runJobNowAction, saveBranchEmailAction, saveEmailSettingsAction, saveJobsAction, saveNumberingAction, saveRemindersAction,
-  saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
+  saveAdmissionFormAction, saveGradesAction, savePaymentsSettingsAction, saveSmsSettingsAction, saveWhatsappSettingsAction, testBranchEmailAction, testEmailAction, testMessageAction, testWebhookAction, updateRuleAction, updateWebhookAction, webhookDeliveriesAction, webhookSecretAction, webLeadsSecretAction,
 } from '@/app/actions'
 import { IntegrationsPanel } from '@/components/integrations-panel'
 import { WaCampaignsTab } from '@/components/wa-campaigns'
@@ -15,7 +15,7 @@ import type { CampaignRow } from '@/modules/notifications/broadcasts'
 import { Err, Modal } from '@/components/modal'
 import { useNotify } from '@/components/panel-shell'
 import { useBrand } from '@/components/brand-context'
-import type { EmailConfig, JobsConfig, PaymentsConfig, RemindersConfig, SmsConfig, WhatsAppConfig } from '@/lib/config/store'
+import type { AdmissionFormConfig, EmailConfig, JobsConfig, PaymentsConfig, RemindersConfig, SmsConfig, WhatsAppConfig } from '@/lib/config/store'
 import type { OnlinePaymentRow } from '@/modules/fees/online'
 import { DEFAULT_GRADES, gradesProblem, type GradesConfig } from '@/lib/grades'
 import { waBody, WA_EVENT_KEYS, WA_KEYS, WA_MESSAGES } from '@/lib/notify/whatsapp'
@@ -43,6 +43,7 @@ export type SettingsData = {
     billing: BillingTabData
     reminders: RemindersConfig
     grades: GradesConfig
+    admissionForm: AdmissionFormConfig
     jobs: JobsConfig
     jobInfo: Record<string, { label: string; what: string }>
     runs: { id: string; job: string; startedAt: string; finishedAt: string | null; ok: boolean | null; error: string | null; summary: Record<string, unknown> | null }[]
@@ -70,6 +71,7 @@ const TABS = [
   { key: 'numbering', label: 'Numbering', icon: Hash, admin: true },
   { key: 'reminders', label: 'Reminders', icon: BellRing, admin: true },
   { key: 'grades', label: 'Report cards', icon: Award, admin: true },
+  { key: 'admission', label: 'Admission form', icon: ClipboardList, admin: true },
   { key: 'jobs', label: 'Scheduled jobs', icon: Clock3, admin: true },
   { key: 'integrations', label: 'Integrations', icon: Plug, admin: true },
   { key: 'api', label: 'API access', icon: KeyRound, admin: true },
@@ -144,6 +146,7 @@ export function SettingsTabs({ tab, data, signatures }: { tab: string; data: Set
         {current === 'numbering' && data.admin && <NumberingTab rows={data.admin.numbering} />}
         {current === 'reminders' && data.admin && <RemindersTab cfg={data.admin.reminders} ready={{ email: data.admin.email.config.enabled, whatsapp: data.admin.whatsapp.config.enabled, sms: data.admin.sms.config.enabled }} goJobs={() => go('jobs')} goChannels={() => go('messaging')} />}
         {current === 'grades' && data.admin && <GradesTab cfg={data.admin.grades} />}
+        {current === 'admission' && data.admin && <AdmissionTab cfg={data.admin.admissionForm} origin={data.admin.origin} branches={data.admin.branches} />}
         {current === 'jobs' && data.admin && <JobsTab cfg={data.admin.jobs} info={data.admin.jobInfo} runs={data.admin.runs} cronSecretSet={data.admin.cronSecretSet} origin={data.admin.origin} />}
         {current === 'integrations' && data.admin && <IntegrationsTab status={data.integrations} hooks={data.admin.webhooks} events={data.admin.events} origin={data.admin.origin} webLeadsOn={data.admin.webLeadsOn} />}
         {current === 'api' && data.admin && <ApiTab keys={data.admin.keys} datasets={data.admin.datasets} branches={data.admin.branches} origin={data.admin.origin} />}
@@ -193,6 +196,56 @@ function GradesTab({ cfg }: { cfg: GradesConfig }) {
       <Err msg={error || why || ''} />
       <div className="modal-actions"><button type="button" className="button primary" disabled={pending || !!why} onClick={save}>{pending ? 'Saving…' : 'Save grades'}</button></div>
     </Section>
+  )
+}
+
+// ---- Admission form
+
+/** The public admission form (/apply, and inside the institute's website): on or off, its wording, the links. */
+function AdmissionTab({ cfg, origin, branches }: { cfg: AdmissionFormConfig; origin: string; branches: { id: string; name: string; code: string }[] }) {
+  const notify = useNotify()
+  const router = useRouter()
+  const [c, setC] = useState(cfg)
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  const save = () => start(async () => {
+    const r = await saveAdmissionFormAction(c)
+    if (!r.ok) return setError(r.error)
+    setError(''); notify('Admission form saved'); router.refresh()
+  })
+  const link = `${origin}/apply`
+  const snippet = `<script src="${origin}/apply/embed.js" async></script>`
+  return (
+    <>
+      <Section title="Online admission form" about="A form anyone can fill in: their name, mobile, the centre and the course. Each form sent becomes a Lead of the centre they chose (see Web Leads), with the ad or post that brought them, and they get your usual thank-you message."
+        actions={<>{c.enabled ? <Badge tone="green">Open</Badge> : <Badge tone="slate">Off</Badge>}{cfg.enabled && <a className="filter-button" href={link} target="_blank" rel="noreferrer">Open the form</a>}</>}>
+        <Toggle label="Take admission forms online" value={c.enabled} set={(v) => setC({ ...c, enabled: v })} hint="Off: the form says admissions are not open online." />
+        <div className="wl-form">
+          <label className="wide">Heading<input value={c.heading} maxLength={80} onChange={(e) => setC({ ...c, heading: e.target.value })} placeholder="Apply for admission" /></label>
+          <label className="wide">A few words above the form <small>(optional)</small><textarea rows={3} value={c.intro} maxLength={600} onChange={(e) => setC({ ...c, intro: e.target.value })} placeholder="e.g. New batches start every Monday. Fill in the form and our counsellor will call you." /></label>
+          <label className="wide">After sending<textarea rows={2} value={c.thanks} maxLength={300} onChange={(e) => setC({ ...c, thanks: e.target.value })} /></label>
+        </div>
+        <p className="section-hint" style={{ margin: '6px 0' }}>Besides name, mobile, centre and course, also ask for:</p>
+        <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+          <Toggle label="E-mail" value={c.askEmail} set={(v) => setC({ ...c, askEmail: v })} />
+          <Toggle label="Area or city" value={c.askLocation} set={(v) => setC({ ...c, askLocation: v })} />
+          <Toggle label="A question" value={c.askMessage} set={(v) => setC({ ...c, askMessage: v })} />
+        </div>
+        <Err msg={error} />
+        <div className="modal-actions"><button type="button" className="button primary" disabled={pending} onClick={save}>{pending ? 'Saving…' : 'Save admission form'}</button></div>
+      </Section>
+      <Section title="Where to put it" about="Share the link, or place the form in your own website. Every form sent is counted for the ad or post it came from.">
+        <p className="section-hint" style={{ margin: '0 0 6px' }}>The link (for Instagram, Facebook, Google ads, WhatsApp, a QR code on a poster):</p>
+        <CopyText text={link} label="Copy the link" />
+        <p className="section-hint" style={{ margin: '14px 0 6px' }}>In your website: paste this where the form should appear (WordPress: a Custom HTML block).</p>
+        <CopyText text={snippet} label="Copy the website code" />
+        <details className="set-help"><summary>Counting ads and choosing the centre</summary><ul>
+          <li>Add <code>utm_source</code>, <code>utm_medium</code> and <code>utm_campaign</code> to the link in each ad, e.g. <code>{link}?utm_source=instagram&amp;utm_medium=paid&amp;utm_campaign=summer-batch</code>. Web Leads and the lead's history show it. On your website, the ad's address is remembered for the visit even if they open another page first.</li>
+          <li>One centre's own page or ad: add <code>?branch=CODE</code> to the link, or <code>data-branch=&quot;CODE&quot;</code> to the website code, to choose it already.{branches.length > 0 && <> Codes: {branches.map((b) => `${b.code} (${b.name})`).join(', ')}.</>}</li>
+          <li>Facebook and Google also add <code>fbclid</code> / <code>gclid</code> themselves: these are kept with the form as sent.</li>
+        </ul></details>
+      </Section>
+    </>
   )
 }
 
