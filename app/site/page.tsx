@@ -1,6 +1,6 @@
 import { onboardingRules } from '@/modules/platform/rules'
 import Link from 'next/link'
-import { ArrowRight, BadgeCheck, BellRing, Building2, CalendarCheck, Check, GraduationCap, IndianRupee, Languages, Laptop, Megaphone, QrCode, School, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, BadgeCheck, BarChart3, BellRing, Building2, CalendarCheck, Check, CreditCard, FileSpreadsheet, GraduationCap, IndianRupee, Languages, Laptop, Mail, Megaphone, MessageCircle, PhoneCall, QrCode, School, Sparkles, Users, Webhook, Wallet } from 'lucide-react'
 import { FEATURES, SECURITY, siteFaq } from '@/components/site/content'
 import { SiteShell } from '@/components/site/shell'
 import { PRODUCT } from '@/lib/product'
@@ -13,6 +13,24 @@ export const dynamic = 'force-dynamic'
 const KINDS = [
   { icon: School, label: 'Coaching institutes' }, { icon: Laptop, label: 'Computer centres' }, { icon: Languages, label: 'Spoken English & IELTS' },
   { icon: GraduationCap, label: 'Skill & training academies' }, { icon: Building2, label: 'Chains with branches' }, { icon: Users, label: 'Franchise networks' },
+]
+
+/** What sits around a student, for the orbit picture. */
+const ORBIT = [
+  { icon: PhoneCall, label: 'Leads' }, { icon: Wallet, label: 'Fees' }, { icon: MessageCircle, label: 'WhatsApp' }, { icon: CalendarCheck, label: 'Classes' },
+  { icon: BadgeCheck, label: 'Certificates' }, { icon: Users, label: 'Parents' }, { icon: BarChart3, label: 'Reports' }, { icon: Building2, label: 'Branches' },
+]
+
+/** What it connects to today (each one is in the product). */
+const INTEGRATIONS = [
+  { icon: MessageCircle, name: 'WhatsApp', text: 'Reminders and campaigns through AiSensy or the WhatsApp Cloud API' },
+  { icon: CreditCard, name: 'Razorpay', text: 'Fees paid online by UPI, card or net banking, receipts made by themselves' },
+  { icon: FileSpreadsheet, name: 'Excel & Google Sheets', text: 'Import students, enquiries and staff; export any list' },
+  { icon: Mail, name: 'Your own e-mail', text: 'Receipts, reminders and logins from your Gmail or mail server' },
+  { icon: Megaphone, name: 'SMS (MSG91)', text: 'Fee reminders by text message' },
+  { icon: Webhook, name: 'n8n, Zapier & Make', text: 'Webhooks on new enquiries, admissions, payments and certificates' },
+  { icon: BarChart3, name: 'Power BI & Excel', text: 'A read API for your own reports' },
+  { icon: Laptop, name: 'Website form', text: 'An admission form for your own website, one line of code' },
 ]
 
 /** The four things an institute does all day, each with a small picture of the screen. */
@@ -107,6 +125,10 @@ export default async function Home() {
         </div>
       </section>
 
+      <div className="sx-marquee" aria-hidden="true">
+        <div className="sx-marquee-in">{[0, 1].map((k) => <span key={k}>more admissions · <mark>fees on time</mark> · every batch full · certificates anyone can check · parents in the loop · </span>)}</div>
+      </div>
+
       <section className="sx-for">
         <div className="lp-wrap">
           <h2>Made for institutes that teach</h2>
@@ -135,10 +157,33 @@ export default async function Home() {
       </section>
 
       <section className="lp-sec lp-soft">
+        <div className="lp-wrap sx-orbit-row">
+          <div className="sx-row-text">
+            <span className="sx-eyebrow">One place</span>
+            <h3>Everything around your student, finally together</h3>
+            <p>No more registers, spreadsheets and five apps. Enquiries, fees, classes, messages and certificates share one record, so every person in your team sees the same student.</p>
+            <Link href="/signup" className="lp-btn sx-btn-green" style={{ marginTop: 24 }}>Bring your institute in <ArrowRight size={16} /></Link>
+          </div>
+          <div className="sx-orbit" aria-hidden="true">
+            <div className="sx-orbit-ring" /><div className="sx-orbit-ring r2" />
+            <div className="sx-orbit-core"><GraduationCap size={40} /></div>
+            {ORBIT.map((o, i) => <span key={o.label} className="sx-orbit-item" style={{ ['--a' as string]: `${(360 / ORBIT.length) * i}deg` }}><o.icon size={20} /><small>{o.label}</small></span>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="lp-sec">
         <div className="lp-wrap">
           <div className="sx-head"><h2>Packed with what an institute runs on</h2><p>The core is in every plan; switch extras on as you need them.</p></div>
           <div className="sx-grid">{FEATURES.slice(0, 9).map((f) => <div key={f.title}><span className="lp-ico lp-ico-sm"><f.icon size={18} /></span><h3>{f.title}</h3><p>{f.text}</p></div>)}</div>
           <p style={{ marginTop: 28, textAlign: 'center' }}><Link href="/features" className="lp-btn sx-btn-line">See every feature <ArrowRight size={16} /></Link></p>
+        </div>
+      </section>
+
+      <section className="lp-sec lp-soft">
+        <div className="lp-wrap">
+          <div className="sx-head"><span className="sx-eyebrow">Integrations</span><h2>Works with what you <span className="g">already use</span></h2><p>Bring your old lists in, take payments online and send reports wherever you like.</p></div>
+          <div className="sx-integ">{INTEGRATIONS.map((x) => <div key={x.name}><span className="lp-ico lp-ico-sm"><x.icon size={18} /></span><b>{x.name}</b><small>{x.text}</small></div>)}</div>
         </div>
       </section>
 

@@ -10,6 +10,12 @@ Newest first. One entry per phase or task; the plan and its status live in `PLAN
   four alternating rows (enquiries, fees, classes, certificates) each with a small picture of the screen, the feature
   grid, "safe by design", three steps to start, the top questions and a green closing band; a dark footer.
   (`components/site/site-theme.ts`, scoped to the public site; an institute's own home page keeps its look.)
+- More, after looking at other SaaS sites: a big scrolling word band under the hero; "Everything around your
+  student" with the day's work in an orbit round a student; "Works with what you already use" (WhatsApp, Razorpay,
+  Excel & Google Sheets, your own e-mail, SMS, webhooks for n8n / Zapier / Make, the read API, the website form: only
+  what the product really connects to); Features opens with three tabs (before they join, while they study, after the
+  course); Pricing gets a Monthly / Yearly switch, "Most popular", what every plan includes, the questions about
+  paying and a closing band ("1 branch", not "1 branches").
 - The FAQ's text lives in `components/site/content.ts` (shown on the home page too) and says students, enquiries and
   staff can be imported from a spreadsheet at any time.
 
