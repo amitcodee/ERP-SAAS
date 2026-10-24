@@ -2,6 +2,15 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 11): customised courses at franchises; a new institute's brand checked end to end (2026-10-24)
+
+- **Franchises → Course fees at franchises** has a "Customised course" line per department: the lowest and highest a
+  franchise may charge for a course of its own (its own title, no course from the list) in that department. Checked
+  like a course's range. Migration 0122.
+- The browser test now sets a new institute's printed name and colour in Set Up and checks them on its panel, its
+  sign-in page and its certificate templates.
+- Checks in `scripts/franchise-test.ts`.
+
 ## Phase 6 (part 10): zones above branches (2026-10-24)
 
 - **Branches → Zones** (head office, once there are two branches): name zones (regions), put branches in them, and

@@ -855,6 +855,13 @@
       "when": 1794636800000,
       "tag": "0121_zones",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1794723200000,
+      "tag": "0122_franchise_custom_fee_range",
+      "breakpoints": true
     }
   ]
 }

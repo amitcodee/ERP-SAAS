@@ -185,6 +185,9 @@ export const departments = pgTable(
     decidedBy: uuid('decided_by').references(() => users.id),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
     rejectionReason: text('rejection_reason'),
+    // what a franchise may charge in all for a customised course in it (paise; migration 0122); null: no bound
+    franchiseMinFee: integer('franchise_min_fee'),
+    franchiseMaxFee: integer('franchise_max_fee'),
   },
   (t) => [uniqueIndex('departments_name_uq').on(t.orgId, t.name)],
 )

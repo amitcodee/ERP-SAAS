@@ -1521,8 +1521,9 @@ export async function invitePartnerAction(branchId: string) {
   const [m] = await mailLogins(actor.orgId, b, [inv.login], names, await appOrigin(actor.orgId))
   return { ok: true as const, data: { message: m.emailed ? `Login e-mailed to ${m.email}` : `The e-mail could not go out (${m.error ?? 'no mail server'}): give ${m.email} this one-time password: ${m.password}` } }
 }
-export async function setFranchiseFeeAction(courseId: string, min: number | null, max: number | null) {
-  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => setFranchiseFee(tx, actor, { courseId, min, max })); revalidatePath('/franchises') })
+/** A course's franchise fee range, or (departmentId) the range of customised courses in that department. */
+export async function setFranchiseFeeAction(what: { courseId?: string | null; departmentId?: string | null }, min: number | null, max: number | null) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => setFranchiseFee(tx, actor, { courseId: what.courseId ?? null, departmentId: what.departmentId ?? null, min, max })); revalidatePath('/franchises') })
 }
 export async function recordRoyaltyAction(input: RoyaltyPaymentInput) {
   return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => recordRoyaltyPayment(tx, actor, input)); revalidatePath('/franchises') })

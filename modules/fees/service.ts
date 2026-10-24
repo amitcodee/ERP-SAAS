@@ -249,7 +249,7 @@ export async function changeTotalFee(tx: Tx, actor: Actor, raw: FeeChangeInput) 
   const delta = input.newTotal - current
   if (delta === 0) throw new Error('That is already the total fees')
   if (balance + delta < 0) throw new Error(`The student has already paid more than that: the total cannot go below ₹${((current - balance) / 100).toLocaleString('en-IN')}`)
-  await assertFranchiseFee(tx, reg.branchId, reg.courseId, input.newTotal)
+  await assertFranchiseFee(tx, reg.branchId, reg, input.newTotal)
   const limit = await overHeadOfficeLimit(tx, actor, current, -delta)
   if (limit) throw new Error(`A cut of more than ${limit}% of the fee is approved by head office: give it as a discount and it goes to them`)
 
@@ -462,7 +462,7 @@ export async function applyDiscount(tx: Tx, actor: Actor, raw: DiscountInput) {
   assertOpenFees(reg)
   const { balance } = await getBalance(tx, reg.id)
   if (input.amount > balance) throw new Error('Discount is more than the outstanding balance')
-  await assertFranchiseFee(tx, reg.branchId, reg.courseId, reg.totalFee - input.amount)
+  await assertFranchiseFee(tx, reg.branchId, reg, reg.totalFee - input.amount)
   const pct = reg.totalFee > 0 ? (input.amount / reg.totalFee) * 100 : 0
   const limit = await overHeadOfficeLimit(tx, actor, reg.totalFee, input.amount)
   if (limit) throw new Error(`A discount of more than ${limit}% of the fee is approved by head office: send it to them`)
@@ -505,7 +505,7 @@ export async function discountOrAsk(tx: Tx, actor: Actor, raw: DiscountInput): P
   assertOpenFees(reg)
   const { balance } = await getBalance(tx, reg.id)
   if (input.amount > balance) throw new Error('Discount is more than the outstanding balance')
-  await assertFranchiseFee(tx, reg.branchId, reg.courseId, reg.totalFee - input.amount)
+  await assertFranchiseFee(tx, reg.branchId, reg, reg.totalFee - input.amount)
   const [open] = await tx.select({ id: feeChangeRequests.id }).from(feeChangeRequests).where(and(eq(feeChangeRequests.registrationId, reg.id), eq(feeChangeRequests.status, 'pending')))
   if (open) throw new Error('A fee change for this student is already waiting: it has to be decided first')
   const [row] = await tx.insert(feeChangeRequests).values({ branchId: reg.branchId, registrationId: reg.id, currentTotal: reg.totalFee, newTotal: reg.totalFee - input.amount, reason: `Discount: ${input.reason}`, requestedBy: actor.userId, headOffice: true }).returning()

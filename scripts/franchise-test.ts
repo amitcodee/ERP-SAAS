@@ -121,6 +121,14 @@ async function main() {
       await tx.execute(sql`reset role`); await applyTenant(tx, ownMgr)
       const ownReg = await createRegistration(tx, ownMgr, { person: { firstName: 'Own', phone: '9855500085' }, departmentId: dept.id, courseId: course.id, totalFee: 1000000, enrollmentDate: `${month}-01` })
       check('your own centres are not bound by the range', !!ownReg.id)
+      // a customised course follows its department's range
+      await tx.execute(sql`reset role`); await applyTenant(tx, head)
+      await setFranchiseFee(tx, head, { departmentId: dept.id, min: 1000000, max: null })
+      await tx.execute(sql`reset role`); await applyTenant(tx, partner)
+      const custom = (fee: number) => ({ title: 'My Own Course', feeMode: 'total' as const, modules: [{ name: 'Module 1', fee }] })
+      await throws(tx, 'a customised course at a franchise is bound by its department’s range', () => createRegistration(tx, partner, { person: { firstName: 'Custom', phone: '9855500086' }, departmentId: dept.id, customCourse: custom(500000), totalFee: 500000, enrollmentDate: `${month}-01` }), /at least ₹10,000 in all for a customised course in/)
+      const okCustom = await createRegistration(tx, partner, { person: { firstName: 'Custom Ok', phone: '9855500087' }, departmentId: dept.id, customCourse: custom(1200000), totalFee: 1200000, enrollmentDate: `${month}-01` })
+      check('… and within it, it registers', !!okCustom.id)
 
       // ---- inviting the partner ----
       await tx.execute(sql`reset role`); await applyTenant(tx, head)

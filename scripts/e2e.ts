@@ -859,6 +859,22 @@ async function main() {
         await w.getByRole('button', { name: 'Add these' }).first().click()
         await expectText(w, 'Added 3 departments and 8 courses'); await expectText(w, '1 of 7 done')
       }, w)
+      await ok('set up: its own name as printed and colour, used at once on its panel and its sign-in page', async () => {
+        const printed = w.getByLabel('Name as printed (receipts, certificates)')
+        if (!(await printed.isVisible())) await w.getByRole('button', { name: /1\. Your institute/ }).click()
+        await printed.fill(`E2E Academy ${RUN} Pvt Ltd`)
+        await w.getByLabel('Colour').fill('#0e7c66')
+        await w.getByRole('button', { name: 'Save', exact: true }).click(); await toast(w, 'Saved'); await expectText(w, '2 of 7 done')
+        await w.reload({ waitUntil: 'networkidle' })
+        const panelColour = await w.evaluate(() => document.documentElement.style.getPropertyValue('--navy'))
+        if (panelColour !== '#0e7c66') throw new Error(`the panel's colour is ${panelColour}`)
+        const lctx = await browser.newContext(); const l = await lctx.newPage()
+        try {
+          await l.goto(new URL('/login', w.url()).href); await expectText(l, `E2E Academy ${RUN}`)
+          const c = await l.evaluate(() => document.documentElement.style.getPropertyValue('--navy'))
+          if (c !== '#0e7c66') throw new Error(`the sign-in page's colour is ${c}`)
+        } finally { await lctx.close() }
+      }, w)
       await ok('pay for the plan: the payment page, then back with a GST invoice', async () => {
         await w.goto(new URL('/settings?tab=billing', w.url()).href)
         await expectText(w, 'Choose a plan'); await expectText(w, 'To pay')
@@ -950,6 +966,7 @@ Nobody ${RUN},nobody.${RUN}@e2e.test,Wizard
       }, w)
       await ok('Certificate designs offers the templates (course, internship, merit…) in the institute’s colour', async () => {
         await w.goto(`${IBASE}/certificate-designs`); await expectText(w, 'Internship'); await expectText(w, 'Merit — quiz toppers')
+        if (!(await w.locator('.dp-thumb svg [fill="#0e7c66"]').count())) throw new Error('the templates are not in the institute’s colour')
         await w.getByRole('link', { name: /Internship/ }).first().click(); await expectText(w, 'Templates')
       }, w)
       await ctx.close()

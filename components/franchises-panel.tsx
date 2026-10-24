@@ -204,31 +204,32 @@ const toPaise = (s: string) => (s.trim() === '' ? null : Math.round(Number(s) * 
 function CourseFees({ fees }: { fees: FranchiseFeeRow[] }) {
   const router = useRouter()
   const notify = useNotify()
-  const [v, setV] = useState<Record<string, { min: string; max: string }>>(() => Object.fromEntries(fees.map((f) => [f.courseId, { min: toRupees(f.min), max: toRupees(f.max) }])))
+  const key = (f: FranchiseFeeRow) => f.courseId ?? `d:${f.departmentId}`
+  const [v, setV] = useState<Record<string, { min: string; max: string }>>(() => Object.fromEntries(fees.map((f) => [key(f), { min: toRupees(f.min), max: toRupees(f.max) }])))
   const [pending, start] = useTransition()
-  const changed = (f: FranchiseFeeRow) => toPaise(v[f.courseId].min) !== f.min || toPaise(v[f.courseId].max) !== f.max
+  const changed = (f: FranchiseFeeRow) => toPaise(v[key(f)].min) !== f.min || toPaise(v[key(f)].max) !== f.max
   const save = (f: FranchiseFeeRow) => start(async () => {
-    const min = toPaise(v[f.courseId].min), max = toPaise(v[f.courseId].max)
+    const min = toPaise(v[key(f)].min), max = toPaise(v[key(f)].max)
     if ((min != null && (!Number.isFinite(min) || min < 0)) || (max != null && (!Number.isFinite(max) || max < 0))) return notify('Enter amounts in rupees, or leave empty')
-    const r = await setFranchiseFeeAction(f.courseId, min, max)
-    notify(r.ok ? `${f.title}: saved` : r.error); if (r.ok) router.refresh()
+    const r = await setFranchiseFeeAction(f.courseId ? { courseId: f.courseId } : { departmentId: f.departmentId }, min, max)
+    notify(r.ok ? `${f.courseId ? f.title : `Customised courses in ${f.department}`}: saved` : r.error); if (r.ok) router.refresh()
   })
   const set = (id: string, k: 'min' | 'max', val: string) => setV({ ...v, [id]: { ...v[id], [k]: val } })
   return (
     <div className="panel table-scroll" style={{ marginTop: 16 }}>
       <h2 style={{ margin: '0 0 4px', fontSize: 16 }}>Course fees at franchises</h2>
-      <p className="section-hint" style={{ margin: '0 0 10px' }}>The total fee (after discounts, with GST) a franchise may charge for each course. Checked when it registers a student, changes a fee or gives a discount. Empty: no limit. Your own centres are not bound by it.</p>
+      <p className="section-hint" style={{ margin: '0 0 10px' }}>The total fee (after discounts, with GST) a franchise may charge for each course. Checked when it registers a student, changes a fee or gives a discount; a customised course (its own title) follows its department’s line. Empty: no limit. Your own centres are not bound by it.</p>
       <table>
         <thead><tr><th>Course</th><th style={{ textAlign: 'right' }}>Usual fee</th><th>Lowest (₹)</th><th>Highest (₹)</th><th /></tr></thead>
-        <tbody>{fees.map((f) => (
-          <tr key={f.courseId}>
-            <td><strong>{f.title}</strong><small style={{ display: 'block' }}>{f.department}</small></td>
-            <td style={{ textAlign: 'right' }}>{inr(f.baseFee)}</td>
-            <td><input type="number" min={0} step="1" value={v[f.courseId].min} onChange={(e) => set(f.courseId, 'min', e.target.value)} aria-label={`Lowest fee for ${f.title}`} style={{ width: 120 }} /></td>
-            <td><input type="number" min={0} step="1" value={v[f.courseId].max} onChange={(e) => set(f.courseId, 'max', e.target.value)} aria-label={`Highest fee for ${f.title}`} style={{ width: 120 }} /></td>
+        <tbody>{fees.map((f) => { const k = key(f), what = f.courseId ? f.title : `customised courses in ${f.department}`; return (
+          <tr key={k}>
+            <td>{f.courseId ? <strong>{f.title}</strong> : <em>Customised course</em>}<small style={{ display: 'block' }}>{f.department}</small></td>
+            <td style={{ textAlign: 'right' }}>{f.baseFee != null ? inr(f.baseFee) : '—'}</td>
+            <td><input type="number" min={0} step="1" value={v[k].min} onChange={(e) => set(k, 'min', e.target.value)} aria-label={`Lowest fee for ${what}`} style={{ width: 120 }} /></td>
+            <td><input type="number" min={0} step="1" value={v[k].max} onChange={(e) => set(k, 'max', e.target.value)} aria-label={`Highest fee for ${what}`} style={{ width: 120 }} /></td>
             <td><button type="button" className="filter-button" disabled={pending || !changed(f)} onClick={() => save(f)}>Save</button></td>
           </tr>
-        ))}</tbody>
+        ) })}</tbody>
       </table>
     </div>
   )
