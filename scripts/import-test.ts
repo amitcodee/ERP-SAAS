@@ -6,6 +6,7 @@ import { applyTenant, type Actor } from '../lib/db/withTenant'
 import { getBalance } from '../modules/fees/service'
 import { importEnquiries, importRegistrations, parseCsv, parseDate, parseRupees } from '../modules/import/legacy'
 import { importOldFees, importOldRegistrations } from '../modules/import/oldsystem'
+import { importSheet, sheetTemplate } from '../modules/import/sheet'
 import { setRegNumbering } from '../modules/branches/service'
 import { reconcile } from '../modules/ops/reconcile'
 import { SAMPLE_ORG_ID as ORG } from '../lib/db/schema/tenancy'
@@ -78,10 +79,11 @@ async function main() {
       check('not joined with a reason', aman?.status === 'not_joined' && !!aman.notJoinedReasonId)
 
       const r = await importRegistrations(tx, actor, parseCsv(REG))
-      check('registrations: 3 created, 3 rejected', r.created === 3 && r.rejects.length === 3, JSON.stringify(r.rejects))
+      check('registrations: 4 created, 2 rejected', r.created === 4 && r.rejects.length === 2, JSON.stringify(r.rejects))
       check('reject: paid more than the fee', r.rejects.some((x) => x.key === 'TC/0091' && /more than the total fee/.test(x.reason)))
       check('reject: department missing', r.rejects.some((x) => x.key === 'TC/0092' && /department/.test(x.reason)))
-      check('reject: no legacy number', r.rejects.some((x) => /legacy_reg_no is required/.test(x.reason)))
+      const [ml] = (await tx.execute<{ legacy_reg_no: string | null }>(sql`select r.legacy_reg_no from registrations r join persons p on p.id = r.person_id where p.phone = '9876511010' and r.branch_id = ${br.id}`)).rows
+      check('no old number: the student is added all the same (no old number kept)', !!ml && ml.legacy_reg_no === null)
 
       const [k] = await tx.select().from(registrations).where(eq(registrations.legacyRegNo, 'TC/0101'))
       check('registration keeps legacy no., gets a new REG number, dated at enrolment', !!k && k.regNo.startsWith('REG-') && k.createdAt.toISOString().startsWith('2026-07-01') && k.totalFee === 3000000)
@@ -100,7 +102,29 @@ async function main() {
 
       const again = await importRegistrations(tx, actor, parseCsv(REG))
       const enqAgain = await importEnquiries(tx, actor, parseCsv(ENQ))
-      check('re-running skips what is already imported', again.created === 0 && again.skipped === 3 && enqAgain.created === 0 && enqAgain.skipped === 2)
+      check('re-running skips what is already imported (without an old number: same phone, department and date)', again.created === 0 && again.skipped === 4 && enqAgain.created === 0 && enqAgain.skipped === 2)
+      // ---- from a spreadsheet (the Import page): usual column names, missing columns, staff with their roles
+      const SHEET = `Name First,Surname,Mobile No.,Category,Admission Date,Fees,Fee Paid
+Neha,Gill,9876511020,CAD/CAM,02-06-2026,"₹15,000",5000
+`
+      const sh = await importSheet(tx, actor, 'students', parseCsv(SHEET))
+      check('a sheet with its own column names is understood (Mobile No., Admission Date, Fees…)', sh.created === 1 && !sh.rejects.length, JSON.stringify(sh.rejects))
+      check('… and a second run adds nothing', (await importSheet(tx, actor, 'students', parseCsv(SHEET))).skipped === 1)
+      let msg = ''
+      try { await importSheet(tx, actor, 'students', parseCsv('first_name,phone\nA,9876511021\n')) } catch (x) { msg = String(x) }
+      check('a file without the needed columns is refused whole, naming them', /department, enrollment_date, total_fee/.test(msg), msg)
+      const tpl = parseCsv(sheetTemplate('students'))
+      check('the template has every column and an example row', tpl.length === 1 && 'legacy_reg_no' in tpl[0] && tpl[0].first_name === 'Karan')
+      const staffMail = `staff.${Date.now()}@sheet.test`
+      const st = await importSheet(tx, actor, 'staff', parseCsv(`Name,Email,Phone,Role
+Neha Verma,${staffMail},9876511030,Counselor
+No Role,x1.${staffMail},,Wizard
+Too High,x2.${staffMail},,super_admin
+Again,${staffMail.toUpperCase()},,Counselor
+`))
+      check('staff: added with the role named, and a login to send', st.created === 1 && st.logins.length === 1 && st.logins[0].email === staffMail && st.logins[0].roles.includes('counselor'), JSON.stringify(st.rejects))
+      check('… an unknown role and head office are turned down; an e-mail already in is skipped', st.rejects.length === 2 && st.rejects.some((x) => /not one of your roles/.test(x.reason)) && st.rejects.some((x) => /cannot be given/.test(x.reason)) && st.skipped === 1, JSON.stringify(st.rejects))
+
       check('imported branch reconciles cleanly', (await reconcile(tx)).problems.filter((p) => p.branch === 'IM1').length === 0)
 
       // ---- the OLD system's tables: old numbers kept, every payment kept, nothing lost

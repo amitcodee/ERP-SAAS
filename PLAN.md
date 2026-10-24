@@ -219,8 +219,7 @@ that org only. Certificate hashes include `org_id`.
    4. fee modes and GST;
    5. invite staff;
    6. e-mail sender;
-   7. CSV import with column mapping (generalised from `modules/import/oldsystem.ts`). **Still to do:** Set Up links to
-      the existing import for now;
+   7. CSV import (Setup → Import: students, enquiries, staff; common column names understood);
    8. a "you're ready" checklist.
 4. [x] Plans and limits:
    - `plans` holds limits for branches, seats, active students, storage, monthly messages and a module list;
@@ -387,8 +386,8 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
      end to end for a new institute.
 4. [ ] **Big institutes.**
    - Regions / zones above branches (a zonal manager sees the branches of their zone).
-   - Bulk: add staff and students from a spreadsheet at any time (import is in Set Up only today), bulk certificate
-     issue for a batch.
+   - [x] Bulk: add staff, students and enquiries from a spreadsheet at any time (Setup → Import, part 7).
+   - Bulk certificate issue for a batch.
    - Approval rules per institute (discount above X% needs head office), audit and exports per branch.
 0. [x] **The platform approves institutes; a short trial; closed until paid; activation by hand** (owner's request,
    2026-10-22).

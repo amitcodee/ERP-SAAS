@@ -2,6 +2,22 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 7): import from a spreadsheet, any time (2026-10-24)
+
+- **Setup → Import** (also Set Up's "Existing students" step): students, enquiries or staff of a branch from an Excel /
+  Google Sheets file saved as CSV, whenever it is needed, not only while setting up. A template per kind, the columns
+  explained, the usual other names understood ("Mobile No.", "Admission date", "Fee paid"…). **Check the file** runs
+  everything and saves nothing, listing what would be added, what is already in and each row turned down with its
+  reason (downloadable); **Import** then adds them. Running a file again only adds what is new.
+- Students: no old registration number needed any more (a row without one is matched on phone, department and
+  admission date); the paid amount is an opening balance, the next installment a due. Staff: their roles by name, a
+  login each, e-mailed after the import (or shown once when mail is not set up; held until a new branch is activated);
+  head-office roles cannot be given by a file.
+- Head office picks the branch; branch staff import into their own, and only the kinds they may add on screen.
+- The Old System Import page lost the original institute's table names and number formats from its help text; it is
+  "Old system import" in the menu.
+- Checks in `scripts/import-test.ts`; an e2e step imports a staff list.
+
 ## Phase 6 (part 6): franchise certificates by head office, templates in the institute's colour (2026-10-24)
 
 - **Certificates at a franchise are issued by head office**, in the institute's name: the partner's centre requests

@@ -51,23 +51,23 @@ export function OldImport({ branches }: { branches: Branch[] }) {
     <section className="page-container">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">Security &amp; records / Import</p>
+          <p className="eyebrow">Security &amp; records / Old system import</p>
           <h1>Old System Import</h1>
-          <p className="subheading">Bring a branch’s students and payments over from your old system. Every student keeps their old registration number, new admissions carry on after the highest one, and running it again later brings over only what is new — so it keeps the panel in step until the old system is switched off.</p>
+          <p className="subheading">Bring a branch’s students and payments over from your old system (phpMyAdmin exports). For an Excel or Google Sheets list, use <Link href="/import">Import from a spreadsheet</Link>. Every student keeps their old registration number, new admissions carry on after the highest one, and running it again later brings over only what is new — so it keeps the panel in step until the old system is switched off.</p>
         </div>
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>
-        <div className="panel-header"><div><h2>1. Export from the old system</h2><span>In phpMyAdmin (cPanel → phpMyAdmin → database techcff9_techit)</span></div></div>
+        <div className="panel-header"><div><h2>1. Export from the old system</h2><span>In phpMyAdmin (cPanel → phpMyAdmin → your old system’s database)</span></div></div>
         <ol className="section-hint" style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8 }}>
-          <li>Click the branch’s table, e.g. <b>hsp_registration</b> (Hoshiarpur), <b>jal_registration</b> (Jalandhar) → <b>Export</b> → Format <b>CSV</b> → tick <b>“Put columns names in the first row”</b> → Export.</li>
+          <li>Click the branch’s registrations table (e.g. <b>&lt;branch&gt;_registration</b>) → <b>Export</b> → Format <b>CSV</b> → tick <b>“Put columns names in the first row”</b> → Export.</li>
           <li>Do the same for the <b>fee</b> table (it holds every branch’s payments; only this branch’s are taken).</li>
           <li>Nothing in the old system is changed by exporting.</li>
         </ol>
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>
-        <div className="panel-header"><div><h2>2. Branch and files</h2><span>Set the branch’s number format first in Branches → Registration numbers (e.g. <code>TCD/4002/{'{n}'}</code> for Hoshiarpur).</span></div></div>
+        <div className="panel-header"><div><h2>2. Branch and files</h2><span>Set the branch’s number format first in Branches → Registration numbers (e.g. <code>ABC/101/{'{n}'}</code>).</span></div></div>
         <div className="wl-form">
           <label>Branch<span className="required-mark">*</span>
             <select value={branchId} onChange={(e) => { setBranchId(e.target.value); setResult(null) }}>
@@ -81,7 +81,7 @@ export function OldImport({ branches }: { branches: Branch[] }) {
         </div>
         {b && (b.regFormat
           ? <p className="section-hint" style={{ marginTop: 10 }}><CheckCircle2 size={14} style={{ color: '#16a34a', verticalAlign: -2 }} /> Number format <b>{b.regFormat}</b>{b.next ? <> · next new admission now: <b>{b.next}</b></> : null}{b.imported ? <> · {b.imported} students already brought over (they are skipped)</> : null}</p>
-          : <p className="fee-note" role="alert"><AlertTriangle size={14} /> {b.name} has no registration number format yet. Set it in <Link href="/branches">Branches → Registration numbers</Link> (e.g. TCD/4002/{'{n}'}), then come back.</p>)}
+          : <p className="fee-note" role="alert"><AlertTriangle size={14} /> {b.name} has no registration number format yet. Set it in <Link href="/branches">Branches → Registration numbers</Link> (e.g. ABC/101/{'{n}'}), then come back.</p>)}
       </div>
 
       <div className="panel" style={{ marginBottom: 16 }}>

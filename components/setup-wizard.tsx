@@ -33,7 +33,7 @@ const LINKS: Partial<Record<StepKey, { href: string; label: string }>> = {
   branch: { href: '/branches', label: 'Open Branches' },
   staff: { href: '/users', label: 'Open Users & Staff' },
   email: { href: '/settings?tab=email', label: 'Open Settings → E-mail' },
-  import: { href: '/import-old', label: 'Open the import' },
+  import: { href: '/import', label: 'Import from a spreadsheet' },
 }
 const GST = [0, 5, 12, 18]
 

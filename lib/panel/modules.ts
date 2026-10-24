@@ -4,7 +4,7 @@ import type { Action, Resource } from '@/lib/auth/permissions'
 type Ok = (a: Action, r: Resource) => boolean
 export type ModuleKey =
   | 'Dashboard' | 'Overdues' | 'My Tickets' | 'My Classes' | 'Project Help' | 'Random Call' | 'Leads' | 'Web Leads' | 'Lead Categories' | 'Enquiry' | 'Registration' | 'Enquiry Update' | 'My Leads' | 'Lead Distribution' | 'Transfers' | 'Shared Students'
-  | 'Fees' | 'Expenses' | 'Franchises' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Old System Import' | 'Settings' | 'Set Up'
+  | 'Fees' | 'Expenses' | 'Franchises' | 'Collection' | 'Students' | 'Courses' | 'Reports' | 'Graphs' | 'Leaderboards' | 'Calendar' | 'Certificate Requests' | 'Issue Certificate' | 'Internship Requests' | 'Internship Complete' | 'Letter Templates' | 'Seminars & Workshops' | 'Certificate Designs' | 'Course Categories' | 'Help Desk' | 'Announcements' | 'Message Templates' | 'Bulk WhatsApp' | 'Users & Staff' | 'Roles & Permissions' | 'Branches' | 'Logs' | 'Sign-in Security' | 'Recycle Bin' | 'Import' | 'Old System Import' | 'Settings' | 'Set Up'
 
 /** The menu's groups, in order. */
 export const GROUPS = ['Overview', 'Admissions', 'Students & classes', 'Fees & money', 'Certificates', 'Events', 'Reports', 'Setup', 'Security & records']
@@ -68,6 +68,8 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   { key: 'Message Templates', path: '/message-templates', group: 'Setup', allowed: (ok) => ok('read', 'template') },
   // a WhatsApp campaign (made in AiSensy, listed in Settings) sent to students or leads picked by a filter
   { key: 'Bulk WhatsApp', path: '/whatsapp', group: 'Setup', allowed: (ok) => ok('read', 'broadcast') },
+  // students, enquiries or staff from a spreadsheet, any time (not only in Set Up)
+  { key: 'Import', path: '/import', group: 'Setup', allowed: (ok) => ok('create', 'registration') || ok('create', 'enquiry') || ok('create', 'user') },
   { key: 'Settings', path: '/settings', group: 'Setup', allowed: () => true },
   { key: 'Logs', path: '/logs', group: 'Security & records', allowed: (ok) => ok('read', 'audit') },
   { key: 'Sign-in Security', path: '/login-logs', group: 'Security & records', allowed: (ok) => ok('update', 'setting') },
@@ -76,7 +78,7 @@ export const MODULES: { key: ModuleKey; path: string; group: string; allowed: (o
   { key: 'Old System Import', path: '/import-old', group: 'Security & records', allowed: (ok) => ok('create', 'branch') },
 ]
 /** What the menu and the breadcrumb show, where it differs from the key. */
-export const LABEL: Partial<Record<ModuleKey, string>> = { Enquiry: 'Enquiries', 'Enquiry Update': 'Find an enquiry', 'Random Call': 'Calls', Collection: 'Collections', 'Old System Import': 'Import' }
+export const LABEL: Partial<Record<ModuleKey, string>> = { Enquiry: 'Enquiries', 'Enquiry Update': 'Find an enquiry', 'Random Call': 'Calls', Collection: 'Collections', 'Old System Import': 'Old system import' }
 export const labelOf = (k: ModuleKey) => LABEL[k] ?? k
 /** What each page is for, shown as a tooltip on the menu. */
 export const ABOUT: Record<ModuleKey, string> = {
@@ -126,6 +128,7 @@ export const ABOUT: Record<ModuleKey, string> = {
   'Sign-in Security': 'Sign-in history, locked accounts and allowed IP addresses.',
   'Recycle Bin': 'Deleted records: restore them if removed by mistake.',
   'Old System Import': 'Bring a branch’s students and payments over from your old system (phpMyAdmin exports); run again to sync.',
+  Import: 'Bring in students, enquiries or staff from an Excel or Google Sheets file (CSV), any time.',
   Settings: 'How the panel works for every branch: e-mail, messages, reminders and more.',
 }
 export const PATH = Object.fromEntries(MODULES.map((m) => [m.key, m.path])) as Record<ModuleKey, string>

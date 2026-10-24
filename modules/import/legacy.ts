@@ -10,7 +10,7 @@ import { createRegistration, transitionRegistration } from '../registrations/ser
 
 export type Row = Record<string, string>
 export type Reject = { line: number; key: string; reason: string }
-export type ImportReport = { kind: 'enquiries' | 'registrations'; total: number; created: number; skipped: number; rejects: Reject[] }
+export type ImportReport = { kind: 'enquiries' | 'registrations' | 'staff'; total: number; created: number; skipped: number; rejects: Reject[] }
 
 // ---- parsing -------------------------------------------------------------------------------
 
@@ -86,7 +86,7 @@ const pick = (m: Map<string, string>, v: string | null, field: string) => {
   return id
 }
 
-async function eachRow(tx: Tx, kind: ImportReport['kind'], rows: Row[], keyOf: (r: Row, i: number) => string, fn: (r: Row, key: string) => Promise<'created' | 'skipped'>): Promise<ImportReport> {
+export async function eachRow(tx: Tx, kind: ImportReport['kind'], rows: Row[], keyOf: (r: Row, i: number) => string, fn: (r: Row, key: string) => Promise<'created' | 'skipped'>): Promise<ImportReport> {
   const rep: ImportReport = { kind, total: rows.length, created: 0, skipped: 0, rejects: [] }
   for (let i = 0; i < rows.length; i++) {
     const line = i + 2 // header is line 1
@@ -143,22 +143,30 @@ export async function importEnquiries(tx: Tx, actor: Actor, rows: Row[]): Promis
 }
 
 // ---- registrations ------------------------------------------------------------------------------
-// Columns: legacy_reg_no*, first_name*, last_name, phone*, alt_phone, guardian_phone, email, father_name, dob, address,
+// Columns: legacy_reg_no (without it, a row is matched by phone, department and admission date), first_name*, last_name, phone*, alt_phone, guardian_phone, email, father_name, dob, address,
 //          department*, course, class_mode, enrollment_date*, total_fee*, paid_to_date, status (active|on_hold|discontinued|completed),
 //          next_due_date, next_due_amount, remarks
 
 export async function importRegistrations(tx: Tx, actor: Actor, rows: Row[]): Promise<ImportReport> {
   const cat = await loadCatalog(tx)
   const branchId = actor.branchId!
-  return eachRow(tx, 'registrations', rows, (r, i) => r.legacy_reg_no || `line ${i + 2}`, async (r) => {
-    const legacy = need(r, 'legacy_reg_no')
-    const [dup] = await tx.select({ id: registrations.id }).from(registrations).where(and(eq(registrations.branchId, branchId), eq(registrations.legacyRegNo, legacy)))
-    if (dup) return 'skipped'
+  return eachRow(tx, 'registrations', rows, (r, i) => r.legacy_reg_no || [r.first_name, r.phone].filter(Boolean).join(' ') || `line ${i + 2}`, async (r) => {
+    // the old number when the file has one; else the same student (phone), department and admission date is the same row
+    const legacy = opt(r, 'legacy_reg_no')
+    if (legacy) {
+      const [dup] = await tx.select({ id: registrations.id }).from(registrations).where(and(eq(registrations.branchId, branchId), eq(registrations.legacyRegNo, legacy)))
+      if (dup) return 'skipped'
+    }
     const course = r.course ? cat.course.get(r.course.trim().toLowerCase()) : null
     if (r.course && !course) throw new Error(`course: "${r.course}" is not in the catalog`)
     const departmentId = pick(cat.dept, opt(r, 'department'), 'department') ?? course?.departmentId
     if (!departmentId) throw new Error('department is required')
     const enrolled = parseDate(need(r, 'enrollment_date'), 'enrollment_date')
+    if (!legacy) {
+      const [dup] = (await tx.execute<{ id: string }>(sql`select r.id from registrations r join persons p on p.id = r.person_id
+        where r.branch_id = ${branchId} and p.phone = ${phone(need(r, 'phone'))} and r.department_id = ${departmentId} and r.enrollment_date = ${enrolled}::date limit 1`)).rows
+      if (dup) return 'skipped'
+    }
     const totalFee = parseRupees(need(r, 'total_fee'), 'total_fee')
     const paid = r.paid_to_date ? parseRupees(r.paid_to_date, 'paid_to_date') : 0
     const status = (r.status || 'active').toLowerCase().replace(/[\s-]+/g, '_')
@@ -173,7 +181,7 @@ export async function importRegistrations(tx: Tx, actor: Actor, rows: Row[]): Pr
       departmentId, courseId: course?.id ?? null, classModeId: pick(cat.mode, opt(r, 'class_mode'), 'class_mode'),
       enrollmentDate: enrolled, totalFee,
     }, { quiet: true })
-    await tx.update(registrations).set({ legacyRegNo: legacy, createdAt: new Date(enrolled + 'T09:00:00+05:30') }).where(eq(registrations.id, reg.id))
+    await tx.update(registrations).set({ ...(legacy ? { legacyRegNo: legacy } : {}), createdAt: new Date(enrolled + 'T09:00:00+05:30') }).where(eq(registrations.id, reg.id))
     await postOpeningBalance(tx, actor, reg, paid, next)
 
     const note = r.remarks ? `Imported: ${r.remarks}` : 'Imported from old records'

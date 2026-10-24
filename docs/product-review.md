@@ -60,5 +60,5 @@ and issue their certificates.
 
 ## 6. Big institutes
 
-Zones above branches, bulk import at any time (today only in Set Up), bulk certificate issue, approval rules for big
-discounts: **later**, after franchises.
+**Done (part 7):** import students, enquiries and staff from a spreadsheet at any time (Setup → Import). **Next:** bulk
+certificate issue for a batch, approval rules for big discounts, zones above branches.

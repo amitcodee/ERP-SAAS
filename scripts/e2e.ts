@@ -923,6 +923,25 @@ async function main() {
         await m.locator('input[type=number]').fill('10')
         await m.getByRole('button', { name: 'Save' }).click(); await toast(w, 'It is a franchise now')
         await w.goto(`${IBASE}/franchises`); await expectText(w, `Bright Skills ${RUN} LLP`); await expectText(w, '10% of fees received'); await expectText(w, 'Course fees at franchises')
+        await expectText(w, 'Certificates: head office issues')
+      }, w)
+      await ok('Import: a staff list from a spreadsheet, checked first, then added with their logins', async () => {
+        await w.goto(`${IBASE}/import`); await expectText(w, 'Import from a spreadsheet')
+        await w.getByRole('tab', { name: 'Staff' }).click()
+        const csv = `Name,Email,Role
+Sheet Person ${RUN},sheet.${RUN}@e2e.test,Counselor
+Nobody ${RUN},nobody.${RUN}@e2e.test,Wizard
+`
+        const branchPick = w.locator('main select'); if (await branchPick.count()) await branchPick.first().selectOption({ index: 1 })
+        await w.locator('input[type=file]').setInputFiles({ name: 'staff.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) })
+        await w.getByRole('button', { name: 'Check the file' }).click(); await expectText(w, 'Checked: nothing was saved'); await expectText(w, 'not one of your roles')
+        w.once('dialog', (d) => d.accept())
+        await w.getByRole('button', { name: /Import 1 staff member/ }).click(); await expectText(w, 'Imported.')
+        await w.goto(`${IBASE}/users`); await expectText(w, `Sheet Person ${RUN}`)
+      }, w)
+      await ok('Certificate designs offers the templates (course, internship, merit…) in the institute’s colour', async () => {
+        await w.goto(`${IBASE}/certificate-designs`); await expectText(w, 'Internship'); await expectText(w, 'Merit — quiz toppers')
+        await w.getByRole('link', { name: /Internship/ }).first().click(); await expectText(w, 'Templates')
       }, w)
       await ctx.close()
     }
