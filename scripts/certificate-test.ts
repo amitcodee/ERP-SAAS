@@ -8,7 +8,7 @@ import { db, pool } from '../lib/db/client'
 import { branches, departments, lookups, users } from '../lib/db/schema'
 import { applyTenant, type Actor, type Tx } from '../lib/db/withTenant'
 import { addAssessment, addBatchMember, approveCapstone, batchRoster, createBatch, createSession, markAttendance } from '../modules/academics/service'
-import { approveCertificate, certificateOverview, clearCertificateFees, getEligibility, rejectCertificate, requestCertificate, revokeCertificate, verifyCertificateIn } from '../modules/certificates/service'
+import { approveCertificate, certificateOverview, issueCertificates, clearCertificateFees, getEligibility, rejectCertificate, requestCertificate, revokeCertificate, verifyCertificateIn } from '../modules/certificates/service'
 import { certificateDesk } from '../modules/certificates/documents'
 import { createEnquiry } from '../modules/enquiries/service'
 import { recordPayment } from '../modules/fees/service'
@@ -159,7 +159,14 @@ async function main() {
       const again = (await requestCertificate(tx, counselor, reg.id)).request
       check('after revoking, the certificate can be requested again', !!again.id)
       check('the desk follows the new request', ['waiting', 'approved'].includes((await deskRow())?.stage ?? ''), (await deskRow())?.stage)
-      const cert2 = await approveCertificate(tx, mgr, again.id)
+      // issued with another at once (Issue all ready): the eligible one is issued, the other is listed with its reason
+      const r4 = await createRegistration(tx, counselor, { person: { firstName: 'Bulk', lastName: 'Notready', phone: '9866600004' }, departmentId: dept.id, totalFee: 5000, enrollmentDate: '2026-10-01' })
+      const notReady = (await requestCertificate(tx, counselor, r4.id)).request
+      const bulk = await issueCertificates(tx, mgr, [again.id, notReady.id])
+      check('issuing several at once: the ready one is issued, the other listed with its reason', bulk.issued.length === 1 && bulk.issued[0].requestId === again.id && bulk.failed.length === 1 && bulk.failed[0].name === 'Bulk Notready' && /Not eligible|not cleared/.test(bulk.failed[0].reason), JSON.stringify(bulk.failed))
+      check('… and that one waits as it was', (await tx.execute<{ status: string }>(sql`select status from certificate_requests where id = ${notReady.id}`)).rows[0].status === 'pending')
+      await throws(tx, 'a trainer cannot issue several either', () => issueCertificates(tx, trainer, [notReady.id]), /Forbidden/)
+      const cert2 = { certNo: bulk.issued[0].certNo }
       check('issued again with a new number', cert2.certNo !== cert.certNo && /-0002$/.test(cert2.certNo), cert2.certNo)
       check('the desk shows the new certificate as issued', (await deskRow())?.certNo === cert2.certNo && (await deskRow())?.stage === 'issued')
       check('the old number still verifies as REVOKED', (await verifyCertificateIn(tx, cert.verificationHash) as { revoked?: boolean }).revoked === true)

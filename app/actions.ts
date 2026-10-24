@@ -541,7 +541,7 @@ export async function applyDiscountAction(input: DiscountInput) {
 // ---- Academics & certificates ---------------------------------------------
 import { cancelTrainerRequest, decideTrainerRequest, otherBranchTrainers, requestTrainer } from '@/modules/academics/trainer-requests'
 import { addAssessment, addBatchMember, approveCapstone, batchRoster, projectInput, submitMyProject, type ProjectInput, createBatch, createSession, markAttendance, removeBatchMember, setBatchTrainer, studentAttendance, type CreateBatchInput } from '@/modules/academics/service'
-import { approveCertificate, certificateWording, clearCertificateFees, rejectCertificate, requestCertificate, revokeCertificate, type CertWordingInput } from '@/modules/certificates/service'
+import { approveCertificate, certificateWording, issueCertificates, clearCertificateFees, rejectCertificate, requestCertificate, revokeCertificate, type CertWordingInput } from '@/modules/certificates/service'
 import { addLeadCategory, createCourse, decideCourse, updateLeadCategory, type CreateCourseInput, updateCourseSkills } from '@/modules/catalog/service'
 
 export async function createCourseAction(input: CreateCourseInput) {
@@ -642,21 +642,36 @@ export async function approveCertificateAction(requestId: string) {
   const gate = await branchEmailGate(); if (gate) return gate
   const { actor } = await getActor()
   const res = await run(() => withTenant(actor, async (tx) => (await approveCertificate(tx, actor, requestId)).certNo))
-  if (res.ok) {
-    await completeCoursesOf(actor, sql`select registration_id as id from certificate_requests where id = ${requestId}::uuid`)
-    revalidatePath('/', 'layout')
-    // the student is told by e-mail, after the response (best effort: the portal shows it anyway)
-    const origin = await appOrigin(actor.orgId)
-    after(async () => {
+  if (res.ok) await afterIssued(actor, [requestId])
+  return res
+}
+
+/** Issue Certificate → "Issue all ready": every request picked, each with the usual checks; the ones that fail are listed. */
+export async function issueCertificatesAction(requestIds: string[]) {
+  const gate = await branchEmailGate(); if (gate) return gate
+  const { actor } = await getActor()
+  const ids = z.array(z.string().uuid()).max(200).parse(requestIds)
+  const res = await run(() => withTenant(actor, (tx) => issueCertificates(tx, actor, ids)))
+  if (res.ok && res.data!.issued.length) await afterIssued(actor, res.data!.issued.map((x) => x.requestId))
+  return res
+}
+
+/** After certificates are issued: their courses are complete, and each student is told (e-mail, WhatsApp) after the response. */
+async function afterIssued(actor: Actor, requestIds: string[]) {
+  await completeCoursesOf(actor, sql`select registration_id as id from certificate_requests where id in (${sql.join(requestIds.map((id) => sql`${id}::uuid`), sql`, `)})`)
+  revalidatePath('/', 'layout')
+  // best effort: the portal shows the certificate anyway
+  const origin = await appOrigin(actor.orgId)
+  after(async () => {
+    for (const requestId of requestIds) {
       try {
         const m = await certificateIssuedMail(actor.orgId, requestId, origin)
         const mail = m ? await providerFor(actor.orgId, 'email', m.branchId) : null
         if (m && mail) { const r = await mail.send({ channel: 'email', to: m.to, template: 'certificate_issued', subject: m.subject, body: m.body }); if (!r.ok) log.warn('certificate.mail_failed', { requestId, error: r.error }) }
       } catch (e) { log.warn('certificate.mail_failed', { requestId, error: e instanceof Error ? e.message : String(e) }) }
       await withOrgSystem(actor.orgId, (tx) => announceCertificate(tx, requestId, origin)).catch((e) => log.warn('certificate.whatsapp_failed', { requestId, error: String(e) }))
-    })
-  }
-  return res
+    }
+  })
 }
 
 export async function clearCertificateFeesAction(requestId: string) {

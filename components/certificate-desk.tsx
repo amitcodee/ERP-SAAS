@@ -7,7 +7,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Ban, CheckCircle2, FileBadge, RotateCcw, Search, Send, ShieldCheck, X } from 'lucide-react'
-import { approveCertificateAction, certificateWordingAction, clearCertificateFeesAction, rejectCertificateAction, requestCertificateAction, revokeCertificateAction } from '@/app/actions'
+import { approveCertificateAction, certificateWordingAction, issueCertificatesAction, clearCertificateFeesAction, rejectCertificateAction, requestCertificateAction, revokeCertificateAction } from '@/app/actions'
 import { Err, Modal } from '@/components/modal'
 import { useNotify } from '@/components/panel-shell'
 import type { CertDesk, CertDeskRow, CertStage } from '@/modules/certificates/documents'
@@ -24,10 +24,12 @@ const STAGE: Record<CertStage, { label: string; tone: string; what: string }> = 
   revoked: { label: 'Revoked', tone: 'red', what: 'Head office revoked the certificate. The student no longer sees it; it can be requested and issued again (a new number).' },
 }
 
-export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
+export function CertificateDesk({ list, data: d, filters, can, showBranch, batches = [] }: {
   list: 'requests' | 'issue'
   data: CertDesk
-  filters: { q: string; stage: string; fee: string; period: string }
+  filters: { q: string; stage: string; fee: string; period: string; batch: string }
+  /** the batches the list can be narrowed to (a batch's certificates at once) */
+  batches?: { id: string; name: string }[]
   /** skipAccounts: head office / branch manager, who issue without waiting for accounts. revoke: head office only.
    *  headOffice: issues the certificates of franchise centres that wait for head office. */
   can: { request: boolean; clear: boolean; issue: boolean; skipAccounts: boolean; revoke?: boolean; headOffice?: boolean }
@@ -58,6 +60,21 @@ export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
   }
 
   const isIssue = list === 'issue'
+  // the rows shown that can be issued now, by this person: "Issue all ready"
+  const issuable = d.rows.filter((r) => r.requestId && r.courseComplete && !r.blockers.length && (!r.byHeadOffice || can.headOffice)
+    && ((r.stage === 'approved' && can.issue) || (r.stage === 'waiting' && can.skipAccounts && r.balance <= 0)))
+  const issueAll = () => {
+    if (!confirm(`Issue ${issuable.length} certificate${issuable.length === 1 ? '' : 's'} now? Each student is told by e-mail.`)) return
+    setBusy('all')
+    start(async () => {
+      const res = await issueCertificatesAction(issuable.map((r) => r.requestId!))
+      setBusy(null)
+      if (!res.ok) return notify(res.error ?? 'Could not issue')
+      const { issued, failed } = res.data!
+      notify(`${issued.length} certificate${issued.length === 1 ? '' : 's'} issued${failed.length ? `; ${failed.length} not: ${failed.slice(0, 3).map((f) => `${f.name} (${f.reason})`).join('; ')}` : ''}`)
+      router.refresh()
+    })
+  }
   const chips: [string, string, number][] = isIssue
     ? [['', 'All', d.total], ['ready', 'Ready to issue', d.counts.ready], ['issued', 'Issued', d.counts.issued], ['revoked', 'Revoked', d.counts.revoked]]
     : [['', 'All', d.total], ['none', 'Not requested', d.counts.none], ['waiting', 'Waiting for accounts', d.counts.waiting], ['approved', 'Approved by accounts', d.counts.approved], ['issued', 'Issued', d.counts.issued], ['rejected', 'Rejected', d.counts.rejected]]
@@ -107,6 +124,8 @@ export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
         <div className="col-controls">
           <form onSubmit={(e) => { e.preventDefault(); go({ q }) }}><label>Search<span className="cd-search"><Search size={15} /><input value={q} placeholder="Name, phone or registration no." onChange={(e) => setQ(e.target.value)} /></span></label></form>
           <label>Fees<select value={filters.fee} onChange={(e) => go({ fee: e.target.value })}><option value="">All</option><option value="clear">Fees clear</option><option value="due">Fees due</option></select></label>
+          {!!batches.length && <label>Batch<select value={filters.batch} onChange={(e) => go({ batch: e.target.value })}><option value="">All students</option>{batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></label>}
+          {isIssue && issuable.length > 1 && <button type="button" className="button primary" style={{ alignSelf: 'end' }} disabled={pending} onClick={issueAll}><FileBadge size={15} /> {busy === 'all' ? 'Issuing…' : `Issue all ready (${issuable.length})`}</button>}
         </div>
       </div>
 

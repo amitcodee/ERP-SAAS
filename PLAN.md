@@ -387,7 +387,7 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
 4. [ ] **Big institutes.**
    - Regions / zones above branches (a zonal manager sees the branches of their zone).
    - [x] Bulk: add staff, students and enquiries from a spreadsheet at any time (Setup → Import, part 7).
-   - Bulk certificate issue for a batch.
+   - [x] Bulk certificate issue for a batch (part 8).
    - Approval rules per institute (discount above X% needs head office), audit and exports per branch.
 0. [x] **The platform approves institutes; a short trial; closed until paid; activation by hand** (owner's request,
    2026-10-22).

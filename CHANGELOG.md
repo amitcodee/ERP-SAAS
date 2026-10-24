@@ -2,6 +2,14 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 8): a batch's certificates at once (2026-10-24)
+
+- **Issue Certificate → Batch** narrows the list (and Certificate Requests) to one batch's students; **Issue all ready
+  (N)** issues every certificate shown that can be issued now, each with the usual checks (fees, attendance, capstone,
+  a franchise's certificates by head office). One that fails is named with its reason and the rest are issued; each
+  student is told by e-mail / WhatsApp as with a single issue.
+- Checks in `scripts/certificate-test.ts`.
+
 ## Phase 6 (part 7): import from a spreadsheet, any time (2026-10-24)
 
 - **Setup → Import** (also Set Up's "Existing students" step): students, enquiries or staff of a branch from an Excel /

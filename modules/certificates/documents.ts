@@ -27,12 +27,19 @@ export type CertDeskRow = {
   byHeadOffice: boolean
   blockers: string[] // what still stops the certificate being issued (fees, attendance, capstone, course not finished)
 }
+/** The batches whose students the desk can be narrowed to (newest first). */
+export async function deskBatches(tx: Tx, branchId: string | null): Promise<{ id: string; name: string }[]> {
+  return (await tx.execute<{ id: string; name: string }>(sql`
+    select b.id, b.name || coalesce(' · ' || c.title, '') as name from batches b left join courses c on c.id = b.course_id
+    where (${branchId}::uuid is null or b.branch_id = ${branchId}::uuid) and exists (select 1 from batch_members m where m.batch_id = b.id)
+    order by b.created_at desc limit 200`)).rows
+}
 export type CertDesk = { rows: CertDeskRow[]; total: number; counts: Record<CertStage | 'due' | 'clear' | 'ready' | 'thisMonth' | 'nextMonth' | 'all', number> }
 
 const inr = (paise: number) => '₹' + (paise / 100).toLocaleString('en-IN')
 const LIMIT = 300
 
-export async function certificateDesk(tx: Tx, actor: Actor, q: { list: 'requests' | 'issue'; q?: string; stage?: string; fee?: string; period?: string; today: string; branchId: string | null }): Promise<CertDesk> {
+export async function certificateDesk(tx: Tx, actor: Actor, q: { list: 'requests' | 'issue'; q?: string; stage?: string; fee?: string; period?: string; batch?: string; today: string; branchId: string | null }): Promise<CertDesk> {
   assertCan(actor, 'read', 'certificate')
   const b = q.branchId
   const term = q.q?.trim()
@@ -51,6 +58,8 @@ export async function certificateDesk(tx: Tx, actor: Actor, q: { list: 'requests
     sql`(${b}::uuid is null or r.branch_id = ${b}::uuid)`,
     sql`r.status in ('active', 'completed', 'on_hold')`,
   ]
+  // one batch's students (a batch's certificates at once)
+  if (q.batch && /^[0-9a-f-]{36}$/i.test(q.batch)) where.push(sql`exists (select 1 from batch_members bm where bm.registration_id = r.id and bm.batch_id = ${q.batch}::uuid)`)
   if (like) where.push(sql`(p.first_name || ' ' || coalesce(p.last_name, '') ilike ${like} or p.phone ilike ${like} or r.reg_no ilike ${like})`)
   if (q.list === 'issue') where.push(sql`(${stageSql} in ('issued', 'revoked') or (${stageSql} = 'approved' and ${complete}))`)
   // the course-completion tabs: courses ending this calendar month, next month, or all

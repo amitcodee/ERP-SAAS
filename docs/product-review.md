@@ -60,5 +60,5 @@ and issue their certificates.
 
 ## 6. Big institutes
 
-**Done (part 7):** import students, enquiries and staff from a spreadsheet at any time (Setup → Import). **Next:** bulk
-certificate issue for a batch, approval rules for big discounts, zones above branches.
+**Done (part 7):** import students, enquiries and staff from a spreadsheet at any time (Setup → Import). **Done (part 8):** a
+batch's certificates issued at once. **Next:** approval rules for big discounts, zones above branches.

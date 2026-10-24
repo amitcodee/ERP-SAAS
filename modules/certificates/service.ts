@@ -153,6 +153,35 @@ export async function approveCertificate(tx: Tx, actor: Actor, requestId: string
   return cert
 }
 
+export type BulkIssue = { issued: { requestId: string; certNo: string }[]; failed: { requestId: string; name: string; reason: string }[] }
+
+/**
+ * Issues several certificates at once (Issue Certificate → "Issue all ready", e.g. a whole batch): each request on its
+ * own, with every check of a single issue; one that cannot be issued is listed with its reason and the rest go on.
+ */
+export async function issueCertificates(tx: Tx, actor: Actor, requestIds: string[]): Promise<BulkIssue> {
+  assertCan(actor, 'approve', 'certificate')
+  const ids = [...new Set(requestIds)]
+  if (!ids.length) throw new Error('Nothing to issue')
+  if (ids.length > 200) throw new Error('Issue at most 200 at a time')
+  const out: BulkIssue = { issued: [], failed: [] }
+  for (const id of ids) {
+    await tx.execute(sql`savepoint bulk_issue`)
+    try {
+      const c = await approveCertificate(tx, actor, id)
+      await tx.execute(sql`release savepoint bulk_issue`)
+      out.issued.push({ requestId: id, certNo: c.certNo })
+    } catch (e) {
+      await tx.execute(sql`rollback to savepoint bulk_issue`)
+      const [who] = (await tx.execute<{ name: string }>(sql`select trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name
+        from certificate_requests q join registrations r on r.id = q.registration_id join persons p on p.id = r.person_id where q.id = ${id}`)).rows
+      out.failed.push({ requestId: id, name: who?.name ?? 'Unknown request', reason: e instanceof Error ? e.message : String(e) })
+    }
+  }
+  await audit(tx, actor, { action: 'issue_bulk', entity: 'certificate', entityId: out.issued[0]?.requestId ?? ids[0], after: { issued: out.issued.length, failed: out.failed.length } })
+  return out
+}
+
 export async function rejectCertificate(tx: Tx, actor: Actor, requestId: string, reason: string) {
   assertCan(actor, 'approve', 'certificate')
   if (!reason.trim()) throw new Error('A reason is required')
