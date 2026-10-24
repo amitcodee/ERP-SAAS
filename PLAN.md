@@ -278,7 +278,7 @@ The inventory (138 places in 9 groups) was made on 2026-10-19. Its notes are kep
 3. Online fee payment:
    - [x] a Razorpay Payment Link on the amount due now, from the student portal (the institute's own account);
    - [x] auto-reconciliation into the ledger and receipt (return and webhook, recorded once);
-   - [ ] a payment link the office sends by WhatsApp / e-mail; optional partial payments and a convenience fee.
+   - [x] a payment link the office sends by WhatsApp / e-mail, for any part of the balance. [ ] A convenience fee.
 4. Parent / guardian portal: [x] a private parent link (attendance, fees with Pay online, marks), sent by WhatsApp;
    [ ] the student sharing it from their own portal; a parent with several children on one page.
 5. Exams and results:

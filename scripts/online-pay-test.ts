@@ -3,10 +3,10 @@
 import { eq, sql } from 'drizzle-orm'
 import { db, pool } from '../lib/db/client'
 import { branches, departments, feePaymentLinks, payments, users } from '../lib/db/schema'
-import { applyTenant, type Actor } from '../lib/db/withTenant'
+import { applyTenant, type Actor, type Tx } from '../lib/db/withTenant'
 import { SAMPLE_ORG_ID as ORG } from '../lib/db/schema/tenancy'
 import { fakePaidSig } from '../modules/billing/providers'
-import { completeFeePaymentIn, dueNow, verifyFeeReturn } from '../modules/fees/online'
+import { completeFeePaymentIn, dueNow, feeReturnUrl, linkAmount, verifyFeeReturn } from '../modules/fees/online'
 import { getBalance, listReceipts } from '../modules/fees/service'
 import { MIN_FIRST_PAYMENT } from '../modules/fees/plan'
 import { createRegistration } from '../modules/registrations/service'
@@ -14,6 +14,11 @@ import { createRegistration } from '../modules/registrations/service'
 class Rollback extends Error {}
 let failed = 0
 const check = (n: string, ok: boolean, x = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${n}${x ? ' - ' + x : ''}`); if (!ok) failed++ }
+async function throws(tx: Tx, name: string, fn: () => Promise<unknown>, match?: RegExp) {
+  await tx.execute(sql`savepoint sp`)
+  try { await fn(); check(name, false, 'expected error') }
+  catch (e) { await tx.execute(sql`rollback to savepoint sp`); check(name, !match || match.test(String(e)), String(e).slice(0, 100)) }
+}
 
 async function main() {
   try {
@@ -73,6 +78,13 @@ async function main() {
       const [l3] = await tx.select().from(feePaymentLinks).where(eq(feePaymentLinks.id, dup.id))
       check('a provider payment already recorded is not recorded again', r3.already === true && r3.receiptNo === done.receiptNo && l3.status === 'pending' && (await getBalance(tx, reg.id)).balance === 2000000, JSON.stringify(r3))
 
+      // a payment link the office sends: any part of the balance
+      const left = (await getBalance(tx, reg.id)).balance
+      check('the office may ask for part of the balance', left > 50000 && (await linkAmount(tx, reg.id, 50000)) === 50000)
+      await throws(tx, '… but not more than is due', () => linkAmount(tx, reg.id, left + 100), /is due/)
+      await throws(tx, '… nor less than ₹1', () => linkAmount(tx, reg.id, 50), /at least ₹1/)
+      check('without an amount it asks what is due now', (await linkAmount(tx, reg.id)) === (await dueNow(tx, reg.id)))
+      check('the way back from an office link keeps its own question mark right', feeReturnUrl('/p/done?via=office', 'paid', 'R/1') === '/p/done?via=office&payment=paid&receipt=R%2F1' && feeReturnUrl('/', 'failed') === '/?tab=fees&payment=failed')
       throw new Rollback()
     })
   } catch (e) {

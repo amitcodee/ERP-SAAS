@@ -45,6 +45,24 @@ export async function dueNow(tx: Tx, registrationId: string): Promise<number> {
   return amount
 }
 
+/** What a payment page asks for: what is due now, or (the office) the amount given, up to the balance. */
+export async function linkAmount(tx: Tx, registrationId: string, asked?: number | null): Promise<number> {
+  if (asked != null) {
+    const { balance } = await getBalance(tx, registrationId)
+    if (!Number.isInteger(asked) || asked < 100) throw new Error('Enter the amount to ask for (at least ₹1)')
+    if (balance <= 0) throw new Error('Nothing is due on these fees')
+    if (asked > balance) throw new Error(`Only ₹${(balance / 100).toLocaleString('en-IN')} is due`)
+    return asked
+  }
+  const amount = await dueNow(tx, registrationId)
+  if (amount <= 0) throw new Error('Nothing is due on your fees')
+  return amount
+}
+
+/** Where the return from a payment page lands: `back` (feeReturnPath) with how it went and the receipt. */
+export const feeReturnUrl = (back: string, status: string, receipt?: string) =>
+  `${back === '/' ? '/?tab=fees&' : `${back}${back.includes('?') ? '&' : '?'}`}payment=${status}${receipt ? `&receipt=${encodeURIComponent(receipt)}` : ''}`
+
 /**
  * Opens a payment page for a student's registration (their own only: the student's RLS shows no other) and returns its
  * address. `origin`: the institute's own address, where the browser comes back to.
@@ -60,7 +78,7 @@ export async function startFeePayment(actor: Actor, registrationId: string, orig
  * Opens the payment page of a registration the caller has already been allowed (the student's own, or the one a
  * parent's link is for). `by`: the user it is recorded for (the student, or whoever made the parent's link).
  */
-export async function openFeePayment(orgId: string, registrationId: string, by: string, origin: string, via: 'student' | 'parent' = 'student'): Promise<{ url: string; amount: number }> {
+export async function openFeePayment(orgId: string, registrationId: string, by: string, origin: string, via: 'student' | 'parent' | 'office' = 'student', opts: { amount?: number | null } = {}): Promise<{ url: string; amount: number }> {
   const provider = await orgProvider(orgId)
   const { config } = await getConfig(orgId, 'payments')
   if (!config.enabled || !provider) throw new Error('Online payment is not available: please pay at your branch office')
@@ -72,8 +90,7 @@ export async function openFeePayment(orgId: string, registrationId: string, by: 
       from registrations r join persons p on p.id = r.person_id left join courses c on c.id = r.course_id where r.id = ${registrationId}`)).rows
     if (!r) throw new Error('Registration not found')
     if (r.status === 'transferred') throw new Error('Your fees are handled at your new branch now')
-    const amount = await dueNow(tx, registrationId)
-    if (amount <= 0) throw new Error('Nothing is due on your fees')
+    const amount = await linkAmount(tx, registrationId, opts.amount)
     const [open] = (await tx.execute<{ id: string; url: string | null }>(sql`
       select id, url from fee_payment_links where registration_id = ${registrationId} and status = 'pending' and amount = ${amount}
         and provider = ${provider.name} and via = ${via} and url is not null and created_at > now() - make_interval(mins => ${REUSE_MINUTES}) order by created_at desc limit 1`)).rows
@@ -98,11 +115,11 @@ export async function openFeePayment(orgId: string, registrationId: string, by: 
 
 export type FeeCompletion = { ok: boolean; already?: boolean; receiptNo?: string; review?: boolean }
 
-/** Where the browser goes back to after a payment page: the student's portal, or the parents' page. */
+/** Where the browser goes back to after a payment page: the student's portal, or the thank-you page (a parent's or office link). */
 export async function feeReturnPath(orgId: string, ref: string | null): Promise<string> {
   if (!ref || !/^[0-9a-f-]{36}$/i.test(ref)) return '/'
   const [l] = (await withOrgSystem(orgId, (tx) => tx.execute<{ via: string }>(sql`select via from fee_payment_links where id = ${ref}`))).rows
-  return l?.via === 'parent' ? '/p/done' : '/'
+  return l?.via === 'parent' ? '/p/done' : l?.via === 'office' ? '/p/done?via=office' : '/'
 }
 
 /**

@@ -1599,6 +1599,46 @@ export async function revokeParentLinkAction(registrationId: string) {
 export async function parentLinkStateAction(registrationId: string) {
   return run(async () => { const { actor } = await getActor(); return withTenant(actor, (tx) => parentLinkState(tx, z.string().uuid().parse(registrationId))) })
 }
+/**
+ * Fees → a student → Payment link: the office makes a payment page for the amount due now (or the amount given, up to
+ * the balance) to send on WhatsApp or by e-mail (`email`: mailed to the student's address here). Whoever takes fees.
+ */
+export async function officePaymentLinkAction(registrationId: string, amount: number | null, email: boolean) {
+  const gate = await branchEmailGate(); if (gate) return gate
+  return run(async () => {
+    const { actor } = await getActor()
+    if (!can(actor, 'create', 'fee')) throw new Error('Forbidden: payment link')
+    const id = z.string().uuid().parse(registrationId)
+    // the office's own rights decide which student it may ask (RLS shows only its branch's)
+    const [r] = await withTenant(actor, async (tx) => (await tx.execute<{ name: string; phone: string | null; email: string | null; branch_id: string }>(sql`
+      select trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name, p.phone, p.email, r.branch_id from registrations r join persons p on p.id = r.person_id where r.id = ${id}`)).rows)
+    if (!r) throw new Error('Registration not found')
+    const origin = await appOrigin(actor.orgId)
+    const opened = await openFeePayment(actor.orgId, id, actor.userId, origin, 'office', { amount })
+    // a link sent in a message must work on its own: a page of this institute's address is made absolute
+    const link = { ...opened, url: new URL(opened.url, origin).href }
+    let emailed: string | null = null
+    if (email) {
+      if (!r.email) throw new Error('No e-mail address is on record for this student')
+      const mail = await providerFor(actor.orgId, 'email', r.branch_id)
+      if (!mail) throw new Error('E-mail is not set up: send the link on WhatsApp instead')
+      const { name: institute } = await orgBrand(actor.orgId)
+      const amt = `₹${(link.amount / 100).toLocaleString('en-IN')}`
+      const sent = await mail.send({ channel: 'email', to: r.email, template: 'fee_payment_link', subject: `${institute}: pay your fees online (${amt})`,
+        body: `Dear ${r.name},
+
+You can pay ${amt} of your fees online here: ${link.url}
+
+The receipt is made as soon as it is paid.
+
+- ${institute}` })
+      if (!sent.ok) throw new Error(`The link was made but could not be e-mailed: ${sent.error}`)
+      emailed = r.email
+    }
+    await withTenant(actor, (tx) => audit(tx, actor, { action: 'payment_link', entity: 'registration', entityId: id, after: { amount: link.amount, emailed: !!emailed } }))
+    return { url: link.url, amount: link.amount, name: r.name, phone: r.phone, emailed }
+  })
+}
 /** A parent's Pay online, from their link: the link is the permission (the institute is the one of this address). */
 export async function payAsParentAction(token: string) {
   return run(async () => {

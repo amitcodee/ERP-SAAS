@@ -862,6 +862,13 @@
       "when": 1794723200000,
       "tag": "0122_franchise_custom_fee_range",
       "breakpoints": true
+    },
+    {
+      "idx": 123,
+      "version": "7",
+      "when": 1794809600000,
+      "tag": "0123_office_payment_links",
+      "breakpoints": true
     }
   ]
 }

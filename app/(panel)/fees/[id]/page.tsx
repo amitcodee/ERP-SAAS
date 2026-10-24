@@ -5,6 +5,7 @@ import { withTenant } from '@/lib/db/withTenant'
 import { loadPanelBase } from '@/lib/panel/base'
 import { cachedCatalogs } from '@/modules/catalog/service'
 import { mayFixFees, studentFees } from '@/modules/fees/service'
+import { onlinePaymentsOn } from '@/modules/fees/online'
 
 // One student's fees on a page of its own (opened from the registrations table and the fees table).
 // Whoever collects fees (admissions) works them here; accounts checks them and raises remarks for them to fix.
@@ -20,5 +21,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     d: d.fees, paymentModes: d.catalogs.paymentModes, backHref: accounts ? '/fees' : '/registrations',
     canCollect: b.ok('create', 'fee'), canEdit: b.ok('update', 'fee'), canRemark: b.ok('clear', 'fee'), canFix: mayFixFees(b.actor), canDiscount: b.ok('create', 'fee') || b.ok('update', 'fee') || b.ok('approve', 'fee'), canReverse: b.ok('approve', 'fee'),
     canRequest: b.ok('update', 'registration') || b.ok('create', 'registration'),
+    canLink: b.ok('create', 'fee') && await onlinePaymentsOn(b.actor.orgId),
   }} />
 }

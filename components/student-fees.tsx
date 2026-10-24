@@ -4,8 +4,8 @@
 // and raises remarks for them to fix.
 import { useState, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Banknote, CalendarRange, CircleDollarSign, FilePenLine, History, IdCard, LayoutList, MessageSquareWarning, Paperclip, Percent, ReceiptText, Send, SlidersHorizontal, Undo2, FileImage, Printer, X } from 'lucide-react'
-import { decideFeeChangeAction, requestFeeChangeAction, reversePaymentAction } from '@/app/actions'
+import { ArrowLeft, Banknote, Link2, Copy, CalendarRange, CircleDollarSign, FilePenLine, History, IdCard, LayoutList, MessageSquareWarning, Paperclip, Percent, ReceiptText, Send, SlidersHorizontal, Undo2, FileImage, Printer, X } from 'lucide-react'
+import { decideFeeChangeAction, officePaymentLinkAction, requestFeeChangeAction, reversePaymentAction } from '@/app/actions'
 import { Err, Modal, OnPage } from '@/components/modal'
 import { FeePlanEditor, newPlanState, planPayload, planStateProblem, type PlanState } from '@/components/fee-plan-editor'
 import { FeeRemarks, RaiseRemarkForm } from '@/components/fee-remarks'
@@ -27,7 +27,7 @@ const fmtTime = (d: string) => new Date(d).toLocaleString('en-IN', { day: 'numer
 const REQ: Record<string, [string, string]> = { pending: ['Waiting with accounts', 'status-amber'], approved: ['Approved', 'status-green'], rejected: ['Rejected', 'status-red'] }
 const REG: Record<string, string> = { active: 'Active', on_hold: 'On hold', discontinued: 'Discontinued', completed: 'Completed' }
 
-export function StudentFeesPage({ d, paymentModes, canCollect, canEdit = canCollect, canDiscount, canRequest, canReverse = false, canRemark = false, canFix = false, backHref, notify }: {
+export function StudentFeesPage({ d, paymentModes, canCollect, canEdit = canCollect, canDiscount, canRequest, canReverse = false, canRemark = false, canFix = false, canLink = false, backHref, notify }: {
   d: StudentFees
   paymentModes: { id: string; value: string }[]
   /** Takes payments (admissions). */
@@ -43,6 +43,8 @@ export function StudentFeesPage({ d, paymentModes, canCollect, canEdit = canColl
   canRemark?: boolean
   /** Fixes accounts' remarks (whoever collects fees). */
   canFix?: boolean
+  /** Sends a payment link (whoever collects fees, when online payment is on). */
+  canLink?: boolean
   backHref: string
   notify: (m: string) => void
 }) {
@@ -52,7 +54,7 @@ export function StudentFeesPage({ d, paymentModes, canCollect, canEdit = canColl
   const history = d.ledger.map((l, k) => ({ ...l, balance: d.ledger.slice(0, k + 1).reduce((sum, x) => sum + x.amount, 0) }))
   // The page is worked through tabs (also reachable as /fees/<id>?tab=pay): nothing opens in a pop-up.
   const tabs = ([
-    ['overview', 'Overview', LayoutList, true], ['pay', 'Record payment', CircleDollarSign, canCollect], ['plan', 'Payment plan', CalendarRange, canEdit],
+    ['overview', 'Overview', LayoutList, true], ['pay', 'Record payment', CircleDollarSign, canCollect], ['link', 'Payment link', Link2, canLink && r.balance > 0], ['plan', 'Payment plan', CalendarRange, canEdit],
     ['total', 'Change total fees', FilePenLine, canEdit], ['discount', 'Discount', Percent, canDiscount], ['request', 'Request fee update', Send, !canEdit && canRequest],
     ['remark', 'Raise a remark', MessageSquareWarning, canRemark], ['history', 'Receipts and history', History, true],
   ] as const).filter((t) => t[3])
@@ -131,6 +133,12 @@ export function StudentFeesPage({ d, paymentModes, canCollect, canEdit = canColl
         <div className="panel">
           <div className="panel-header"><div><h2>Record payment</h2><span>Outstanding <strong>{inr(Math.max(r.balance, 0))}</strong>. Choose how the money came in: what to fill in and the kind of receipt follow from it.</span></div></div>
           <PaymentForm key={ver} row={r} modes={paymentModes} enrolledOn={d.enrollmentDate} onDone={paid} />
+        </div>
+      )}
+      {tab === 'link' && (
+        <div className="panel">
+          <div className="panel-header"><div><h2>Payment link</h2><span>A page where the student (or whoever pays) pays online; the receipt is made by itself. Send it on WhatsApp or by e-mail.</span></div></div>
+          <PaymentLink key={ver} registrationId={r.registrationId} balance={r.balance} due={r.nextDue ? Math.min(r.nextDueAmount ?? r.balance, r.balance) : r.balance} notify={notify} />
         </div>
       )}
       {tab === 'plan' && (
@@ -422,5 +430,43 @@ function ReceiptPreview({ r, show, name, onClose }: { r: StudentFees['receipts']
       </div>
     </div>
     </OnPage>
+  )
+}
+
+/** Fees → Payment link: the amount (the next installment, or any part of the balance), then the link to send. */
+function PaymentLink({ registrationId, balance, due, notify }: { registrationId: string; balance: number; due: number; notify: (m: string) => void }) {
+  const [amount, setAmount] = useState(String(due / 100))
+  const [made, setMade] = useState<{ url: string; amount: number; name: string; phone: string | null; emailed: string | null } | null>(null)
+  const [error, setError] = useState('')
+  const [pending, start] = useTransition()
+  const make = (email: boolean) => start(async () => {
+    const paise = Math.round(Number(amount) * 100)
+    if (!paise || paise < 100) return setError('Enter the amount to ask for')
+    const res = await officePaymentLinkAction(registrationId, paise, email)
+    if (!res.ok) return setError(res.error)
+    setError(''); setMade(res.data!)
+    if (res.data!.emailed) notify(`Payment link e-mailed to ${res.data!.emailed}`)
+  })
+  const phone = made?.phone?.replace(/\D/g, '').replace(/^(?:91)?(\d{10})$/, '91$1') ?? ''
+  const text = made ? `Dear ${made.name}, you can pay ${inr(made.amount)} of your fees online here: ${made.url}` : ''
+  return (
+    <div style={{ display: 'grid', gap: 12, maxWidth: 560 }}>
+      <label className="full-label">Amount to ask for (₹)<input type="number" min={1} step="0.01" max={balance / 100} value={amount} onChange={(e) => { setAmount(e.target.value); setMade(null) }} /></label>
+      <small className="section-hint">Balance {inr(balance)}. The next installment is filled in; ask for any part of the balance.</small>
+      <Err msg={error} />
+      {!made ? (
+        <div className="fee-action-row">
+          <button type="button" className="button primary" disabled={pending} onClick={() => make(false)}><Link2 size={15} /> {pending ? 'Making…' : 'Make the link'}</button>
+          <button type="button" className="button secondary" disabled={pending} onClick={() => make(true)}><Send size={15} /> Make and e-mail it</button>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input readOnly value={made.url} aria-label="Payment link" style={{ flex: 1 }} onFocus={(e) => e.currentTarget.select()} />
+            <button type="button" className="filter-button icon-only" title="Copy" aria-label="Copy the link" onClick={() => { void navigator.clipboard?.writeText(made.url); notify('Link copied') }}><Copy size={15} /></button></div>
+          <a className="button primary" href={`https://wa.me/${phone}?text=${encodeURIComponent(text)}`} target="_blank" rel="noreferrer">Send on WhatsApp</a>
+          {made.emailed && <small className="section-hint">E-mailed to {made.emailed}.</small>}
+        </div>
+      )}
+    </div>
   )
 }

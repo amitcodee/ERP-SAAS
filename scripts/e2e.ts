@@ -535,6 +535,27 @@ async function main() {
       receiptHref = (await cp.locator('.pay-done a[href^="/receipts/"]').first().getAttribute('href'))!
     }, cp)
 
+    await ok('a payment link from the student’s fees: any part of the balance, ready to send on WhatsApp', async () => {
+      const onlinePay = async (on: boolean) => {
+        await sp.goto(`${BASE}/settings?tab=payments`, { waitUntil: 'networkidle' })
+        const sw = sp.getByRole('switch', { name: 'Students can pay online' })
+        if ((await sw.getAttribute('aria-checked')) !== String(on)) await sw.click()
+        await sp.getByRole('button', { name: 'Save online payments' }).click(); await toast(sp, /saved/i)
+      }
+      await onlinePay(true)
+      try {
+        await go(cp, 'Fees')
+        await cp.locator('tr', { hasText: regNo }).getByRole('link', { name: /^View fees of / }).click()
+        await cp.getByRole('tab', { name: 'Payment link' }).click()
+        await cp.getByLabel('Amount to ask for (₹)').fill('2000')
+        await cp.getByRole('button', { name: 'Make the link' }).click()
+        const url = await cp.getByLabel('Payment link').inputValue()
+        if (!/^https?:\/\//.test(url)) throw new Error(`no payment link: ${url}`)
+        const wa = await cp.getByRole('link', { name: 'Send on WhatsApp' }).getAttribute('href')
+        if (!wa?.includes(encodeURIComponent('₹2,000'))) throw new Error(`the WhatsApp message lacks the amount: ${wa}`)
+      } finally { await onlinePay(false) }
+    }, cp)
+
     await ok('receipt prints with amount in words, balance and a QR code', async () => {
       const rp = await ap.context().newPage(); await rp.goto(`${BASE}${receiptHref}`, { waitUntil: 'networkidle' })
       await expectText(rp, 'FEE RECEIPT'); await expectText(rp, /Five Thousand Only/); await expectText(rp, '₹15,000')
@@ -966,7 +987,8 @@ Nobody ${RUN},nobody.${RUN}@e2e.test,Wizard
       }, w)
       await ok('Certificate designs offers the templates (course, internship, merit…) in the institute’s colour', async () => {
         await w.goto(`${IBASE}/certificate-designs`); await expectText(w, 'Internship'); await expectText(w, 'Merit — quiz toppers')
-        if (!(await w.locator('.dp-thumb svg [fill="#0e7c66"]').count())) throw new Error('the templates are not in the institute’s colour')
+        // the thumbnails draw once the page is live: wait for one in the institute's colour
+        await w.locator('.dp-thumb svg [fill="#0e7c66"]').first().waitFor({ state: 'attached', timeout: 20000 }).catch(() => { throw new Error('the templates are not in the institute’s colour') })
         await w.getByRole('link', { name: /Internship/ }).first().click(); await expectText(w, 'Templates')
       }, w)
       await ctx.close()

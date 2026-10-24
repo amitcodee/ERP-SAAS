@@ -186,7 +186,7 @@ export const feePaymentLinks = pgTable(
     providerPaymentId: text('provider_payment_id'),
     paymentId: uuid('payment_id'),
     note: text('note'),
-    via: text('via').notNull().default('student'), // student | parent (their link): where the browser goes back to
+    via: text('via').notNull().default('student'), // student | parent (their link) | office (sent by the office): where the browser goes back to
     createdBy: uuid('created_by').references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp('paid_at', { withTimezone: true }),
@@ -196,6 +196,6 @@ export const feePaymentLinks = pgTable(
     uniqueIndex('fee_payment_links_provider_payment_uq').on(t.orgId, t.providerPaymentId).where(sql`provider_payment_id IS NOT NULL`),
     check('fee_payment_links_status_ck', sql`status IN ('pending', 'paid', 'review', 'expired')`),
     check('fee_payment_links_amount_ck', sql`amount > 0`),
-    check('fee_payment_links_via_ck', sql`via IN ('student', 'parent')`),
+    check('fee_payment_links_via_ck', sql`via IN ('student', 'parent', 'office')`),
   ],
 )

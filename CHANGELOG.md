@@ -2,6 +2,18 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 4 (3, the rest): a payment link the office sends (2026-10-24)
+
+- **Fees → a student → Payment link** (whoever takes fees, when online payment is on): a payment page for the next
+  installment or any part of the balance, copied, sent on WhatsApp (to the student's number) or e-mailed from the
+  branch's mailbox. The payment is recorded with its receipt by itself, as for the portal's Pay online; whoever pays
+  lands on a thank-you page naming the receipt. Migration 0123 (`fee_payment_links.via` may be `office`).
+- Fix: the way back from a payment page with a question mark of its own now builds a correct address; a link sent in a
+  message is always a full address (the test provider gave a relative one).
+- e2e: switches online payment on, makes a ₹2,000 link from a student's fees and checks the WhatsApp message; the
+  certificate-template colour check waits for the thumbnails to draw.
+- Checks in `scripts/online-pay-test.ts`. Not done: a convenience fee on top.
+
 ## Phase 6 (part 11): customised courses at franchises; a new institute's brand checked end to end (2026-10-24)
 
 - **Franchises → Course fees at franchises** has a "Customised course" line per department: the lowest and highest a
