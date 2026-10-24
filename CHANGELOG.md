@@ -2,6 +2,24 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 10): zones above branches (2026-10-24)
+
+- **Branches → Zones** (head office, once there are two branches): name zones (regions), put branches in them, and
+  give each zone its managers. A zonal manager keeps their own login and home branch and works in every branch of the
+  zone with full access, as their role allows (picked from the sidebar like any shared branch). Taking a branch out,
+  the manager off, or deleting the zone removes only what the zone gave; a branch head office had shared with them by
+  hand keeps the access it had. Migration 0121 (`zones`, `zone_managers`, `branches.zone_id`, `user_branches.via_zone`).
+- `scripts/zones-test.ts` (in `test:all`); e2e adds a zone and a branch to it.
+
+## Phase 6 (part 9): big discounts approved by head office (2026-10-24)
+
+- **Settings → Business rules → "Discount: above this % of the fee, head office approves it"** (100 = never, the
+  default, so nothing changes until an institute sets it). A discount above it from anyone but head office is not
+  given at once: it goes to head office as a request on Fees ("Above the discount limit: head office decides"), and
+  accounts cannot decide it. Cutting the total fees that far is refused too (give it as a discount instead). Head
+  office's own discounts are not held. Migration 0120.
+- Checks in `scripts/fees-test.ts`; e2e sees the rule.
+
 ## Phase 6 (part 8): a batch's certificates at once (2026-10-24)
 
 - **Issue Certificate → Batch** narrows the list (and Certificate Requests) to one batch's students; **Issue all ready

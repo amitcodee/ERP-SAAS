@@ -71,7 +71,8 @@ async function main() {
     check('append-only and immutable tables cannot be changed or emptied by the app', !open.length, open.map((r) => `${r.t}${r.u ? ' UPDATE' : ''}${r.d ? ' DELETE' : ''}`).join(', '))
     const wide = (await pool.query<{ n: number }>(`select count(*)::int n from pg_class c join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'public' and c.relkind in ('r','p') and has_table_privilege('techcadd_app', c.oid, 'DELETE')`)).rows[0].n
     // 21: org_domains joined (0094): removing a custom domain removes its row
-    check('DELETE is granted on few tables (where the code removes rows)', wide <= 21, `${wide} tables`)
+    // 23: zones and zone_managers (0121): deleting a zone, taking a manager off
+    check('DELETE is granted on few tables (where the code removes rows)', wide <= 23, `${wide} tables`)
     console.log(`(${code.size} tables, ${[...code.values()].reduce((n, c) => n + c.columns.length, 0)} columns)`)
   } catch (e) { console.error(e); failed++ }
   await pool.end()

@@ -887,6 +887,7 @@ async function main() {
         await w.getByRole('switch', { name: 'Take admission forms online' }).click()
         await w.getByRole('button', { name: 'Save admission form' }).click(); await toast(w, 'Admission form saved')
         await expectText(w, `${IBASE}/apply/embed.js`)
+        await w.goto(`${IBASE}/settings?tab=rules`); await expectText(w, 'head office approves it')
       }, w)
       const vctx = await browser.newContext(); const v = await vctx.newPage(); v.setDefaultTimeout(20000)
       const fillForm = async (f: Page | ReturnType<Page['frameLocator']>, name: string, phone: string) => {
@@ -924,6 +925,14 @@ async function main() {
         await m.getByRole('button', { name: 'Save' }).click(); await toast(w, 'It is a franchise now')
         await w.goto(`${IBASE}/franchises`); await expectText(w, `Bright Skills ${RUN} LLP`); await expectText(w, '10% of fees received'); await expectText(w, 'Course fees at franchises')
         await expectText(w, 'Certificates: head office issues')
+      }, w)
+      await ok('Branches → Zones: a zone with a branch in it', async () => {
+        await w.goto(`${IBASE}/branches`, { waitUntil: 'networkidle' }); await expectText(w, 'Zones')
+        const zoneName = w.getByLabel('New zone name'), addZone = w.getByRole('button', { name: 'Add zone' })
+        // typed again until the page has taken it (the panel loads after the list)
+        for (let i = 0; i < 10 && !(await addZone.isEnabled()); i++) { await zoneName.fill(''); await zoneName.pressSequentially(`North ${RUN}`); await w.waitForTimeout(300) }
+        await addZone.click(); await toast(w, `Zone North ${RUN} added`)
+        await w.getByLabel(`Add a branch to North ${RUN}`).selectOption({ index: 1 }); await toast(w, `is in North ${RUN}`)
       }, w)
       await ok('Import: a staff list from a spreadsheet, checked first, then added with their logins', async () => {
         await w.goto(`${IBASE}/import`); await expectText(w, 'Import from a spreadsheet')

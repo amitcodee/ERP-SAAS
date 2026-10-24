@@ -4,8 +4,9 @@ import { db, pool } from '../lib/db/client'
 import { branches, departments, lookups, users } from '../lib/db/schema'
 import { applyTenant, type Actor, type Tx } from '../lib/db/withTenant'
 import { rupeesInWords } from '../lib/money'
-import { applyDiscount, fixFeeRemark, getBalance, getReceipt, listFees, listOpenFeeRemarks, listReceipts, raiseFeeRemark, recordPayment, reversePayment, verifyReceiptIn } from '../modules/fees/service'
+import { applyDiscount, changeTotalFee, decideFeeChange, discountOrAsk, fixFeeRemark, getBalance, getReceipt, listFees, listOpenFeeRemarks, listReceipts, raiseFeeRemark, recordPayment, reversePayment, verifyReceiptIn } from '../modules/fees/service'
 import { createRegistration } from '../modules/registrations/service'
+import { updateRule } from '../modules/settings/service'
 import { SAMPLE_ORG_ID as ORG } from '../lib/db/schema/tenancy'
 
 class Rollback extends Error {}
@@ -122,6 +123,27 @@ async function main() {
       await applyTenant(tx, acctB)
       check('branch B accountant sees no fee rows of branch A', (await listFees(tx, acctB)).length === 0)
       await throws(tx, 'branch B cannot pay branch A registration', () => recordPayment(tx, counselorB, { registrationId: reg.id, amount: 1, modeId: cash.id }), /not found/)
+      // ---- a discount above the institute's limit waits for head office ----
+      const head: Actor = { ...counselor, role: 'super_admin', branchId: null }
+      await tx.execute(sql`reset role`); await applyTenant(tx, head)
+      await updateRule(tx, head, 'discount.head_office_pct', 20)
+      await tx.execute(sql`reset role`); await applyTenant(tx, counselor)
+      const big = await createRegistration(tx, counselor, { person: { firstName: 'Big Discount', phone: '9855500091' }, departmentId: dept.id, totalFee: 1000000, enrollmentDate: '2026-10-01' })
+      const small = await discountOrAsk(tx, counselor, { registrationId: big.id, amount: 100000, reason: 'early bird' })
+      check('within the limit (10% of ₹10,000): given at once', 'balance' in small && small.balance === 900000)
+      await throws(tx, 'above it, a discount cannot be given straight away', () => applyDiscount(tx, counselor, { registrationId: big.id, amount: 300000, reason: 'hardship' }), /approved by head office/)
+      await throws(tx, '… nor the total fees cut that far by accounts', () => changeTotalFee(tx, acct, { registrationId: big.id, newTotal: 600000, reason: 'hardship' }), /head office/)
+      const asked = await discountOrAsk(tx, counselor, { registrationId: big.id, amount: 300000, reason: 'hardship' })
+      check('above it (over 20%): sent to head office as a request', 'asked' in asked && asked.limit === 20)
+      check('… nothing is taken off yet', (await getBalance(tx, big.id)).balance === 900000)
+      const reqId = 'asked' in asked ? asked.asked : ''
+      await tx.execute(sql`reset role`); await applyTenant(tx, acct)
+      await throws(tx, 'accounts cannot decide it', () => decideFeeChange(tx, acct, { requestId: reqId, approve: true }), /Head office decides/)
+      await tx.execute(sql`reset role`); await applyTenant(tx, head)
+      await decideFeeChange(tx, head, { requestId: reqId, approve: true })
+      const after = await getBalance(tx, big.id)
+      check('head office approves: the discount is given', after.balance === 600000, JSON.stringify(after))
+      await updateRule(tx, head, 'discount.head_office_pct', 100)
       throw new Rollback()
     })
   } catch (e) {

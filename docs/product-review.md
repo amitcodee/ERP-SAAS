@@ -61,4 +61,4 @@ and issue their certificates.
 ## 6. Big institutes
 
 **Done (part 7):** import students, enquiries and staff from a spreadsheet at any time (Setup → Import). **Done (part 8):** a
-batch's certificates issued at once. **Next:** approval rules for big discounts, zones above branches.
+batch's certificates issued at once. **Done (part 9):** big discounts approved by head office. **Done (part 10):** zones above branches with zonal managers. **Later:** audit and exports per branch.

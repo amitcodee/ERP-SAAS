@@ -1,4 +1,5 @@
 // The ONLY place money is written (P4). Balance is never stored: it is sum(fee_ledger) via v_fee_balance.
+import { ruleValue } from '../settings/service'
 import { assertFranchiseFee } from '../franchise/fees'
 import { emitPayment } from '@/modules/integrations/webhooks'
 import { and, eq, sql, type SQL } from 'drizzle-orm'
@@ -249,6 +250,8 @@ export async function changeTotalFee(tx: Tx, actor: Actor, raw: FeeChangeInput) 
   if (delta === 0) throw new Error('That is already the total fees')
   if (balance + delta < 0) throw new Error(`The student has already paid more than that: the total cannot go below ₹${((current - balance) / 100).toLocaleString('en-IN')}`)
   await assertFranchiseFee(tx, reg.branchId, reg.courseId, input.newTotal)
+  const limit = await overHeadOfficeLimit(tx, actor, current, -delta)
+  if (limit) throw new Error(`A cut of more than ${limit}% of the fee is approved by head office: give it as a discount and it goes to them`)
 
   await tx.insert(feeLedger).values({ branchId: reg.branchId, registrationId: reg.id, entryType: delta > 0 ? 'charge' : 'discount', amount: delta, note: `Total fees changed: ${input.reason}`, createdBy: actor.userId })
   // The fee's parts follow in the same proportion (course fee + GST = total; the list fee is never below it).
@@ -284,15 +287,15 @@ export async function requestFeeChange(tx: Tx, actor: Actor, raw: FeeChangeInput
   return row
 }
 
-export type FeeChangeRequestRow = { id: string; registrationId: string; regNo: string; name: string; currentTotal: number; newTotal: number; plan: FeePlanInput | null; reason: string; requestedBy: string | null; requestedAt: string }
+export type FeeChangeRequestRow = { id: string; registrationId: string; regNo: string; name: string; currentTotal: number; newTotal: number; plan: FeePlanInput | null; reason: string; requestedBy: string | null; requestedAt: string; headOffice: boolean }
 /** Fee changes waiting for accounts, oldest first. */
 export async function listFeeChangeRequests(tx: Tx, actor: Actor): Promise<FeeChangeRequestRow[]> {
   assertCan(actor, 'read', 'fee')
   const res = await tx.execute<Record<string, never>>(sql`
-    select q.id, q.registration_id, r.reg_no, trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name, r.total_fee, q.new_total, q.requested_plan, q.reason, u.name as requested_by, q.requested_at
+    select q.id, q.registration_id, r.reg_no, trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name, r.total_fee, q.new_total, q.requested_plan, q.reason, u.name as requested_by, q.requested_at, q.head_office
     from fee_change_requests q join registrations r on r.id = q.registration_id join persons p on p.id = r.person_id left join users u on u.id = q.requested_by
     where q.status = 'pending' order by q.requested_at desc limit 100`)
-  return res.rows.map((r) => ({ id: r.id, registrationId: r.registration_id, regNo: r.reg_no, name: r.name, currentTotal: r.total_fee, newTotal: r.new_total, plan: r.requested_plan, reason: r.reason, requestedBy: r.requested_by, requestedAt: new Date(r.requested_at).toISOString() }))
+  return res.rows.map((r) => ({ id: r.id, registrationId: r.registration_id, regNo: r.reg_no, name: r.name, currentTotal: r.total_fee, newTotal: r.new_total, plan: r.requested_plan, reason: r.reason, requestedBy: r.requested_by, requestedAt: new Date(r.requested_at).toISOString(), headOffice: !!r.head_office }))
 }
 
 /** Accounts approves (the total fees are then changed) or rejects a request. */
@@ -300,6 +303,7 @@ export async function decideFeeChange(tx: Tx, actor: Actor, raw: { requestId: st
   assertCan(actor, 'update', 'fee')
   const [q] = await tx.select().from(feeChangeRequests).where(eq(feeChangeRequests.id, z.string().uuid().parse(raw.requestId))).for('update')
   if (!q || q.status !== 'pending') throw new Error('This request is no longer waiting')
+  if (q.headOffice && actor.role !== 'super_admin') throw new Error('Head office decides this one: the discount is above the institute’s limit')
   const note = raw.note?.trim().slice(0, 300) || null
   if (!raw.approve && !note) throw new Error('Say why the request is rejected')
   if (raw.approve) {
@@ -460,6 +464,8 @@ export async function applyDiscount(tx: Tx, actor: Actor, raw: DiscountInput) {
   if (input.amount > balance) throw new Error('Discount is more than the outstanding balance')
   await assertFranchiseFee(tx, reg.branchId, reg.courseId, reg.totalFee - input.amount)
   const pct = reg.totalFee > 0 ? (input.amount / reg.totalFee) * 100 : 0
+  const limit = await overHeadOfficeLimit(tx, actor, reg.totalFee, input.amount)
+  if (limit) throw new Error(`A discount of more than ${limit}% of the fee is approved by head office: send it to them`)
 
   await tx.insert(feeLedger).values({ branchId: reg.branchId, registrationId: reg.id, entryType: 'discount', amount: -input.amount, note: input.reason, createdBy: actor.userId })
   // the total fee is after discounts: it comes down too (with its course fee / GST split), the full fee stays as the list fee
@@ -473,6 +479,38 @@ export async function applyDiscount(tx: Tx, actor: Actor, raw: DiscountInput) {
   await settleInstallments(tx, reg, balance - input.amount, 'fee_cut')
   await audit(tx, actor, { action: 'discount', entity: 'registration', entityId: reg.id, after: { amount: input.amount, pct: Math.round(pct * 10) / 10, reason: input.reason } })
   return getBalance(tx, reg.id)
+}
+
+/**
+ * The institute's limit (business rule discount.head_office_pct) when this cut of `total` is above it and the person is
+ * not head office, else null: such a cut waits for head office.
+ */
+async function overHeadOfficeLimit(tx: Tx, actor: Actor, total: number, cut: number): Promise<number | null> {
+  if (actor.role === 'super_admin' || cut <= 0 || total <= 0) return null
+  const limit = await ruleValue(tx, 'discount.head_office_pct')
+  return limit < 100 && (cut / total) * 100 > limit ? limit : null
+}
+
+/**
+ * A discount from the Fees screen: given at once, or, above the institute's limit for someone not at head office, sent to
+ * head office as a request (they approve it from Fees → requests).
+ */
+export async function discountOrAsk(tx: Tx, actor: Actor, raw: DiscountInput): Promise<{ balance: number } | { asked: string; limit: number }> {
+  const input = discountInput.parse(raw)
+  const [reg] = await tx.select().from(registrations).where(eq(registrations.id, input.registrationId))
+  if (!reg) throw new Error('Registration not found')
+  const limit = await overHeadOfficeLimit(tx, actor, reg.totalFee, input.amount)
+  if (!limit) return { balance: (await applyDiscount(tx, actor, input)).balance }
+  if (!can(actor, 'create', 'fee') && !can(actor, 'update', 'fee') && !can(actor, 'approve', 'fee')) throw new Error('Forbidden: discount fee')
+  assertOpenFees(reg)
+  const { balance } = await getBalance(tx, reg.id)
+  if (input.amount > balance) throw new Error('Discount is more than the outstanding balance')
+  await assertFranchiseFee(tx, reg.branchId, reg.courseId, reg.totalFee - input.amount)
+  const [open] = await tx.select({ id: feeChangeRequests.id }).from(feeChangeRequests).where(and(eq(feeChangeRequests.registrationId, reg.id), eq(feeChangeRequests.status, 'pending')))
+  if (open) throw new Error('A fee change for this student is already waiting: it has to be decided first')
+  const [row] = await tx.insert(feeChangeRequests).values({ branchId: reg.branchId, registrationId: reg.id, currentTotal: reg.totalFee, newTotal: reg.totalFee - input.amount, reason: `Discount: ${input.reason}`, requestedBy: actor.userId, headOffice: true }).returning()
+  await audit(tx, actor, { action: 'create', entity: 'fee_change_request', entityId: row.id, after: { registrationId: reg.id, discount: input.amount, headOffice: true } })
+  return { asked: row.id, limit }
 }
 
 export type FeeRow = {

@@ -49,12 +49,13 @@ import { gradesProblem } from '@/lib/grades'
 import { FEATURES } from '@/lib/panel/features'
 import { addDomain, cnameTarget, removeDomain, verifyDomain } from '@/modules/orgs/domains'
 import { setFranchiseFee } from '@/modules/franchise/fees'
+import { addZoneManager, createZone, deleteZone, removeZoneManager, setBranchZone } from '@/modules/branches/zones'
 import { deleteRoyaltyPayment, invitePartner, recordRoyaltyPayment, setFranchise, type FranchiseInput, type RoyaltyPaymentInput } from '@/modules/franchise/service'
 import { addExpense, deleteExpense, type ExpenseInput } from '@/modules/expenses/service'
 import { createParentLink, parentLinkState, parentView, revokeParentLink } from '@/modules/portal/parent'
 import { callFollowUps, createEnquiry, deleteCall, deleteLead, enquiryTimeline, visitSummary, followUpCall, followUpLead, leadRecord, logCall, restoreDeleted, transitionEnquiry, updateCall, updateLead } from '@/modules/enquiries/service'
 import type { CreateEnquiryInput, FollowUpCallInput, FollowUpLeadInput, LogCallInput, TransitionInput, UpdateCallInput, UpdateLeadInput } from '@/modules/enquiries/validators'
-import { applyDiscount, listReceipts, recordPayment, reversePayment, type DiscountInput, type RecordPaymentInput, type ReversalInput } from '@/modules/fees/service'
+import { discountOrAsk, listReceipts, recordPayment, reversePayment, type DiscountInput, type RecordPaymentInput, type ReversalInput } from '@/modules/fees/service'
 import { studentFees, changeTotalFee, decideFeeChange, feeSchedule, fixFeeRemark, raiseFeeRemark, requestFeeChange, setFeePlan, type FeeChangeInput, type FeePlanInput, type FeeRemarkInput } from '@/modules/fees/service'
 import type { RegDatesInput } from '@/modules/registrations/validators'
 import { setMyAadhaar } from '@/modules/portal/service'
@@ -533,7 +534,8 @@ export async function reversePaymentAction(input: ReversalInput) {
 export async function applyDiscountAction(input: DiscountInput) {
   const gate = await branchEmailGate(); if (gate) return gate
   const { actor } = await getActor()
-  const res = await run(() => withTenant(actor, async (tx) => (await applyDiscount(tx, actor, input)).balance))
+  // above the institute's limit it goes to head office instead (asked: the request's id)
+  const res = await run(() => withTenant(actor, (tx) => discountOrAsk(tx, actor, input)))
   if (res.ok) revalidatePath('/', 'layout')
   return res
 }
@@ -1470,6 +1472,23 @@ export async function verifyDomainAction(id: string) {
 }
 export async function removeDomainAction(id: string) {
   return run(async () => { const actor = await headOffice(); await withTenant(actor, (tx) => removeDomain(tx, actor, id)); forgetHosts(); forgetOrgAddresses(); settingsSaved() })
+}
+
+// ---- Zones (modules/branches/zones.ts), head office
+export async function createZoneAction(name: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => createZone(tx, actor, name)); revalidatePath('/', 'layout') })
+}
+export async function deleteZoneAction(zoneId: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => deleteZone(tx, actor, zoneId)); revalidatePath('/', 'layout') })
+}
+export async function setBranchZoneAction(branchId: string, zoneId: string | null) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => setBranchZone(tx, actor, branchId, zoneId)); revalidatePath('/', 'layout') })
+}
+export async function addZoneManagerAction(zoneId: string, userId: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => addZoneManager(tx, actor, zoneId, userId)); revalidatePath('/', 'layout') })
+}
+export async function removeZoneManagerAction(zoneId: string, userId: string) {
+  return run(async () => { const { actor } = await getActor(); await withTenant(actor, (tx) => removeZoneManager(tx, actor, zoneId, userId)); revalidatePath('/', 'layout') })
 }
 
 // ---- Franchises (modules/franchise/service.ts)

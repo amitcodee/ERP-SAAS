@@ -5,6 +5,8 @@ import { useEffect, useState, useTransition } from 'react'
 import { ArrowLeft, CheckCircle2, Circle, Handshake, Plus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { FranchiseModal } from '@/components/franchises-panel'
+import { ZonesPanel } from '@/components/zones-panel'
+import type { ZoneRow } from '@/modules/branches/zones'
 import { activateBranchAction, branchSetupAction, createBranchAction, createUserAction, resendLoginAction, regNumberingAction, setRegNumberingAction, setStaffAccessAction, setUserRolesAction, shareStaffAction, staffElsewhereAction, unshareStaffAction, updateBranchAction, type MailedLogin } from '@/app/actions'
 import { codeForCity, nextFreeCode } from '@/lib/branch-code'
 import type { RoleOpt } from '@/components/users-panel'
@@ -32,7 +34,11 @@ function Progress({ pct, status }: { pct: number; status: string }) {
   )
 }
 
-export function BranchAdmin({ branches, roles, notify }: { branches: BranchOpt[]; roles: RoleOpt[]; notify: (m: string) => void }) {
+export function BranchAdmin({ branches, roles, zoning = null, notify }: {
+  branches: BranchOpt[]; roles: RoleOpt[]; notify: (m: string) => void
+  /** head office: the zones (Zones panel) */
+  zoning?: { zones: ZoneRow[]; branches: { id: string; name: string; code: string; zoneId: string | null }[]; staff: { id: string; name: string; home: string }[] } | null
+}) {
   const [adding, setAdding] = useState(false)
   const [franchising, setFranchising] = useState(false)
   const router = useRouter()
@@ -84,6 +90,7 @@ export function BranchAdmin({ branches, roles, notify }: { branches: BranchOpt[]
         </div>
         <Pager page={list.page} pages={list.pages} total={list.total} shown={list.rows.length} loading={false} setPage={list.setPage} noun="branches" />
       </div>
+      {zoning && <ZonesPanel zones={zoning.zones} branches={zoning.branches} staff={zoning.staff} notify={notify} />}
     </section>
   )
 }

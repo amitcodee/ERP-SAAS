@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigint, check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import type { FeePlanInput } from '@/modules/fees/service'
 import { branches, lookups, users } from './core'
 import { registrations } from './registrations'
@@ -97,6 +97,7 @@ export const feeChangeRequests = pgTable(
     decidedBy: uuid('decided_by').references(() => users.id),
     decidedAt: timestamp('decided_at', { withTimezone: true }),
     decisionNote: text('decision_note'),
+    headOffice: boolean('head_office').notNull().default(false), // a discount above the institute's limit: head office decides (0120)
   },
   (t) => [index('fee_change_requests_branch_idx').on(t.branchId, t.status, t.requestedAt), uniqueIndex('fee_change_requests_open_uq').on(t.registrationId).where(sql`status = 'pending'`)],
 )

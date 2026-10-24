@@ -35,6 +35,18 @@ const id = () => uuid('id').primaryKey().defaultRandom()
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 const deletedAt = () => timestamp('deleted_at', { withTimezone: true })
 
+// ---- Zones (regions above branches; migration 0121, modules/branches/zones.ts) ---------------------------------
+export const zones = pgTable(
+  'zones',
+  {
+    orgId: orgId(),
+    id: id(),
+    name: text('name').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('zones_name_uq').on(t.orgId, sql`lower(${t.name})`)],
+)
+
 // ---- Branches -------------------------------------------------------------
 export const branches = pgTable(
   'branches',
@@ -68,6 +80,7 @@ export const branches = pgTable(
     royaltyKind: text('royalty_kind').$type<'percent' | 'fixed'>(), // percent: of the fees received; fixed: a month
     royaltyValue: integer('royalty_value'), // percent: basis points (1250 = 12.5%); fixed: paise a month
     hqCertificates: boolean('hq_certificates').notNull().default(true), // a franchise's certificates are issued by head office (0119)
+    zoneId: uuid('zone_id').references(() => zones.id, { onDelete: 'set null' }), // the zone (region) it is in (0121)
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('branches_code_uq').on(t.orgId, t.code), uniqueIndex('branches_cert_code_uq').on(t.orgId, t.certCode), uniqueIndex('branches_website_host_uq').on(t.orgId, t.websiteHost).where(sql`website_host IS NOT NULL`)],
@@ -133,8 +146,21 @@ export const userBranches = pgTable(
     branchId: uuid('branch_id').notNull().references(() => branches.id),
     access: text('access').notNull().default('own'), // own: only their own work in this branch; full: as their role allows
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    viaZone: uuid('via_zone').references(() => zones.id, { onDelete: 'set null' }), // given because they manage this zone (0121)
   },
   (t) => [primaryKey({ columns: [t.userId, t.branchId] }), index('user_branches_branch_idx').on(t.branchId)],
+)
+
+/** A zone's managers: they work in every branch of the zone (user_branches rows with via_zone). */
+export const zoneManagers = pgTable(
+  'zone_managers',
+  {
+    orgId: orgId(),
+    zoneId: uuid('zone_id').notNull().references(() => zones.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull().references(() => users.id),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.zoneId, t.userId] }), index('zone_managers_user_idx').on(t.userId)],
 )
 
 // ---- Catalogs (SSOT for every dropdown) -----------------------------------

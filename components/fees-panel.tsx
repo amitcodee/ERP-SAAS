@@ -44,7 +44,7 @@ function Frame({ inline, title, onClose, children }: { inline?: boolean; title: 
 }
 
 export function FeesPanel({
-  rows, total, summary, departments, requests, remarks = [], canFix = false, dues, canCollect, canEdit = canCollect, notify,
+  rows, total, summary, departments, requests, remarks = [], canFix = false, dues, canCollect, canEdit = canCollect, isHeadOffice = false, notify,
 }: {
   /** Fee changes asked for by admissions, waiting for accounts. */
   requests: FeeChangeRequestRow[]
@@ -61,6 +61,8 @@ export function FeesPanel({
   /** changes total fees and plans, decides requests */
   canEdit?: boolean
   canDiscount: boolean
+  /** decides the discounts above the institute's limit */
+  isHeadOffice?: boolean
   notify: (m: string) => void
 }) {
   const list = usePagedList({ rows, total }, queryFeesAction)
@@ -76,7 +78,7 @@ export function FeesPanel({
         <div><strong>{summary.registrations.toLocaleString('en-IN')}</strong><span>Registrations</span></div>
       </div>
       {remarks.length > 0 && <FeeRemarks remarks={remarks} canFix={canFix} showStudent notify={notify} />}
-      {requests.length > 0 && <FeeRequests requests={requests} canDecide={canEdit} notify={notify} />}
+      {requests.length > 0 && <FeeRequests requests={requests} canDecide={canEdit} headOffice={isHeadOffice} notify={notify} />}
       <DueMonths dues={dues} active={list.filter('month') || null} pick={(k) => list.setFilter('month', k)} />
       <div className="panel table-panel">
         <ListToolbar list={list} exportList={'fees'} placeholder="Search by registration ID, name or phone…" dateLabel="Next due" dateFuture
@@ -123,7 +125,7 @@ export function FeesPanel({
 }
 
 /** Fee changes asked for by admissions: accounts approves (the total fees change) or rejects with a reason. */
-function FeeRequests({ requests, canDecide, notify }: { requests: FeeChangeRequestRow[]; canDecide: boolean; notify: (m: string) => void }) {
+function FeeRequests({ requests, canDecide, headOffice, notify }: { requests: FeeChangeRequestRow[]; canDecide: boolean; headOffice: boolean; notify: (m: string) => void }) {
   const [busy, setBusy] = useState('')
   const [rejecting, setRejecting] = useState<FeeChangeRequestRow | null>(null)
   const [note, setNote] = useState('')
@@ -138,7 +140,7 @@ function FeeRequests({ requests, canDecide, notify }: { requests: FeeChangeReque
   }
   return (
     <div className="panel fee-requests">
-      <div className="panel-header"><div><h2>Fee update requests</h2><span>Sent by admissions. Approving changes the student&apos;s total fees; the coming installments are adjusted.</span></div></div>
+      <div className="panel-header"><div><h2>Fee update requests</h2><span>Sent by admissions, and discounts above the institute&apos;s limit (head office decides those). Approving changes the student&apos;s total fees; the coming installments are adjusted.</span></div></div>
       {error && <p role="alert" className="form-problem">{error}</p>}
       <div className="table-scroll">
         <table style={{ minWidth: 0 }}>
@@ -147,8 +149,8 @@ function FeeRequests({ requests, canDecide, notify }: { requests: FeeChangeReque
             <tr key={q.id}>
               <td><a className="id-text" href={`/fees/${q.registrationId}`}><strong>{q.regNo}</strong></a></td><td>{q.name}</td><td>{inr(q.currentTotal)}</td>
               <td>{q.newTotal === q.currentTotal ? <span>Same total</span> : <><strong className={q.newTotal < q.currentTotal ? 'text-green' : 'text-amber'}>{inr(q.newTotal)}</strong><small>{q.newTotal < q.currentTotal ? `${inr(q.currentTotal - q.newTotal)} less` : `${inr(q.newTotal - q.currentTotal)} more`}</small></>}{q.plan && <small>New plan: {planLabel(q.plan)}</small>}</td>
-              <td style={{ maxWidth: 260 }}>{q.reason}</td><td>{q.requestedBy ?? '—'}<small>{fmt(q.requestedAt)}</small></td>
-              <td>{canDecide && <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              <td style={{ maxWidth: 260 }}>{q.reason}{q.headOffice && <small className="text-amber">Above the discount limit: head office decides</small>}</td><td>{q.requestedBy ?? '—'}<small>{fmt(q.requestedAt)}</small></td>
+              <td>{canDecide && (!q.headOffice || headOffice) && <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 <button className="filter-button" disabled={busy === q.id} onClick={() => decide(q, true)}>Approve</button>
                 <button className="filter-button" disabled={busy === q.id} onClick={() => { setRejecting(q); setNote(''); setError('') }}>Reject</button>
               </div>}</td>
@@ -245,7 +247,7 @@ export function DiscountForm({ row, onClose, onDone, inline }: { row: FeeRow; on
     start(async () => {
       const res = await applyDiscountAction({ registrationId: row.registrationId, amount: toPaise(val(fd, 'amount')), reason: val(fd, 'reason') ?? '' })
       if (!res.ok) return setError(res.error)
-      onDone('Discount applied')
+      onDone('asked' in res.data! ? `More than ${res.data.limit}% of the fee: sent to head office for approval` : 'Discount applied')
     })
   }
   return (

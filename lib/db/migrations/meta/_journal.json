@@ -841,6 +841,20 @@
       "when": 1794464000000,
       "tag": "0119_franchise_certificates",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1794550400000,
+      "tag": "0120_discount_approval",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1794636800000,
+      "tag": "0121_zones",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,8 @@ export const RULES = {
   'escalation.lead_head_office_days': { label: 'Overdue lead: days before it goes to head office', min: 1, max: 120, fallback: 3 },
   'escalation.fee_manager_days': { label: 'Overdue fee: days before it goes to the branch manager', min: 1, max: 90, fallback: 7 },
   'escalation.fee_head_office_days': { label: 'Overdue fee: days before it goes to head office', min: 1, max: 180, fallback: 30 },
+  // a discount (or a cut in the total fees) above this share of the fee waits for head office; 100: never
+  'discount.head_office_pct': { label: 'Discount: above this % of the fee, head office approves it (100 = never)', min: 1, max: 100, fallback: 100 },
 } as const
 export type RuleKey = keyof typeof RULES
 
@@ -25,6 +27,12 @@ export async function listRules(tx: Tx): Promise<RuleRow[]> {
     const r = RULES[key]
     return { key, label: r.label, value: found ? Number(found.value) : r.fallback, min: r.min, max: r.max }
   })
+}
+
+/** One rule's value (saved, else its default). */
+export async function ruleValue(tx: Tx, key: RuleKey): Promise<number> {
+  const [r] = await tx.select().from(settings).where(and(isNull(settings.branchId), eq(settings.key, key)))
+  return r ? Number(r.value) : RULES[key].fallback
 }
 
 export async function updateRule(tx: Tx, actor: Actor, key: string, value: number) {

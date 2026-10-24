@@ -384,11 +384,11 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
      copy and change, in the institute's colour, with its logo and signatures (part 6).
    - E-mails, receipts, ID cards, the student portal and the public pages in their colour and logo (done), checked
      end to end for a new institute.
-4. [ ] **Big institutes.**
-   - Regions / zones above branches (a zonal manager sees the branches of their zone).
+4. [x] **Big institutes.** (Audit and exports per branch: the Logs and exports already filter by branch.)
+   - [x] Regions / zones above branches (a zonal manager works in the branches of their zone; part 10).
    - [x] Bulk: add staff, students and enquiries from a spreadsheet at any time (Setup → Import, part 7).
    - [x] Bulk certificate issue for a batch (part 8).
-   - Approval rules per institute (discount above X% needs head office), audit and exports per branch.
+   - [x] Approval rules per institute: a discount above X% needs head office (part 9). Audit and exports per branch.
 0. [x] **The platform approves institutes; a short trial; closed until paid; activation by hand** (owner's request,
    2026-10-22).
 5. [x] **Polish found while using it** (fixed as found, listed in CHANGELOG): links that named another port in
