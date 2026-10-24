@@ -1,32 +1,42 @@
 import Link from 'next/link'
+import { Inter } from 'next/font/google'
 import { ArrowRight, GraduationCap } from 'lucide-react'
 import { LANDING_CSS } from './landing-css'
+import { SITE_THEME } from './site-theme'
 import { PRODUCT } from '@/lib/product'
+import { onboardingRules } from '@/modules/platform/rules'
 
-// The frame of the platform's public site (the apex domain): top bar, the page, footer. Links are the visitor's paths
+const inter = Inter({ subsets: ['latin'], variable: '--font-site', display: 'swap' })
+
+// The frame of the platform's public site (the apex domain): the offer line, top bar, the page, footer (SITE_THEME look). Links are the visitor's paths
 // (/pricing); the proxy maps them onto /site/*.
-export function SiteShell({ children }: { children: React.ReactNode }) {
+export async function SiteShell({ children }: { children: React.ReactNode }) {
   const year = new Date().getFullYear()
+  const { trialDays } = await onboardingRules()
   return (
-    <div className="lp">
-      <style>{LANDING_CSS + SITE_CSS}</style>
+    <div className={`lp sx ${inter.variable}`}>
+      <style>{LANDING_CSS + SITE_CSS + SITE_THEME}</style>
+      <div className="sx-offer">Every feature free for {trialDays} days · no card needed <Link href="/signup">Start now</Link></div>
       <header className="lp-nav">
         <div className="lp-wrap lp-nav-in">
-          <Link href="/" className="lp-logo site-logo"><span className="lp-ico lp-ico-sm"><GraduationCap size={18} /></span><b>{PRODUCT.name}</b></Link>
+          <Link href="/" className="lp-logo site-logo"><span className="lp-ico lp-ico-sm"><GraduationCap size={18} color="#fff" /></span><b>{PRODUCT.name}</b></Link>
           <nav aria-label="Site">
             <Link href="/features">Features</Link>
             <Link href="/pricing">Pricing</Link>
+            <Link href="/docs">Guides</Link>
             <Link href="/faq">FAQ</Link>
-            <Link href="/find">Sign in</Link>
           </nav>
-          <Link href="/signup" className="lp-btn lp-btn-dark">Start free trial <ArrowRight size={15} /></Link>
+          <div className="sx-nav-cta">
+            <Link href="/signup" className="lp-btn sx-btn-green">Start for free <ArrowRight size={15} /></Link>
+            <Link href="/find" className="lp-btn sx-btn-line">Sign in <ArrowRight size={15} /></Link>
+          </div>
         </div>
       </header>
       <main>{children}</main>
       <footer className="lp-foot">
         <div className="lp-wrap lp-foot-in">
           <div className="lp-foot-brand">
-            <span className="site-logo"><span className="lp-ico lp-ico-sm"><GraduationCap size={18} /></span><b>{PRODUCT.name}</b></span>
+            <span className="site-logo"><span className="lp-ico lp-ico-sm"><GraduationCap size={18} color="#fff" /></span><b>{PRODUCT.name}</b></span>
             <p>Admissions, fees, classes and certificates for coaching institutes, computer centres and training academies.</p>
           </div>
           <div><h4>Product</h4><Link href="/features">Features</Link><Link href="/pricing">Pricing</Link><Link href="/docs">Guides</Link><Link href="/status">Status</Link></div>

@@ -2,6 +2,17 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## The public site's new look (2026-10-24)
+
+- The platform's public site (home, features, pricing, FAQ, sign-up and the rest) has a fresh, light look: a green
+  offer line, Inter type, one green colour for every call to action with black outlined second buttons, a centred hero
+  with a two-tone headline and a dashboard picture with floating cards, a strip of the kinds of institutes it is for,
+  four alternating rows (enquiries, fees, classes, certificates) each with a small picture of the screen, the feature
+  grid, "safe by design", three steps to start, the top questions and a green closing band; a dark footer.
+  (`components/site/site-theme.ts`, scoped to the public site; an institute's own home page keeps its look.)
+- The FAQ's text lives in `components/site/content.ts` (shown on the home page too) and says students, enquiries and
+  staff can be imported from a spreadsheet at any time.
+
 ## Phase 4 (3, the rest): a payment link the office sends (2026-10-24)
 
 - **Fees → a student → Payment link** (whoever takes fees, when online payment is on): a payment page for the next
