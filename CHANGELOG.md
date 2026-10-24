@@ -2,6 +2,20 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## Phase 6 (part 6): franchise certificates by head office, templates in the institute's colour (2026-10-24)
+
+- **Certificates at a franchise are issued by head office**, in the institute's name: the partner's centre requests
+  them as usual (fees cleared by the partner), head office issues them from Issue Certificate (the branch column says
+  "Franchise: you issue"); the centre sees "Waiting for head office to issue". Head office can let a franchise issue its
+  own (Franchises → terms → "Head office issues its certificates"). The database enforces it too: at such a franchise
+  only head office may write a certificate. Migration 0119.
+- **Certificate templates start in the institute's colour**: each template's main colour becomes the brand colour (Set
+  Up), in the gallery, on the canvas and when a design is started; the logo was already the institute's. Two new
+  templates: **Internship** (a course certificate for internships and training programmes, with both signatures) and
+  **Merit — quiz toppers** (an event certificate with the score).
+- Checks in `scripts/franchise-test.ts` and `scripts/course-design-test.ts` (the franchise test now runs with the
+  server conditions); e2e sees the franchise's certificate terms and the new templates.
+
 ## Phase 6 (part 5): inviting franchise partners, franchise fee ranges (2026-10-22)
 
 - **Invite the partner** (Franchises → the send icon): their login goes to the e-mail in the franchise's terms. A new

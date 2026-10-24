@@ -112,8 +112,11 @@ export async function clearCertificateFees(tx: Tx, actor: Actor, requestId: stri
   await audit(tx, actor, { action: 'clear_fees', entity: 'certificate_request', entityId: req.id })
 }
 
+/** Whether this person may issue at a branch: a franchise that waits for head office takes head office (the database checks it too). */
+export const issuesAt = (actor: Actor, b: { kind: string; hqCertificates: boolean } | undefined) => actor.role === 'super_admin' || !b || b.kind !== 'franchise' || !b.hqCertificates
+
 /**
- * Issue (counselor / manager). Needs the accounts clearance - except from head office or the branch manager, whose
+ * Issue (counselor / manager; at a franchise, head office unless it lets the centre issue). Needs the accounts clearance - except from head office or the branch manager, whose
  * issuing clears the fees too - and re-checks eligibility now: the request-time snapshot is not trusted.
  */
 export async function approveCertificate(tx: Tx, actor: Actor, requestId: string) {
@@ -122,6 +125,7 @@ export async function approveCertificate(tx: Tx, actor: Actor, requestId: string
   if (!req) throw new Error('Request not found')
   if (req.status !== 'pending') throw new Error(`Request is already ${req.status}`)
   if (!req.feeClearedAt && !skipsAccounts(actor)) throw new Error('Accounts has not cleared the fees for this request yet')
+  if (!issuesAt(actor, await tx.select({ kind: branches.kind, hqCertificates: branches.hqCertificates }).from(branches).where(eq(branches.id, req.branchId)).then((r) => r[0]))) throw new Error('Head office issues the certificates of a franchise centre: the request waits for them')
   const el = await getEligibility(tx, req.registrationId)
   if (!el.eligible) throw new Error(`Not eligible: ${el.reasons.join('; ')}`)
   if (!req.feeClearedAt) {

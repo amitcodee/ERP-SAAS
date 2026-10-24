@@ -11,6 +11,7 @@ import { applyDiscount, changeTotalFee, getReceipt, recordPayment } from '../mod
 import { setFranchiseFee } from '../modules/franchise/fees'
 import { deleteRoyaltyPayment, invitePartner, franchiseStatements, recordRoyaltyPayment, royaltyFor, setFranchise } from '../modules/franchise/service'
 import { createRegistration } from '../modules/registrations/service'
+import { approveCertificate, requestCertificate } from '../modules/certificates/service'
 
 class Rollback extends Error {}
 let failed = 0
@@ -18,7 +19,7 @@ const check = (n: string, ok: boolean, x = '') => { console.log(`${ok ? 'PASS' :
 async function throws(tx: Tx, name: string, fn: () => Promise<unknown>, match?: RegExp) {
   await tx.execute(sql`savepoint sp`)
   try { await fn(); check(name, false, 'expected error') }
-  catch (e) { await tx.execute(sql`rollback to savepoint sp`); const msg = String(e); check(name, !match || match.test(msg), msg.slice(0, 100)) }
+  catch (e) { await tx.execute(sql`rollback to savepoint sp`); const msg = `${e} ${(e as { cause?: unknown }).cause ?? ''}`; check(name, !match || match.test(msg), msg.slice(0, 100)) }
 }
 
 async function main() {
@@ -74,6 +75,23 @@ async function main() {
       await tx.execute(sql`reset role`); await applyTenant(tx, partner)
       const rc = await getReceipt(tx, partner, pay.receipt.receiptNo)
       check('the centre’s receipt carries the partner’s legal name (and its GSTIN)', rc.franchisePartner === 'Bright Skills LLP' && rc.gstin === '03ABCDE1234F1Z5' && rc.branchName === 'Franchise Town')
+
+      // ---- certificates at a franchise: the centre requests, head office issues ----
+      const cq = await requestCertificate(tx, partner, reg.id)
+      await throws(tx, 'the partner cannot issue a certificate at their franchise', () => approveCertificate(tx, partner, cq.request.id), /Head office issues/)
+      const forge = () => tx.execute(sql`insert into certificates (branch_id, registration_id, cert_no, verification_hash, issued_by) values (${fr.id}, ${reg.id}, ${'FRX-' + Date.now()}, ${'h' + Date.now()}, ${uf.id})`)
+      await throws(tx, '… nor write one straight into the database', forge, /row-level security/)
+      await tx.execute(sql`reset role`); await applyTenant(tx, head)
+      await throws(tx, 'head office passes that step (and meets the usual checks)', () => approveCertificate(tx, head, cq.request.id), /Not eligible/)
+      await setFranchise(tx, head, { branchId: fr.id, kind: 'franchise', partnerName: 'Bright Skills LLP', partnerOwner: 'Ravi', partnerEmail: 'Ravi@Bright.test', agreementFrom: `${month}-01`, royaltyKind: 'percent', royaltyValue: 1250, hqCertificates: false })
+      await tx.execute(sql`reset role`); await applyTenant(tx, partner)
+      await throws(tx, 'a franchise allowed to issue its own: the partner passes that step', () => approveCertificate(tx, partner, cq.request.id), /Not eligible/)
+      await tx.execute(sql`savepoint cert`); await forge(); await tx.execute(sql`rollback to savepoint cert`)
+      check('… and the database lets it write one', true)
+      await tx.execute(sql`reset role`); await applyTenant(tx, head)
+      await setFranchise(tx, head, { branchId: fr.id, kind: 'franchise', partnerName: 'Bright Skills LLP', partnerOwner: 'Ravi', partnerEmail: 'Ravi@Bright.test', agreementFrom: `${month}-01`, royaltyKind: 'percent', royaltyValue: 1250 })
+      check('head office issuing is the default', (await tx.select().from(branches).where(eq(branches.id, fr.id)))[0].hqCertificates === true)
+      await tx.execute(sql`reset role`); await applyTenant(tx, partner)
 
       // the partner sees their own statement; another branch sees nothing
       const mine = await franchiseStatements(tx, partner, { month })

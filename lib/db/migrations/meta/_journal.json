@@ -834,6 +834,13 @@
       "when": 1794377600000,
       "tag": "0118_franchise_fee_range",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1794464000000,
+      "tag": "0119_franchise_certificates",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
   const data = await withTenant(actor, (tx) => certificateDesk(tx, actor, { list: 'requests', ...filters, today: todayIST(), branchId: actor.branchId }))
   return (
     <CertificateDesk list="requests" data={data} filters={filters} showBranch={isSuper && !actor.branchId}
-      can={{ request: ok('create', 'certificate'), clear: ok('clear', 'certificate'), issue: ok('approve', 'certificate'), skipAccounts: ok('approve', 'certificate') && skipsAccounts(actor), revoke: mayRevokeCertificate(actor) }} />
+      can={{ request: ok('create', 'certificate'), clear: ok('clear', 'certificate'), issue: ok('approve', 'certificate'), skipAccounts: ok('approve', 'certificate') && skipsAccounts(actor), revoke: mayRevokeCertificate(actor), headOffice: isSuper }} />
   )
 }

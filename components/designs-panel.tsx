@@ -8,10 +8,12 @@ import { Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { archiveDesignAction } from '@/app/event-actions'
 import { DesignSvg } from '@/components/cert-design-svg'
 import { useNotify } from '@/components/panel-shell'
-import { PRESETS, SAMPLE_VALUES } from '@/lib/cert-design'
+import { PRESETS, SAMPLE_VALUES, presetDesign } from '@/lib/cert-design'
+import { useBrand } from '@/components/brand-context'
 import type { DesignRow } from '@/modules/events/service'
 
 export function DesignsPanel({ designs, canEdit, branchName, isHeadOffice }: { designs: DesignRow[]; canEdit: boolean; branchName: string; isHeadOffice: boolean }) {
+  const brand = useBrand()
   const router = useRouter()
   const notify = useNotify()
   const [pending, start] = useTransition()
@@ -48,17 +50,17 @@ export function DesignsPanel({ designs, canEdit, branchName, isHeadOffice }: { d
         <div>
           <p className="eyebrow">Certificates / Certificate designs</p>
           <h1>Certificate Designs</h1>
-          <p className="subheading">Design the certificates seminars, workshops and other events give out. Start from a template, a blank page, or a certificate picture (yours, or one from the internet) and put the participant’s details on it. Each person’s name, score and certificate number are filled in for them.</p>
+          <p className="subheading">Design the certificates your courses, internships, seminars and workshops give out. Start from a template, a blank page, or a certificate picture (yours, or one from the internet) and put the participant’s details on it. Each person’s name, score and certificate number are filled in for them.</p>
         </div>
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
 
       {canEdit && <div className="panel" style={{ marginBottom: 16 }}>
-        <div className="panel-header"><div><h2><Plus size={16} /> New design</h2><span>{isHeadOffice ? 'Made at head office: offered to every branch.' : `For ${branchName}.`} Pick a starting point; everything can be changed on the canvas.</span></div></div>
+        <div className="panel-header"><div><h2><Plus size={16} /> New design</h2><span>{isHeadOffice ? 'Made at head office: offered to every branch.' : `For ${branchName}.`} Pick a starting point (in your colour, with your logo); everything can be changed on the canvas.</span></div></div>
         <div className="dp-grid">
           {PRESETS.map((p) => (
             <Link key={p.key} href={`/certificate-designs/new?start=${p.key}`} className="dp-card dp-new">
-              <span className="dp-thumb"><DesignSvg design={p.make()} values={SAMPLE_VALUES} style={{ width: '100%', display: 'block' }} /></span>
+              <span className="dp-thumb"><DesignSvg design={presetDesign(p.key, brand.color)} values={{ ...SAMPLE_VALUES, institute: brand.name }} style={{ width: '100%', display: 'block' }} /></span>
               <span className="dp-meta"><strong>{p.name}</strong><small>{p.about}</small></span>
             </Link>
           ))}

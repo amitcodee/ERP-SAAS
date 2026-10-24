@@ -70,7 +70,7 @@ export function FranchisesPanel(p: Props) {
               {p.franchises.map((f) => (<Fragment key={f.branchId}>
                 <tr>
                   <td><strong>{f.branch}</strong><small style={{ display: 'block' }}>{f.partnerName}{f.partnerOwner ? ` · ${f.partnerOwner}` : ''}{f.partnerPhone ? ` · ${f.partnerPhone}` : ''}</small></td>
-                  <td>{termsText(f)}<small style={{ display: 'block' }}>{f.agreementFrom ? `from ${day(f.agreementFrom)}` : 'no start date'}{f.agreementTo ? ` to ${day(f.agreementTo)}` : ''}</small></td>
+                  <td>{termsText(f)}<small style={{ display: 'block' }}>{f.agreementFrom ? `from ${day(f.agreementFrom)}` : 'no start date'}{f.agreementTo ? ` to ${day(f.agreementTo)}` : ''}</small><small style={{ display: 'block' }}>{f.hqCertificates ? 'Certificates: head office issues' : 'Certificates: the centre issues'}</small></td>
                   <td style={{ textAlign: 'right' }}>{inr(f.month.income)}</td>
                   <td style={{ textAlign: 'right' }}>{inr(f.month.royalty)}</td>
                   <td style={{ textAlign: 'right' }}>{inr(f.month.paid)}</td>
@@ -127,7 +127,7 @@ export function FranchiseModal({ f, branches, onClose, onDone }: { f: Franchise 
   const [v, setV] = useState({
     branchId: f?.branchId ?? branches[0]?.id ?? '', partnerName: f?.partnerName ?? '', partnerOwner: f?.partnerOwner ?? '', partnerPhone: f?.partnerPhone ?? '', partnerEmail: f?.partnerEmail ?? '',
     agreementFrom: f?.agreementFrom ?? '', agreementTo: f?.agreementTo ?? '', royaltyKind: (f?.royaltyKind ?? 'percent') as 'percent' | 'fixed' | 'none',
-    amount: f?.royaltyValue != null ? String(f.royaltyValue / 100) : '',
+    amount: f?.royaltyValue != null ? String(f.royaltyValue / 100) : '', hqCertificates: f?.hqCertificates ?? true,
   })
   const [error, setError] = useState('')
   const [pending, start] = useTransition()
@@ -139,6 +139,7 @@ export function FranchiseModal({ f, branches, onClose, onDone }: { f: Franchise 
       branchId: v.branchId, kind, partnerName: v.partnerName, partnerOwner: v.partnerOwner, partnerPhone: v.partnerPhone, partnerEmail: v.partnerEmail,
       agreementFrom: v.agreementFrom || null, agreementTo: v.agreementTo || null,
       royaltyKind: v.royaltyKind === 'none' ? null : v.royaltyKind, royaltyValue: v.royaltyKind === 'none' ? null : Math.round(n * 100),
+      hqCertificates: v.hqCertificates,
     })
     if (!r.ok) return setError(r.error)
     onDone(kind === 'own' ? 'It is your own centre again' : f ? 'Franchise terms saved' : 'It is a franchise now')
@@ -155,6 +156,7 @@ export function FranchiseModal({ f, branches, onClose, onDone }: { f: Franchise 
         <label>Agreement to <small>(optional)</small><input type="date" value={v.agreementTo} onChange={set('agreementTo')} /></label>
         <label>Royalty<select value={v.royaltyKind} onChange={set('royaltyKind')}><option value="percent">A percent of fees received</option><option value="fixed">A fixed amount a month</option><option value="none">None</option></select></label>
         {v.royaltyKind !== 'none' && <label>{v.royaltyKind === 'percent' ? 'Percent' : 'Amount a month (₹)'}<input type="number" min={0} max={v.royaltyKind === 'percent' ? 100 : undefined} step={v.royaltyKind === 'percent' ? 0.01 : 1} value={v.amount} onChange={set('amount')} /></label>}
+        <label className={`wide set-check${v.hqCertificates ? ' on' : ''}`}><input type="checkbox" checked={v.hqCertificates} onChange={(e) => setV({ ...v, hqCertificates: e.target.checked })} /><span><b>Head office issues its certificates</b><small>The centre requests them; untick to let it issue its own.</small></span></label>
       </div>
       <p className="section-hint" style={{ margin: '8px 0 0' }}>The royalty counts from the agreement’s start (or the branch’s, without one), month by month. The branch’s own login is the partner’s: they see only this centre.</p>
       <Err msg={error} />

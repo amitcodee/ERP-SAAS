@@ -32,6 +32,8 @@ export const franchiseInput = z.object({
   royaltyKind: z.enum(['percent', 'fixed']).nullable().optional(),
   /** percent: basis points (1250 = 12.5%); fixed: paise a month */
   royaltyValue: z.number().int().min(0).nullable().optional(),
+  /** head office issues the centre's certificates (the partner requests them); false: the centre issues its own */
+  hqCertificates: z.boolean().optional(),
 })
 export type FranchiseInput = z.input<typeof franchiseInput>
 
@@ -43,7 +45,7 @@ export async function setFranchise(tx: Tx, actor: Actor, raw: FranchiseInput) {
   if (!b) throw new Error('Branch not found')
   if (v.kind === 'own') {
     await tx.execute(sql`update branches set kind = 'own', partner_name = null, partner_owner = null, partner_phone = null, partner_email = null,
-      agreement_from = null, agreement_to = null, royalty_kind = null, royalty_value = null where id = ${v.branchId}`)
+      agreement_from = null, agreement_to = null, royalty_kind = null, royalty_value = null, hq_certificates = true where id = ${v.branchId}`)
     await audit(tx, actor, { action: 'update', entity: 'franchise', entityId: v.branchId, after: { kind: 'own' } })
     return
   }
@@ -53,9 +55,9 @@ export async function setFranchise(tx: Tx, actor: Actor, raw: FranchiseInput) {
   if (kind && value == null) throw new Error(kind === 'percent' ? 'Give the royalty percent' : 'Give the monthly royalty')
   if (kind === 'percent' && value! > 10000) throw new Error('The royalty cannot be over 100%')
   await tx.execute(sql`update branches set kind = 'franchise', partner_name = ${v.partnerName}, partner_owner = ${v.partnerOwner ?? null}, partner_phone = ${v.partnerPhone ?? null},
-    partner_email = ${v.partnerEmail ?? null}, agreement_from = ${v.agreementFrom ?? null}, agreement_to = ${v.agreementTo ?? null}, royalty_kind = ${kind}, royalty_value = ${value}
-    where id = ${v.branchId}`)
-  await audit(tx, actor, { action: 'update', entity: 'franchise', entityId: v.branchId, after: { kind: 'franchise', partnerName: v.partnerName, royaltyKind: kind, royaltyValue: value, agreementFrom: v.agreementFrom ?? null, agreementTo: v.agreementTo ?? null } })
+    partner_email = ${v.partnerEmail ?? null}, agreement_from = ${v.agreementFrom ?? null}, agreement_to = ${v.agreementTo ?? null}, royalty_kind = ${kind}, royalty_value = ${value},
+    hq_certificates = ${v.hqCertificates ?? true} where id = ${v.branchId}`)
+  await audit(tx, actor, { action: 'update', entity: 'franchise', entityId: v.branchId, after: { kind: 'franchise', partnerName: v.partnerName, royaltyKind: kind, royaltyValue: value, agreementFrom: v.agreementFrom ?? null, agreementTo: v.agreementTo ?? null, hqCertificates: v.hqCertificates ?? true } })
 }
 
 /**
@@ -77,6 +79,8 @@ export type StatementMonth = { month: string; income: number; royalty: number; p
 export type Franchise = {
   branchId: string; branch: string; code: string; partnerName: string | null; partnerOwner: string | null; partnerPhone: string | null; partnerEmail: string | null
   agreementFrom: string | null; agreementTo: string | null; royaltyKind: 'percent' | 'fixed' | null; royaltyValue: number | null
+  /** head office issues its certificates */
+  hqCertificates: boolean
   /** the month asked for */
   month: StatementMonth
   /** owed to the end of that month, less everything paid by then */
@@ -91,8 +95,8 @@ export type Franchise = {
 export async function franchiseStatements(tx: Tx, actor: Actor, opts: { month: string; branchId?: string | null }): Promise<Franchise[]> {
   assertCan(actor, 'read', 'franchise')
   if (!/^\d{4}-\d{2}$/.test(opts.month)) throw new Error('Pick a month')
-  const rows = (await tx.execute<{ id: string; name: string; code: string; partner_name: string | null; partner_owner: string | null; partner_phone: string | null; partner_email: string | null; agreement_from: string | null; agreement_to: string | null; royalty_kind: 'percent' | 'fixed' | null; royalty_value: number | null; since: string }>(sql`
-    select id, name, code, partner_name, partner_owner, partner_phone, partner_email, agreement_from::text, agreement_to::text, royalty_kind, royalty_value,
+  const rows = (await tx.execute<{ id: string; name: string; code: string; partner_name: string | null; partner_owner: string | null; partner_phone: string | null; partner_email: string | null; agreement_from: string | null; agreement_to: string | null; royalty_kind: 'percent' | 'fixed' | null; royalty_value: number | null; hq_certificates: boolean; since: string }>(sql`
+    select id, name, code, partner_name, partner_owner, partner_phone, partner_email, agreement_from::text, agreement_to::text, royalty_kind, royalty_value, hq_certificates,
       to_char(coalesce(agreement_from, (created_at at time zone 'Asia/Kolkata')::date), 'YYYY-MM') as since
     from branches where kind = 'franchise' ${opts.branchId ? sql`and id = ${opts.branchId}::uuid` : sql``} order by name`)).rows
   const out: Franchise[] = []
@@ -116,7 +120,7 @@ export async function franchiseStatements(tx: Tx, actor: Actor, opts: { month: s
     const owed = months.reduce((n, m) => n + m.royalty, 0), paidTotal = months.reduce((n, m) => n + m.paid, 0) + paidBefore
     out.push({
       branchId: b.id, branch: b.name, code: b.code, partnerName: b.partner_name, partnerOwner: b.partner_owner, partnerPhone: b.partner_phone, partnerEmail: b.partner_email,
-      agreementFrom: b.agreement_from, agreementTo: b.agreement_to, royaltyKind: b.royalty_kind, royaltyValue: b.royalty_value,
+      agreementFrom: b.agreement_from, agreementTo: b.agreement_to, royaltyKind: b.royalty_kind, royaltyValue: b.royalty_value, hqCertificates: b.hq_certificates,
       month: months[months.length - 1], balance: owed - paidTotal, months: [...months].reverse(),
     })
   }

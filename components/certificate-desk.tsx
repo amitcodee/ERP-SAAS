@@ -28,8 +28,9 @@ export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
   list: 'requests' | 'issue'
   data: CertDesk
   filters: { q: string; stage: string; fee: string; period: string }
-  /** skipAccounts: head office / branch manager, who issue without waiting for accounts. revoke: head office only. */
-  can: { request: boolean; clear: boolean; issue: boolean; skipAccounts: boolean; revoke?: boolean }
+  /** skipAccounts: head office / branch manager, who issue without waiting for accounts. revoke: head office only.
+   *  headOffice: issues the certificates of franchise centres that wait for head office. */
+  can: { request: boolean; clear: boolean; issue: boolean; skipAccounts: boolean; revoke?: boolean; headOffice?: boolean }
   showBranch: boolean
 }) {
   const router = useRouter()
@@ -121,7 +122,7 @@ export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
                 <tr key={r.registrationId}>
                   <td><strong>{r.name}</strong><small>{r.regNo} · {r.phone}</small></td>
                   <td>{r.course}{r.projectCertificate && <small className="cd-proj">+ Project certificate</small>}</td>
-                  {showBranch && <td>{r.branch}</td>}
+                  {showBranch && <td>{r.branch}{r.byHeadOffice && <small>Franchise: you issue</small>}</td>}
                   <td>{day(r.joined)}</td>
                   <td>{day(r.expectedEnd)}{r.courseComplete ? <small className="text-green">Complete</small> : <small>Running</small>}</td>
                   <td>{r.daysLeft == null ? <small>No end date</small>
@@ -148,7 +149,7 @@ export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
                             {r.balance > 0 && <small className="text-red">Fees due: {inr(r.balance)}</small>}
                           </span>
                         : <small>Branch staff request it</small>)}
-                      {r.stage === 'waiting' && can.skipAccounts && r.balance <= 0 && r.courseComplete && !r.blockers.length
+                      {r.stage === 'waiting' && can.skipAccounts && (!r.byHeadOffice || can.headOffice) && r.balance <= 0 && r.courseComplete && !r.blockers.length
                         && <button className="button primary small" disabled={pending} title="No need to wait for accounts: the fees are clear and you approve it" onClick={() => act(r.requestId!, () => approveCertificateAction(r.requestId!), `Certificate issued to ${r.name}`)}><FileBadge size={14} /> {busy === r.requestId ? 'Issuing…' : 'Issue certificate'}</button>}
                       {r.stage === 'waiting' && (can.clear
                         ? r.balance > 0
@@ -156,7 +157,9 @@ export function CertificateDesk({ list, data: d, filters, can, showBranch }: {
                           : <button className="button primary small" disabled={pending} onClick={() => act(r.requestId!, () => clearCertificateFeesAction(r.requestId!), `Approved: fees clear for ${r.name}`)}><CheckCircle2 size={14} /> {busy === r.requestId ? 'Approving…' : 'Approve (fees clear)'}</button>
                         : <small>Waiting for accounts</small>)}
                       {r.stage === 'approved' && (ready
-                        ? can.issue
+                        ? r.byHeadOffice && !can.headOffice
+                          ? <small title="A franchise centre's certificates are issued by head office, in the institute's name">Waiting for head office to issue</small>
+                          : can.issue
                           ? (r.blockers.length
                             ? <small className="text-amber" title={r.blockers.join(' · ')}>Can&apos;t issue yet: {r.blockers.join(' · ')}</small>
                             : <button className="button primary small" disabled={pending} onClick={() => act(r.requestId!, () => approveCertificateAction(r.requestId!), `Certificate issued to ${r.name}`)}><FileBadge size={14} /> {busy === r.requestId ? 'Issuing…' : 'Issue certificate'}</button>)

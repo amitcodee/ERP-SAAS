@@ -68,7 +68,7 @@
     "test:expenses": "dotenv -e .env.local -- tsx scripts/expenses-test.ts",
     "test:apply": "dotenv -e .env.local -- tsx scripts/apply-test.ts",
     "test:domain": "dotenv -e .env.local -- tsx scripts/domain-test.ts",
-    "test:franchise": "dotenv -e .env.local -- tsx scripts/franchise-test.ts",
+    "test:franchise": "dotenv -e .env.local -- tsx --conditions react-server scripts/franchise-test.ts",
     "test:coursedesign": "dotenv -e .env.local -- tsx --conditions react-server scripts/course-design-test.ts",
     "test:features": "dotenv -e .env.local -- tsx scripts/features-test.ts",
     "test:approval": "dotenv -e .env.local -- tsx --conditions react-server scripts/approval-test.ts",

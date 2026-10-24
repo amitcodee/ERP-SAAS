@@ -67,6 +67,7 @@ export const branches = pgTable(
     agreementTo: date('agreement_to'),
     royaltyKind: text('royalty_kind').$type<'percent' | 'fixed'>(), // percent: of the fees received; fixed: a month
     royaltyValue: integer('royalty_value'), // percent: basis points (1250 = 12.5%); fixed: paise a month
+    hqCertificates: boolean('hq_certificates').notNull().default(true), // a franchise's certificates are issued by head office (0119)
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('branches_code_uq').on(t.orgId, t.code), uniqueIndex('branches_cert_code_uq').on(t.orgId, t.certCode), uniqueIndex('branches_website_host_uq').on(t.orgId, t.websiteHost).where(sql`website_host IS NOT NULL`)],

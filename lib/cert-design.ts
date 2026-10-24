@@ -166,10 +166,11 @@ const seal = (cx: number, cy: number, r: number, gold = '#c9a227', dark = '#8a6d
   T(cx - r, cy + r * 0.36, r * 2, '{{institute}}', 'semibold', r * 0.2, '#fff7d6', 'center', { track: 0.1 }),
 ]
 
-export type Preset = { key: string; name: string; about: string; make: () => Design }
+/** main: the template's own colours that take the institute's colour (Set Up → brand) when it starts from it. */
+export type Preset = { key: string; name: string; about: string; make: () => Design; main?: string[] }
 export const PRESETS: Preset[] = [
   {
-    key: 'hexagon', name: 'Hexagon — teal & navy', about: 'White page with navy, teal and grey hexagons, your logo; the name in handwriting.',
+    key: 'hexagon', name: 'Hexagon — teal & navy', about: 'White page with navy, teal and grey hexagons, your logo; the name in handwriting.', main: ['#0b4a73', '#123d5c'],
     make: () => {
       const NAVY = '#0b4a73', TEAL = '#21c1bd', GREY = '#e6e9ed', INK = '#123d5c'
       return {
@@ -230,7 +231,7 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    key: 'ribbon', name: 'Modern — navy band', about: 'A deep navy band down the left with a gold stripe; clean left-aligned text.',
+    key: 'ribbon', name: 'Modern — navy band', about: 'A deep navy band down the left with a gold stripe; clean left-aligned text.', main: ['#14205c', '#1d2470'],
     make: () => {
       const NAVY = '#14205c', GOLD = '#e0b13c', INK = '#1d2470'
       return {
@@ -256,7 +257,7 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    key: 'minimal', name: 'Minimal — clean', about: 'Lots of white, a thin frame and one accent colour; the name large.',
+    key: 'minimal', name: 'Minimal — clean', about: 'Lots of white, a thin frame and one accent colour; the name large.', main: ['#2563eb'],
     make: () => {
       const ACC = '#2563eb', INK = '#111827'
       return {
@@ -304,7 +305,7 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    key: 'course', name: 'Course completion', about: 'For course certificates: the course, its dates and duration, the registration number, both signatures and the QR code.',
+    key: 'course', name: 'Course completion', about: 'For course certificates: the course, its dates and duration, the registration number, both signatures and the QR code.', main: ['#10186a'],
     make: () => {
       const NAVY = '#10186a', GOLD = '#b8902f', INK = '#1f2440', SOFT = '#5b6280'
       const SIG = (x: number, src: string): DesignEl => ({ id: id(), t: 'image', x, y: 150, w: 50, h: 14, src })
@@ -330,7 +331,7 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    key: 'portrait', name: 'Portrait — participation', about: 'A4 portrait with a coloured header, for seminars and webinars.',
+    key: 'portrait', name: 'Portrait — participation', about: 'A4 portrait with a coloured header, for seminars and webinars.', main: ['#0b4a73', '#123d5c'],
     make: () => {
       const NAVY = '#0b4a73', TEAL = '#21c1bd', INK = '#123d5c'
       return {
@@ -354,7 +355,69 @@ export const PRESETS: Preset[] = [
       }
     },
   },
+  {
+    key: 'internship', name: 'Internship', about: 'For course certificates of an internship or training programme: the programme, its dates, both signatures and the QR code.', main: ['#0f3d5e'],
+    make: () => {
+      const MAIN = '#0f3d5e', ACC = '#e8a33d', INK = '#1f2937', SOFT = '#5b6472'
+      const SIG = (x: number, src: string): DesignEl => ({ id: id(), t: 'image', x, y: 150, w: 50, h: 14, src })
+      return {
+        page: 'landscape', bg: '#ffffff', els: [
+          R(0, 0, 297, 12, { fill: MAIN }),
+          R(0, 12, 297, 2, { fill: ACC }),
+          R(0, 198, 297, 12, { fill: MAIN }),
+          LOGO(20, 24, 50),
+          QR(259, 22, 18, INK),
+          T(23.5, 62, 250, 'INTERNSHIP CERTIFICATE', 'extrabold', 12, MAIN, 'center', { track: 0.08 }),
+          T(23.5, 74, 250, 'This is to certify that', 'regular', 4.2, SOFT),
+          T(33.5, 94, 230, '{{name}}', 'bold', 12, INK),
+          L(88.5, 99, 120, 0, ACC, 0.6),
+          T(28.5, 110, 240, '[registration no. {{reg_no}}, ]has successfully completed an internship in', 'regular', 4, SOFT, 'center', { h: 6 }),
+          T(28.5, 122, 240, '{{course}}', 'bold', 7, MAIN),
+          T(28.5, 132, 240, 'from {{joined}} to {{ended}}[ at our {{branch}} branch][, working with {{tools}}].', 'regular', 3.8, SOFT, 'center', { h: 10, lineHeight: 1.4 }),
+          SIG(40, SIGN_AUTHORISED), L(40, 166, 50, 0, '#9aa5b1', 0.35), T(40, 171.5, 50, '{{authorised_title}}', 'semibold', 3.2, INK),
+          SIG(207, SIGN_HEAD), L(207, 166, 50, 0, '#9aa5b1', 0.35), T(207, 171.5, 50, '{{head_title}}', 'semibold', 3.2, INK),
+          T(98.5, 186, 100, 'Certificate No. {{cert_no}} · Issued {{issued}}', 'regular', 2.7, '#8090a0'),
+        ],
+      }
+    },
+  },
+  {
+    key: 'merit', name: 'Merit — quiz toppers', about: 'For the best scores in a quiz, test or competition: the score, a seal and a ribbon.', main: ['#7a1f3d'],
+    make: () => {
+      const MAIN = '#7a1f3d', GOLD = '#c9a227', INK = '#2a1a20', SOFT = '#6b5a60'
+      return {
+        page: 'landscape', bg: '#fffdf8', els: [
+          R(8, 8, 281, 194, { stroke: MAIN, sw: 1.2 }),
+          R(11, 11, 275, 188, { stroke: GOLD, sw: 0.5 }),
+          R(24, 0, 22, 70, { fill: MAIN }),
+          P(24, 58, 22, 24, 3, { fill: '#fffdf8' }), // the ribbon's notch
+          LOGO(118.5, 18, 60),
+          T(48.5, 56, 200, 'Certificate of Merit', 'serif', 14, MAIN),
+          T(48.5, 70, 200, 'AWARDED TO', 'medium', 3.6, SOFT, 'center', { track: 0.3 }),
+          T(38.5, 94, 220, '{{name}}', 'script', 18, INK),
+          L(88.5, 100, 120, 0, GOLD, 0.5),
+          T(53.5, 113, 190, 'for outstanding performance in the {{kind}} “{{event}}” held on {{date}}[, scoring {{score}} ({{percent}})].', 'regular', 3.9, SOFT, 'center', { lineHeight: 1.5, h: 16 }),
+          ...seal(148.5, 162, 13, GOLD, '#8a6d12'),
+          T(40, 172, 60, '{{date}}', 'medium', 3.6, INK), L(40, 175, 60, 0, INK, 0.3), T(40, 181, 60, 'Date', 'serif', 3.4, SOFT),
+          T(197, 172, 60, '{{speaker}}', 'medium', 3.6, INK), L(197, 175, 60, 0, INK, 0.3), T(197, 181, 60, 'Signature', 'serif', 3.4, SOFT),
+          T(20, 194, 120, 'Certificate No. {{cert_no}}', 'regular', 2.6, '#8a7a75', 'left'),
+          QR(266, 176, 14, INK),
+        ],
+      }
+    },
+  },
 ]
-export const presetDesign = (key: string) => (PRESETS.find((p) => p.key === key) ?? PRESETS[0]).make()
+/** The template's main colours swapped for `color` (the institute's), so it starts in their colours. */
+export function inColour(d: Design, main: string[] | undefined, color: string | null | undefined): Design {
+  if (!main?.length || !color || !/^#[0-9a-f]{6}$/i.test(color)) return d
+  const set = new Set(main.map((c) => c.toLowerCase()))
+  const swap = <T extends string | null | undefined>(c: T): T => (c && set.has(c.toLowerCase()) ? color : c) as T
+  return {
+    ...d, bg: swap(d.bg),
+    els: d.els.map((e) => ({ ...e, ...('fill' in e ? { fill: swap(e.fill) } : {}), ...('stroke' in e ? { stroke: swap(e.stroke) } : {}), ...('color' in e ? { color: swap(e.color) } : {}) }) as DesignEl),
+  }
+}
+/** A template's design, in the institute's colour when one is given. */
+export const presetDesign = (key: string, color?: string | null) => { const p = PRESETS.find((x) => x.key === key) ?? PRESETS[0]; return inColour(p.make(), p.main, color) }
 /** A fresh element id, unique within a design. */
 export const newElId = (d: Design) => { let i = d.els.length; while (d.els.some((e) => e.id === `n${i}`)) i++; return `n${i}` }

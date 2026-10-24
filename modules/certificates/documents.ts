@@ -23,6 +23,8 @@ export type CertDeskRow = {
   certificateId: string | null; certNo: string | null; issuedAt: string | null; verificationHash: string | null
   /** the latest certificate was revoked (by head office): why, when, by whom */
   revoked: { reason: string | null; at: string | null; by: string | null } | null
+  /** a franchise centre whose certificates head office issues */
+  byHeadOffice: boolean
   blockers: string[] // what still stops the certificate being issued (fees, attendance, capstone, course not finished)
 }
 export type CertDesk = { rows: CertDeskRow[]; total: number; counts: Record<CertStage | 'due' | 'clear' | 'ready' | 'thisMonth' | 'nextMonth' | 'all', number> }
@@ -80,7 +82,7 @@ export async function certificateDesk(tx: Tx, actor: Actor, q: { list: 'requests
     left join users vb on vb.id = ce.revoked_by`
 
   const rows = (await tx.execute<Record<string, unknown>>(sql`
-    select r.id, r.reg_no, trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name, p.phone, coalesce(co.title, r.custom_course_title, '—') as course, br.name as branch,
+    select r.id, r.reg_no, trim(p.first_name || ' ' || coalesce(p.last_name, '')) as name, p.phone, coalesce(co.title, r.custom_course_title, '—') as course, br.name as branch, (br.kind = 'franchise' and br.hq_certificates) as by_hq,
       coalesce(r.joining_date, r.enrollment_date)::text as joined, r.expected_end_date::text as expected_end, ${complete} as complete, r.project_certificate,
       r.total_fee, coalesce(fb.balance, 0)::bigint as balance, coalesce(fb.charged - fb.discounted - fb.balance, 0)::bigint as paid,
       (r.expected_end_date - ${q.today}::date) as days_left,
@@ -129,7 +131,7 @@ export async function certificateDesk(tx: Tx, actor: Actor, q: { list: 'requests
         certCourseTitle: (r.cert_course_title as string) ?? null, certTools: (r.cert_tools as string[]) ?? null,
         certificateId: (r.certificate_id as string) ?? null, certNo: (r.cert_no as string) ?? null, issuedAt: (r.issued_at as string) ?? null, verificationHash: (r.verification_hash as string) ?? null,
         revoked: r.is_revoked ? { reason: (r.revoked_reason as string) ?? null, at: (r.revoked_at as string) ?? null, by: (r.revoked_by as string) ?? null } : null,
-        blockers,
+        byHeadOffice: !!r.by_hq, blockers,
       }
     }),
   }

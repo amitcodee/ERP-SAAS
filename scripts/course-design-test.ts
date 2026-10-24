@@ -4,7 +4,7 @@
 import { sql } from 'drizzle-orm'
 import { pool } from '../lib/db/client'
 import { courseCertOps, type CourseCertInput } from '../lib/cert-course'
-import { presetDesign, SIGN_AUTHORISED, SIGN_HEAD } from '../lib/cert-design'
+import { PRESETS, presetDesign, SIGN_AUTHORISED, SIGN_HEAD } from '../lib/cert-design'
 import { designOps } from '../lib/cert-design-ops'
 import { getConfig, saveConfig } from '../lib/config/store'
 import { withOrgSystem } from '../lib/db/withTenant'
@@ -39,6 +39,15 @@ async function main() {
   const noFather = texts(designOps(course, { ...v, father: '' }, input.verifyUrl, input.brand))
   check('a missing detail drops its words ("son / daughter of" without a father)', !/daughter of/.test(noFather) && /registration no\. REG-2026/.test(noFather), noFather.slice(0, 160))
   check('a design may place the signatures (they pass the save check)', designInput.safeParse({ name: 'Course', design: course }).success)
+  const intern = texts(designOps(presetDesign('internship'), v, input.verifyUrl, input.brand))
+  check('the "Internship" design prints the programme and its dates', /INTERNSHIP CERTIFICATE/.test(intern) && /Diploma in Web Development/.test(intern) && /30 Sep 2026/.test(intern) && !/\{\{/.test(intern), intern.slice(0, 160))
+
+  // ---- templates start in the institute's colour ----
+  const colours = (d: ReturnType<typeof presetDesign>) => new Set([d.bg, ...d.els.flatMap((e) => ['fill' in e ? e.fill : null, 'stroke' in e ? e.stroke : null, 'color' in e ? e.color : null])].filter(Boolean).map((c) => String(c).toLowerCase()))
+  const own = colours(presetDesign('course', '#AA3300'))
+  check('a template takes the institute’s colour for its main colour', own.has('#aa3300') && !own.has('#10186a') && own.has('#b8902f'), [...own].join(' '))
+  check('… every template with a main colour does', PRESETS.filter((p) => p.main).every((p) => { const c = colours(presetDesign(p.key, '#aa3300')); return c.has('#aa3300') && p.main!.every((m) => !c.has(m)) }))
+  check('… and without one (or a bad one) it keeps its own', colours(presetDesign('course')).has('#10186a') && colours(presetDesign('course', 'red')).has('#10186a'))
 
   // ---- choosing the design ----
   const before = (await getConfig(ORG, 'course_certificate')).config

@@ -220,7 +220,7 @@ export function CertDesigner({ id, initialName, initial, readOnly }: { id: strin
   }
   const usePreset = (key: string) => {
     if (design.els.length && !confirm('Replace what is on the page with this template? (Undo brings it back.)')) return
-    change(presetDesign(key)); setSel(null)
+    change(presetDesign(key, brand.color)); setSel(null)
   }
 
   // ---- saving ----
@@ -281,7 +281,7 @@ export function CertDesigner({ id, initialName, initial, readOnly }: { id: strin
           <div className="cd-presets">
             {PRESETS.map((p) => (
               <button key={p.key} type="button" className="cd-preset" onClick={() => usePreset(p.key)} disabled={readOnly} title={p.about}>
-                <DesignSvg design={p.make()} values={SAMPLE_VALUES} style={{ width: '100%', display: 'block' }} />
+                <DesignSvg design={presetDesign(p.key, brand.color)} values={SAMPLE_VALUES} style={{ width: '100%', display: 'block' }} />
                 <span>{p.name}</span>
               </button>
             ))}

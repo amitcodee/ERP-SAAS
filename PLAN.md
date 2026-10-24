@@ -366,10 +366,10 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
      campaigns, Lead distribution, Random call, Transfers… A new institute starts with the core (Leads, Admissions,
      Fees, Classes, Certificates) and turns the rest on; the menu shows only what is on.
    - Set Up asks "one centre or several / franchises?" and opens the matching modules.
-2. [~] **Franchises.** Done: own / franchise, partner and terms, receipts in the partner's name, the monthly royalty
+2. [x] **Franchises.** Done: own / franchise, partner and terms, receipts in the partner's name, the monthly royalty
    statement and payments, the partner's login seeing only its centre. Part 5: course fee ranges and inviting the partner.
-   Still to do: certificates of franchises approved by head office; a customised course at a franchise is not bound by a
-   range yet.
+   Part 6: certificates of franchises issued by head office (or by the centre, if head office allows). Not bound yet: a
+   customised course at a franchise has no fee range.
    - A branch is the institute's own or a franchise. A franchise has its partner (legal name, GSTIN, owner, agreement
      dates) and its terms: a royalty percent of fees collected, or a fixed monthly fee.
    - A franchise partner login sees only its own centres (one or several), never head office or other partners.
@@ -379,10 +379,10 @@ the platform console. What is missing is below, in order. Each step: a `scripts/
    - Certificates are issued in the brand's name; head office approves them (the requests flow).
    - Every month: the royalty statement per franchise (fees collected × percent, or the fixed fee), what was paid,
      what is due; a league table of centres.
-3. [ ] **Their own brand, everywhere.**
+3. [~] **Their own brand, everywhere.**
    - [x] Their own domain from Settings, with the DNS records to add and a check (part 4).
-   - Certificate templates: a small gallery of starting designs (course, internship, workshop, merit) to copy and
-     change; the logo, colour, signatures and seal filled in from the brand.
+   - [x] Certificate templates: a gallery of starting designs (course, internship, workshop / seminar, merit, …) to
+     copy and change, in the institute's colour, with its logo and signatures (part 6).
    - E-mails, receipts, ID cards, the student portal and the public pages in their colour and logo (done), checked
      end to end for a new institute.
 4. [ ] **Big institutes.**
