@@ -851,7 +851,7 @@ async function main() {
       const ctx = await browser.newContext(); const w = await ctx.newPage(); w.setDefaultTimeout(20000)
       const slug = `e2e-${RUN}`, email = `owner.${RUN}@e2e-signup.dev`, pw = `Signup-${RUN}-pass`
       await ok('the public site: home and pricing from the plans; it does not exist on an institute’s address', async () => {
-        await w.goto(`${WBASE}/`); await expectText(w, 'Start free trial')
+        await w.goto(`${WBASE}/`); await expectText(w, 'Start now')
         await w.goto(`${WBASE}/pricing`); await expectText(w, 'Growth'); await expectText(w, '₹2,499')
         const r = await w.request.get(`${BASE}/site/pricing`)
         if (r.status() !== 404) throw new Error(`the site on an institute host: ${r.status()}`)

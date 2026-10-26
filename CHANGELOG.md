@@ -2,6 +2,23 @@
 
 Newest first. One entry per phase or task; the plan and its status live in `PLAN.md`.
 
+## The public site redone in a clean business-software look, starting from sign-up (2026-10-26)
+
+- Modelled on odoo.com's style (not its brand), in a yellow palette: white pages and light grey bands, big near-black
+  Inter headings, a warm yellow brand colour (#ffc21a, near-black text on it; deep amber #a36500 for coloured words on
+  white), teal only for small ticks and the handwritten notes, a yellow brush stroke under the words that matter,
+  handwritten notes with a curved arrow (Caveat), yellow / light-grey buttons, a dark footer.
+- **Sign-up** (also the code and "find my institute" pages): a plain top bar, a grey page, the steps (details → e-mail
+  code → set up), a centred heading, the form in one white card in numbered sections (your institute, your login, plan
+  after the trial), the full web address shown under the field as it is typed and checked, the password with Show /
+  Hide and a strength meter, and under the card every app the trial opens as a tile grid.
+- **Home**: a centred hero ("All your institute on one platform", "Start now – It's free" / "Talk to us", a handwritten
+  note on the free trial), a grid of 18 colourful app tiles (`APPS` in components/site/content.ts), who it is for,
+  alternating feature rows with screen pictures on soft colour panels, the feature grid, integrations, safety (dark),
+  three steps, FAQ, a yellow closing band with a black button. The top bar: Apps, Pricing, Guides, Help, Contact, Sign in, "Try it free".
+- Inner pages get a grey heading band; FAQ and guides are centred open/close lists; pricing and features restyled.
+- Checked at 1440px and 390px (no sideways scroll, nothing clipped).
+
 ## The public site's new look (2026-10-24)
 
 - The platform's public site (home, features, pricing, FAQ, sign-up and the rest) has a fresh, light look: a green

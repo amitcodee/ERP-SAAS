@@ -1,6 +1,6 @@
 // What the product does, said once: the institute's own home page (/support) and the platform's marketing site both
 // show these.
-import { BadgeCheck, Briefcase, CalendarCheck, ChartColumn, ClipboardList, FileCheck2, Fingerprint, LifeBuoy, Lock, Megaphone, Mic, Palette, PhoneCall, QrCode, ShieldCheck, UserPlus, Wallet } from 'lucide-react'
+import { BadgeCheck, Briefcase, Building2, CalendarCheck, ChartColumn, ClipboardCheck, ClipboardList, FileCheck2, FileSpreadsheet, Fingerprint, GraduationCap, LifeBuoy, Lock, Megaphone, MessageCircle, Mic, NotebookPen, Palette, PhoneCall, QrCode, Receipt, ShieldCheck, UserPlus, Users, Wallet } from 'lucide-react'
 
 export const JOURNEY = [
   { icon: PhoneCall, title: 'Call or lead', text: 'Walk-in, phone or website form' },
@@ -41,4 +41,26 @@ export const siteFaq = (days: number, approval: boolean) => [
   { q: 'What happens if a payment fails?', a: 'We retry and remind you for 7 days. After that your institute is paused until the payment is made; nothing is deleted.' },
   { q: 'Can we cancel?', a: 'Any time, from Settings. You keep access until the end of the period you paid for and can download your data.' },
   { q: 'Do you support several branches?', a: 'Yes. Head office sees every branch; each branch sees its own. The number of branches depends on the plan.' },
+]
+
+/** The product as a set of "apps", each with its colour: the home page's tile grid and the sign-up page. */
+export const APPS = [
+  { icon: PhoneCall, label: 'Enquiries', color: '#e46f4e' },
+  { icon: UserPlus, label: 'Admissions', color: '#714b67' },
+  { icon: Wallet, label: 'Fees', color: '#017e84' },
+  { icon: Receipt, label: 'Receipts', color: '#2e9e6a' },
+  { icon: CalendarCheck, label: 'Batches', color: '#f0a023' },
+  { icon: ClipboardCheck, label: 'Attendance', color: '#3d7bd9' },
+  { icon: NotebookPen, label: 'Tests', color: '#9a4fc0' },
+  { icon: BadgeCheck, label: 'Certificates', color: '#d4475f' },
+  { icon: Palette, label: 'Designer', color: '#e0792b' },
+  { icon: Briefcase, label: 'Internships', color: '#5466c9' },
+  { icon: Mic, label: 'Seminars', color: '#c2508f' },
+  { icon: MessageCircle, label: 'WhatsApp', color: '#25a35a' },
+  { icon: LifeBuoy, label: 'Help desk', color: '#1f8fa8' },
+  { icon: ChartColumn, label: 'Reports', color: '#714b67' },
+  { icon: Building2, label: 'Branches', color: '#4b6584' },
+  { icon: Users, label: 'Parents', color: '#e46f4e' },
+  { icon: GraduationCap, label: 'Student portal', color: '#017e84' },
+  { icon: FileSpreadsheet, label: 'Import', color: '#2e9e6a' },
 ]
